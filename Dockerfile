@@ -4,8 +4,10 @@ WORKDIR /app
 
 COPY . .
 
-RUN apt-get update && apt-get install -y git unzip \
-    && curl -sS https://getcomposer.org/installer | php \
+RUN apt-get update && apt-get install -y git unzip libjpeg-dev libpng-dev \
+    && docker-php-ext-install exif
+
+RUN curl -sS https://getcomposer.org/installer | php \
     && mv composer.phar /usr/local/bin/composer
 
 RUN composer install --no-dev --optimize-autoloader
