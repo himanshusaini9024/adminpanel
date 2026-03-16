@@ -9,6 +9,7 @@
   <div id="wrapper">
 
     <!-- Sidebar -->
+       @include('backend.layouts.Sidebar')
     <!-- End of Sidebar -->
 
     <!-- Content Wrapper -->
