@@ -19,6 +19,8 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ResetPasswordController;
+use App\Http\Controllers\Admin\CloudinaryController;
+use Illuminate\Http\Request;
 
 use UniSharp\LaravelFilemanager\Lfm;
 
@@ -231,6 +233,46 @@ Route::group(['prefix'=>'admin','middleware'=>['auth','admin']],function(){
     Route::get('/notifications',[NotificationController::class,'index'])->name('all.notification');
     Route::get('/notification/{id}',[NotificationController::class,'show'])->name('admin.notification');
     Route::delete('/notification/{id}',[NotificationController::class,'delete'])->name('notification.delete');
+    // routes/web.php
+Route::get('/cloudinary-images', [App\Http\Controllers\Admin\CloudinaryController::class, 'index']);
+
+Route::get('/cloudinary-signature', function (Request $request) {
+
+    $timestamp = time();
+    $folder = $request->query('folder');
+    $params = [
+        'timestamp' => $timestamp,
+        'folder' => $folder,
+
+        // 🔥 MUST MATCH FRONTEND
+      'use_filename' => true,        
+        'unique_filename' => false,
+        'source' => 'uw'
+    ];
+
+    ksort($params);
+
+    $toSign = '';
+    foreach ($params as $key => $value) {
+        if (is_bool($value)) {
+            $value = $value ? 'true' : 'false';
+        }
+        $toSign .= $key . '=' . $value . '&';
+    }
+
+    $toSign = rtrim($toSign, '&');
+    $signature = sha1($toSign . env('CLOUDIARY_API_SECRECTKEY'));
+
+
+    
+
+    return response()->json([
+        'signature' => $signature,
+        'timestamp' => $timestamp,
+        'apiKey' => env('CLOUDIARY_API_KEY'),
+        'cloudName' => 'ds48lk80f'
+    ]);
+});
 
 });
 

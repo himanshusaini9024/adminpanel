@@ -123,7 +123,7 @@ class ProductController extends Controller
             'title' => 'required|string',
             'summary' => 'required|string',
             'description' => 'nullable|string',
-            'photo' => 'required|string',
+            'photo' => 'required',
             'size' => 'nullable',
             'stock' => 'required|numeric',
             'cat_id' => 'required|exists:categories,id',
@@ -143,6 +143,12 @@ class ProductController extends Controller
         } else {
             $validatedData['size'] = '';
         }
+
+        // remove base URL from photo
+        $baseUrl = "https://res.cloudinary.com/ds48lk80f/";
+
+        $imagepath = str_replace($baseUrl, '', $validatedData['photo']);
+        $validatedData['photo'] = serialize($imagepath);
 
         $status = $product->update($validatedData);
 
