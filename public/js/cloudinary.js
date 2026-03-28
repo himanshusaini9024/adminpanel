@@ -34,7 +34,6 @@ function initCloudinary(inputId, folderBase = "ecommerce") {
                     if (!error && result && result.event === "success") {
                          let url = result.info.secure_url;
 
-                        // 🔥 ADD NEW INPUT FIELD
                         addImageField(url);
                     }
                 });
@@ -86,15 +85,16 @@ function selectImage(inputId, url) {
 function addImageField(url) {
 
     let container = document.getElementById('image_container');
-
+    let index = container.children.length;
     let html = `
         <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
             
             <!-- Hidden input -->
-            <input type="text" name="photo[]" value="${url}" class="form-control">
+            <input type="text"  name="photo[${index}][url]"  value="${url}" class="form-control">
 
             <!-- Preview -->
             <img src="${url}" style="height:60px;">
+            <input type="text" name="photo[${index}][alt]" value="" class ="form-control">
 
             <!-- Remove button -->
             <button type="button" onclick="this.parentElement.remove()" class="btn btn-danger">

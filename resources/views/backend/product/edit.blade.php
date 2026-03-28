@@ -1,6 +1,49 @@
 @extends('backend.layouts.master')
 
 @section('main-content')
+<style>
+.custom-select {
+    position: relative;
+    width: 100%;
+}
+
+.select-btn {
+    padding: 10px;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    background: #fff;
+}
+
+.options {
+    position: absolute;
+    width: 100%;
+    max-height: 200px; /* ✅ Scroll */
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    background: #fff;
+    display: none;
+    z-index: 999;
+}
+
+.option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    cursor: pointer;
+}
+
+.option:hover {
+    background: #f5f5f5;
+}
+
+.color-box {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    border: 1px solid #ccc;
+}
+</style>
 
 <div class="card">
     <h5 class="card-header">Edit Product</h5>
@@ -47,7 +90,8 @@
                     <option value="">--Select any category--</option>
                     @foreach($categories as $key=>$cat_data)
                     <option value='{{$cat_data->id}}' {{(($product->cat_id==$cat_data->id)? 'selected' : '')}}>
-                        {{$cat_data->title}}</option>
+                        {{$cat_data->title}}
+                    </option>
                     @endforeach
                 </select>
             </div>
@@ -104,7 +148,8 @@
                     <option value="">--Select Brand--</option>
                     @foreach($brands as $brand)
                     <option value="{{$brand->id}}" {{(($product->brand_id==$brand->id)? 'selected':'')}}>
-                        {{$brand->title}}</option>
+                        {{$brand->title}}
+                    </option>
                     @endforeach
                 </select>
             </div>
@@ -120,6 +165,36 @@
             </div>
 
             <div class="form-group">
+                <label>Select Color</label>
+
+                <div class="custom-select" id="colorDropdown">
+                    <div class="select-btn">Select Color</div>
+
+                    <div class="options">
+                        @php
+                        $colors = [
+                        'red','blue','yellow','green','orange','purple','cyan','magenta',
+                        'lime','teal','indigo','violet','black','white','gray','silver',
+                        'charcoal','beige','ivory','pink','brown','gold','turquoise',
+                        'tan','olive','rust','sage','navy','maroon','coral','plum','lavender'
+                        ];
+                        @endphp
+
+                        @foreach($colors as $color)
+                        <div class="option" data-value="{{ $color }}">
+                            <span class="color-box" style="background: {{ $color }}"></span>
+                            {{ ucfirst($color) }}
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                <!-- Hidden input for form submit -->
+                <input type="hidden" name="color" id="selectedColor" value="{{ $product->color }}">
+            </div>
+
+
+            <div class="form-group">
                 <label for="stock">Quantity <span class="text-danger">*</span></label>
                 <input id="quantity" type="number" name="stock" min="0" placeholder="Enter quantity"
                     value="{{$product->stock}}" class="form-control">
@@ -133,7 +208,6 @@
                 </label>
 
                 <div class="input-group">
-                    <input id="thumbnail" class="form-control" type="text" name="photo" value="{{$product->photo}}">
 
                     <div class="form-group">
                         <label class="col-form-label">
@@ -153,19 +227,21 @@
                         @enderror
                     </div>
                 </div>
-            <input type="hidden" name="photo" id="photo">
                 <!-- Preview -->
                 <div id="holder" style="margin-top:15px;">
                     @if($product->photo)
                     @php
-                    $images = unserialize($product->photo);
+                    $images = json_decode($product->photo);
                     @endphp
                     @foreach($images as $index => $img)
+
+
                     <div class="image-item" style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
 
                         <!-- Image -->
-                        <img src="{{ config('app.cloud_url').$img }}" style="height:80px;">
 
+                        <img src="{{ config('app.cloud_url').$img->url }}" alt="{{  $img->alt}}" style="height:80px;">
+                        <input type="text" name="alt" value="{{  $img->alt}}">
                         <!-- Remove button -->
                         <button type="button" class="btn btn-danger btn-sm" onclick="removeExistingImage({{ $index }})">
                             Remove
@@ -173,6 +249,8 @@
 
                     </div>
                     @endforeach
+                        <input type="hidden" name="photo " value="{{ $product->photo}}" class="form-control">
+
                     @endif
                 </div>
 
@@ -225,68 +303,110 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.1/js/bootstrap-select.min.js"></script>
 
 <script>
-initCloudinary('thumbnail', 'ecommerce');
+    initCloudinary('thumbnail', 'ecommerce');
 
-$(document).ready(function() {
-    $('#summary').summernote({
-        placeholder: "Write short description.....",
-        tabsize: 2,
-        height: 150
+    $(document).ready(function() {
+        $('#summary').summernote({
+            placeholder: "Write short description.....",
+            tabsize: 2,
+            height: 150
+        });
     });
-});
-$(document).ready(function() {
-    $('#description').summernote({
-        placeholder: "Write detail Description.....",
-        tabsize: 2,
-        height: 150
+    $(document).ready(function() {
+        $('#description').summernote({
+            placeholder: "Write detail Description.....",
+            tabsize: 2,
+            height: 150
+        });
     });
-});
 </script>
 
 <script>
-var child_cat_id = '{{$product->child_cat_id}}';
-// alert(child_cat_id);
-$('#cat_id').change(function() {
-    var cat_id = $(this).val();
+    var child_cat_id = '{{$product->child_cat_id}}';
+    // alert(child_cat_id);
+    $('#cat_id').change(function() {
+        var cat_id = $(this).val();
 
-    if (cat_id != null) {
-        // ajax call
-        $.ajax({
-            url: "/admin/category/" + cat_id + "/child",
-            type: "POST",
-            data: {
-                _token: "{{csrf_token()}}"
-            },
-            success: function(response) {
-                if (typeof(response) != 'object') {
-                    response = $.parseJSON(response);
-                }
-                var html_option = "<option value=''>--Select any one--</option>";
-                if (response.status) {
-                    var data = response.data;
-                    if (response.data) {
-                        $('#child_cat_div').removeClass('d-none');
-                        $.each(data, function(id, title) {
-                            html_option += "<option value='" + id + "' " + (child_cat_id ==
-                                id ? 'selected ' : '') + ">" + title + "</option>";
-                        });
-                    } else {
-                        console.log('no response data');
+        if (cat_id != null) {
+            // ajax call
+            $.ajax({
+                url: "/admin/category/" + cat_id + "/child",
+                type: "POST",
+                data: {
+                    _token: "{{csrf_token()}}"
+                },
+                success: function(response) {
+                    if (typeof(response) != 'object') {
+                        response = $.parseJSON(response);
                     }
-                } else {
-                    $('#child_cat_div').addClass('d-none');
+                    var html_option = "<option value=''>--Select any one--</option>";
+                    if (response.status) {
+                        var data = response.data;
+                        if (response.data) {
+                            $('#child_cat_div').removeClass('d-none');
+                            $.each(data, function(id, title) {
+                                html_option += "<option value='" + id + "' " + (child_cat_id ==
+                                    id ? 'selected ' : '') + ">" + title + "</option>";
+                            });
+                        } else {
+                            console.log('no response data');
+                        }
+                    } else {
+                        $('#child_cat_div').addClass('d-none');
+                    }
+                    $('#child_cat_id').html(html_option);
+
                 }
-                $('#child_cat_id').html(html_option);
+            });
+        } else {
 
-            }
-        });
-    } else {
+        }
 
+    });
+    if (child_cat_id != null) {
+        $('#cat_id').change();
     }
 
+document.addEventListener("DOMContentLoaded", function () {
+    const dropdown = document.getElementById("colorDropdown");
+    const btn = dropdown.querySelector(".select-btn");
+    const options = dropdown.querySelector(".options");
+    const hiddenInput = document.getElementById("selectedColor");
+
+    // ✅ SET DEFAULT VALUE (EDIT PAGE FIX)
+    const defaultValue = hiddenInput.value;
+
+    if (defaultValue) {
+        const selectedOption = dropdown.querySelector(`[data-value="${defaultValue}"]`);
+        if (selectedOption) {
+            btn.innerHTML = selectedOption.innerHTML;
+        }
+    }
+
+    // Toggle dropdown
+    btn.addEventListener("click", function () {
+        options.style.display =
+            options.style.display === "block" ? "none" : "block";
+    });
+
+    // Select option
+    dropdown.querySelectorAll(".option").forEach(option => {
+        option.addEventListener("click", function () {
+            const value = this.dataset.value;
+
+            btn.innerHTML = this.innerHTML;
+            hiddenInput.value = value;
+
+            options.style.display = "none";
+        });
+    });
+
+    // Close when clicking outside
+    document.addEventListener("click", function (e) {
+        if (!dropdown.contains(e.target)) {
+            options.style.display = "none";
+        }
+    });
 });
-if (child_cat_id != null) {
-    $('#cat_id').change();
-}
 </script>
 @endpush

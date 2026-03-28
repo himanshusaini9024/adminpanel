@@ -46,7 +46,6 @@ class ProductController extends Controller
             'title' => 'required|string',
             'summary' => 'required|string',
             'description' => 'nullable|string',
-            'photo' => 'required|string',
             'size' => 'nullable',
             'stock' => 'required|numeric',
             'cat_id' => 'required|exists:categories,id',
@@ -117,7 +116,9 @@ class ProductController extends Controller
      */
     public function update(Request $request, $id)
     {
+
         $product = Product::findOrFail($id);
+        dd($request);die;
 
         $validatedData = $request->validate([
             'title' => 'required|string',
@@ -126,6 +127,7 @@ class ProductController extends Controller
             'photo' => 'required',
             'size' => 'nullable',
             'stock' => 'required|numeric',
+            'color' => 'required|string',
             'cat_id' => 'required|exists:categories,id',
             'child_cat_id' => 'nullable|exists:categories,id',
             'is_featured' => 'sometimes|in:1',
@@ -143,13 +145,20 @@ class ProductController extends Controller
         } else {
             $validatedData['size'] = '';
         }
+     
 
         // remove base URL from photo
+
+
         $baseUrl = "https://res.cloudinary.com/ds48lk80f/";
 
-        $imagepath = str_replace($baseUrl, '', $validatedData['photo']);
-        $validatedData['photo'] = serialize($imagepath);
+        $photos = $validatedData['photo'];
 
+        foreach ($photos as $key => $photo) {
+            $photos[$key]['url'] = str_replace($baseUrl, '', $photo['url']);
+        }
+
+        $validatedData['photo'] = json_encode($photos);
         $status = $product->update($validatedData);
 
         $message = $status

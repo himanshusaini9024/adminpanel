@@ -2,7 +2,10 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\HomepageController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\UserController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -14,6 +17,18 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:api')->get('/user', function (Request $request) {
-    return $request->user();
+Route::get('/justproduct',[HomepageController::class,'index']);
+
+Route::get('/category/{slug}',[CategoryController::class,'show']);
+
+Route::post('/send-otp', [AuthController::class, 'sendOtp']);
+Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
+Route::post('/login', [AuthController::class, 'login']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/user', [UserController::class, 'getProfile']);
+    Route::post('/user/update-profile', [UserController::class, 'updateProfile']);
+    Route::post('/user/update-password', [UserController::class, 'updatePassword']);
+    Route::post('/user/update-address', [UserController::class, 'updateAddress']);
 });
+
