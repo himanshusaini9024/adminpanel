@@ -48,6 +48,7 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'size' => 'nullable',
             'stock' => 'required|numeric',
+            'color' => 'required|string',
             'cat_id' => 'required|exists:categories,id',
             'brand_id' => 'nullable|exists:brands,id',
             'child_cat_id' => 'nullable|exists:categories,id',
@@ -63,10 +64,13 @@ class ProductController extends Controller
         $validatedData['is_featured'] = $request->input('is_featured', 0);
 
         if ($request->has('size')) {
-            $validatedData['size'] = implode(',', $request->input('size'));
+            $validatedData['size'] = is_array($request->size)
+                ? implode(',', $request->size)
+                : $request->size;
         } else {
             $validatedData['size'] = '';
         }
+
 
         $product = Product::create($validatedData);
 
@@ -118,7 +122,6 @@ class ProductController extends Controller
     {
 
         $product = Product::findOrFail($id);
-        dd($request);die;
 
         $validatedData = $request->validate([
             'title' => 'required|string',
@@ -145,7 +148,7 @@ class ProductController extends Controller
         } else {
             $validatedData['size'] = '';
         }
-     
+
 
         // remove base URL from photo
 

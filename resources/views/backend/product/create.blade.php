@@ -1,6 +1,49 @@
 @extends('backend.layouts.master')
 
 @section('main-content')
+<style>
+.custom-select {
+    position: relative;
+    width: 100%;
+}
+
+.select-btn {
+    padding: 10px;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    background: #fff;
+}
+
+.options {
+    position: absolute;
+    width: 100%;
+    max-height: 200px; /* ✅ Scroll */
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    background: #fff;
+    display: none;
+    z-index: 999;
+}
+
+.option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    cursor: pointer;
+}
+
+.option:hover {
+    background: #f5f5f5;
+}
+
+.color-box {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    border: 1px solid #ccc;
+}
+</style>
 
 <div class="card">
     <h5 class="card-header">Add Product</h5>
@@ -107,6 +150,35 @@
         </div>
 
         <div class="form-group">
+                <label>Select Color</label>
+
+                <div class="custom-select" id="colorDropdown">
+                    <div class="select-btn">Select Color</div>
+
+                    <div class="options">
+                        @php
+                        $colors = [
+                        'red','blue','yellow','green','orange','purple','cyan','magenta',
+                        'lime','teal','indigo','violet','black','white','gray','silver',
+                        'charcoal','beige','ivory','pink','brown','gold','turquoise',
+                        'tan','olive','rust','sage','navy','maroon','coral','plum','lavender'
+                        ];
+                        @endphp
+
+                        @foreach($colors as $color)
+                        <div class="option" data-value="{{ $color }}">
+                            <span class="color-box" style="background: {{ $color }}"></span>
+                            {{ ucfirst($color) }}
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                <!-- Hidden input for form submit -->
+                <input type="hidden" name="color" id="selectedColor" value="{{ old('color') }}">
+            </div>
+
+        <div class="form-group">
           <label for="stock">Quantity <span class="text-danger">*</span></label>
           <input id="quantity" type="number" name="stock" min="0" placeholder="Enter quantity"  value="{{old('stock')}}" class="form-control">
           @error('stock')
@@ -207,5 +279,47 @@
     else{
     }
   })
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const dropdown = document.getElementById("colorDropdown");
+    const btn = dropdown.querySelector(".select-btn");
+    const options = dropdown.querySelector(".options");
+    const hiddenInput = document.getElementById("selectedColor");
+
+    // ✅ SET DEFAULT VALUE (EDIT PAGE FIX)
+    const defaultValue = hiddenInput.value;
+
+    if (defaultValue) {
+        const selectedOption = dropdown.querySelector(`[data-value="${defaultValue}"]`);
+        if (selectedOption) {
+            btn.innerHTML = selectedOption.innerHTML;
+        }
+    }
+
+    // Toggle dropdown
+    btn.addEventListener("click", function () {
+        options.style.display =
+            options.style.display === "block" ? "none" : "block";
+    });
+
+    // Select option
+    dropdown.querySelectorAll(".option").forEach(option => {
+        option.addEventListener("click", function () {
+            const value = this.dataset.value;
+
+            btn.innerHTML = this.innerHTML;
+            hiddenInput.value = value;
+
+            options.style.display = "none";
+        });
+    });
+
+    // Close when clicking outside
+    document.addEventListener("click", function (e) {
+        if (!dropdown.contains(e.target)) {
+            options.style.display = "none";
+        }
+    });
+});
 </script>
 @endpush

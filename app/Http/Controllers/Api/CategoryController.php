@@ -9,42 +9,77 @@ use Illuminate\Support\Facades\DB;
 class CategoryController extends Controller
 {
 
-    public function show($slug)
+
+    public function show(Request $request, $slug)
     {
-        $categorydata = [];
+        // ✅ Get query params
+        $size = $request->query('size');
+        $color = $request->query('color');
+        $sort = $request->query('sort');
 
-      $category = DB::select("
-        SELECT categories.*, products.*
-        FROM categories
-        LEFT JOIN products 
-            ON products.cat_id = categories.id
-            AND products.slug IS NOT NULL
-        WHERE categories.slug = ?
-    ", [$slug]);
+        // ✅ Base Query
+        $products = DB::table('products')
+            ->join('categories', 'products.cat_id', '=', 'categories.id')
+            ->where('categories.slug', $slug)
+            ->whereNotNull('products.slug')
+            ->select(
+                'products.id',
+                'products.title as name',
+                'products.slug',
+                'products.cat_id',
+                'products.price as currentPrice',
+                'products.status',
+                'products.size',
+                'products.color',
+                'products.photo'
+            );
 
-    if ($category) {
-        foreach ($category as $key => $value) {
-            $imgae = json_decode($value->photo, true);
-            $categorydata[] = [
-                'id' => $value->id,
-                'name'=> $value->title,
-                'slug'=> $value->slug,
-                'cat_id'=> $value->cat_id,
-                'currentPrice'=> $value->price,
-                'status'=> $value->status,
-                'size'=> $value->size,
-                'imgae' => $imgae
-                
-            ];
-
+        // ✅ FILTER: Size
+        if ($size) {
+            $products->where('products.size', 'LIKE', "%$size%");
         }
-        
-    }
-    
 
-    
-    return response()->json([
-        'category' => $categorydata
-    ]);
+        // ✅ FILTER: Color
+        if ($color) {
+            $products->where('products.color', $color);
+        }
+
+        // ✅ SORTING
+        if ($sort === 'low') {
+            $products->orderBy('products.price', 'asc');
+        } elseif ($sort === 'high') {
+            $products->orderBy('products.price', 'desc');
+        } else {
+            $products->orderBy('products.id', 'desc'); // default
+        }
+
+        // ✅ GET DATA
+        $result = $products->get();
+
+        // ✅ FORMAT RESPONSE
+        $formatted = [];
+
+        foreach ($result as $item) {
+            $images = json_decode($item->photo ?? '[]', true);
+
+            if (!is_array($images)) {
+                $images = [];
+            }
+            $formatted[] = [
+                'id' => $item->id,
+                'name' => $item->name,
+                'slug' => $item->slug,
+                'cat_id' => $item->cat_id,
+                'currentPrice' => $item->currentPrice,
+                'status' => $item->status,
+                'size' => $item->size,
+                'color' => $item->color,
+                'image' => $images ?? [],
+            ];
+        }
+
+        return response()->json([
+            'category' => $formatted
+        ]);
     }
 }
