@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\HomepageController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\ProductController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -18,8 +19,10 @@ use App\Http\Controllers\Api\UserController;
 */
 
 Route::get('/justproduct',[HomepageController::class,'index']);
+Route::get('/search', [HomepageController::class, 'search']);
 
 Route::get('/category/{slug}',[CategoryController::class,'show']);
+Route::get('/product/{pid}',[ProductController::class, 'show']);
 
 Route::post('/send-otp', [AuthController::class, 'sendOtp']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
