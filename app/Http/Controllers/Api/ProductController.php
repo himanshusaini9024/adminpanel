@@ -20,8 +20,8 @@ class ProductController extends Controller
 
         // ✅ Decode JSON fields
         $images = json_decode($product->photo, true) ?? [];
-        $sizes  = json_decode($product->size, true) ?? [];
-        $colors = json_decode($product->color, true) ?? [];
+        $sizes  = $product->size;
+        $colors = $product->color;
 
         // ✅ Reviews
         $reviews = $product->getReview ?? collect();
