@@ -11,17 +11,16 @@ use Laravel\Sanctum\HasApiTokens;
 
 class Customer extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
+    protected $table = 'customers'; // ✅ important
+
     protected $primaryKey = 'customer_id';
     public $incrementing = true;
     protected $keyType = 'int';
+
+    public $timestamps = false;
+
     protected $fillable = [
         'first_name',
         'last_name',
@@ -31,29 +30,20 @@ class Customer extends Authenticatable
         'address',
         'zip',
         'state',
-        'city,'
-    ];
-    public $timestamps = false; // default
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
-    protected $hidden = [
-        'password',
-        'remember_token',
+        'city' // ✅ fixed
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
+    protected $hidden = [
+        'password',
+    ];
+
+    protected $casts = [
+        'password' => 'hashed',
+    ];
+
+    // ✅ IMPORTANT: Address relation
+    public function addresses()
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->hasMany(CustomerAddress::class, 'customer_id');
     }
 }

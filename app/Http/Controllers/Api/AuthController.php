@@ -41,7 +41,7 @@ class AuthController extends Controller
         // ];
         $fields = [
             "route" => "q",   // ✅ IMPORTANT CHANGE
-            "message" => "Your OTP is $otp",
+            "message"  => "Your One-Time Password (OTP) for login is $otp. This code is valid for five minutes. For your security, please do not share this OTP with anyone.",
             "numbers" => $request->mobile,
         ];
 

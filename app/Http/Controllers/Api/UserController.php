@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Api;
 
 
@@ -53,20 +54,49 @@ class UserController extends Controller
 
     public function updateAddress(Request $request)
     {
-       
+
         $user = $request->user();
         $request->validate([
             'city' => 'required|string',
         ]);
 
-         $user->update([
-        'address' => $request->line1 . ' ' . $request->line2 . ' ' . $request->city . ' ' . $request->state,
-        'city'  => $request->city,
-        'state' => $request->state,
-        'zip'   => $request->zip
-    ]);
+        $user->update([
+            'address' => $request->line1 . ' ' . $request->line2 . ' ' . $request->city . ' ' . $request->state,
+            'city'  => $request->city,
+            'state' => $request->state,
+            'zip'   => $request->zip
+        ]);
 
 
         return response()->json(['message' => 'Address updated']);
+    }
+
+    public function saveCart(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'Unauthenticated'
+            ], 401);
+        }
+
+        $cart = $request->input('cart');
+
+        $user->cart = json_encode($cart);
+        $user->save();
+
+        return response()->json([
+            'message' => 'Cart saved successfully'
+        ]);
+    }
+
+    public function getCart(Request $request)
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'cart' => json_decode($user->cart, true) ?? []
+        ]);
     }
 }
