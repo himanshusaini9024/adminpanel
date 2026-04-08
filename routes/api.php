@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\HomepageController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\CustomerAddressController;
 /*
 |--------------------------------------------------------------------------
@@ -36,8 +38,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/user/update-address', [UserController::class, 'updateAddress']);
     Route::post('/save-cart', [UserController::class, 'saveCart']);
     Route::get('/get-cart', [UserController::class, 'getCart']);
-     Route::get('/addresses', [CustomerAddressController::class, 'index']);
+    Route::get('/addresses', [CustomerAddressController::class, 'index']);
     Route::post('/addresses', [CustomerAddressController::class, 'store']);
     Route::put('/addresses/{id}/default', [CustomerAddressController::class, 'setDefault']);
+    Route::post('/razorpay/create-order', [PaymentController::class, 'createRazorpayOrder']);
+    Route::post('/razorpay/verify', [PaymentController::class, 'verifyPayment']);
     Route::delete('/addresses/{id}', [CustomerAddressController::class, 'destroy']);
+    Route::post('/orders', [OrderController::class, 'store']);
+    Route::get('/orders/latest', [OrderController::class, 'latest']);
+    Route::get('/orders', [OrderController::class, 'index']);
 });
