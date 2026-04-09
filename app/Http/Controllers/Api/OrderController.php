@@ -46,7 +46,7 @@ class OrderController extends Controller
             'address2' => $request->address2,
             'state' => $request->state,
             'country' => 'IND',
-            'email' => 'test@gmail.com',
+            'email' => $request->email,
             'post_code' => $request->pincode,
         ]);
 
