@@ -13,6 +13,7 @@ class OrderItem extends Model
         'price',
         'quantity',
         'size',
-        'color'
+        'color',
+        'image',
     ];
 }

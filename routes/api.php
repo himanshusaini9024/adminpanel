@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\CustomerAddressController;
 /*
@@ -26,11 +27,12 @@ Route::get('/search', [HomepageController::class, 'search']);
 
 Route::get('/category/{slug}', [CategoryController::class, 'show']);
 Route::get('/product/{pid}', [ProductController::class, 'show']);
+Route::post('/contact', [ContactController::class, 'store']);
 
 Route::post('/send-otp', [AuthController::class, 'sendOtp']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/login', [AuthController::class, 'login']);
-
+Route::post('/firebase-login', [AuthController::class, 'firebaseLogin']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [UserController::class, 'getProfile']);
     Route::post('/user/update-profile', [UserController::class, 'updateProfile']);
