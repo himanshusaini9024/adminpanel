@@ -41,6 +41,7 @@ class ProductController extends Controller
         return response()->json([
             'id' => (string) $product->id,
             'name' => $product->title,
+            'slug' => $product->slug,
             'price' => (float) $product->price,
             'discount' => (int) $product->discount,
             'quantityAvailable' => (int) $product->stock,
