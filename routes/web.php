@@ -274,6 +274,27 @@ Route::get('/cloudinary-signature', function (Request $request) {
     ]);
 });
 
+Route::get('/cloudinary-ml-auth', function () {
+    $cloudName = 'ds48lk80f';
+    $apiKey    = env('CLOUDIARY_API_KEY');
+    $apiSecret = env('CLOUDIARY_API_SECRECTKEY');
+    $username  = env('CLOUDINARY_USERNAME'); // your Cloudinary login EMAIL
+
+    $timestamp = time();
+
+    // ML widget signature format
+    $toSign    = 'cloud_name=' . $cloudName . '&timestamp=' . $timestamp . '&username=' . $username;
+    $signature = hash('sha256', $toSign . $apiSecret);
+
+    return response()->json([
+        'cloud_name' => $cloudName,
+        'api_key'    => $apiKey,
+        'timestamp'  => $timestamp,
+        'signature'  => $signature,
+        'username'   => $username,
+    ]);
+});
+
 });
 
 /*

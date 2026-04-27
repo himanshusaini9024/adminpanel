@@ -620,50 +620,131 @@
              TAB 8 — IMAGE
         ══════════════════════════════════ --}}
         <div id="tab-image" class="tab-panel">
-            <div class="form-section">
-                <div class="section-title">Product Images</div>
+    <div class="form-section">
+        <div class="section-title">Product Images</div>
 
-                <button type="button" id="thumbnail_upload" class="btn btn-primary" style="margin-bottom:16px;">
-                    + Upload Images
-                </button>
+        {{-- Top controls --}}
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap;">
+            <label class="check-label" style="font-size:.85rem;">
+                <input type="checkbox" name="front_image" value="1"
+                       {{ $product->front_image ? 'checked' : '' }}> front image
+            </label>
 
-                <button type="button" onclick="openGallery_thumbnail()" class="btn btn-outline">
-    Open Gallery
-</button>
+            <button type="button" id="thumbnail_upload" class="btn btn-success" style="font-size:.82rem;padding:7px 16px;">
+                + Add Image
+            </button>
 
-                {{-- Existing images --}}
-                <div id="holder">
+            <button type="button" onclick="openGallery_thumbnail()" class="btn btn-outline" style="font-size:.82rem;padding:7px 16px;">
+                Open Gallery
+            </button>
+
+            {{-- "Create Sizes / Please Select Image to Sync" badge --}}
+          
+        </div>
+
+        {{-- ── Image Table ── --}}
+        <div style="overflow-x:auto;">
+            <table id="imageTable" style="width:100%;border-collapse:collapse;font-size:.85rem;">
+                <thead>
+                    <tr style="background:#f1f5f9;border-bottom:2px solid var(--border);">
+                        <th style="padding:10px 8px;text-align:left;font-weight:700;color:var(--muted);width:32px;">
+                            <input type="checkbox" id="selectAllImages" title="Select all" style="width:15px;height:15px;">
+                        </th>
+                        <th style="padding:10px 8px;text-align:left;font-weight:700;color:var(--muted);">Image:</th>
+                        <th style="padding:10px 8px;text-align:left;font-weight:700;color:var(--muted);">Type:</th>
+                        <th style="padding:10px 8px;text-align:left;font-weight:700;color:var(--muted);">Alt:</th>
+                        <th style="padding:10px 8px;text-align:left;font-weight:700;color:var(--muted);">Sort Order:</th>
+                        <th style="padding:10px 8px;text-align:center;font-weight:700;color:var(--muted);">New Size:</th>
+                        <th style="padding:10px 8px;text-align:left;font-weight:700;color:var(--muted);width:90px;"></th>
+                    </tr>
+                </thead>
+                <tbody id="imageTableBody">
+
+                    {{-- ── Existing images from DB ── --}}
                     @if($product->photo)
                         @php $images = json_decode($product->photo); @endphp
                         @foreach($images as $index => $img)
-                        <div class="image-item">
-                            <img src="{{ config('app.cloud_url') . $img->url }}" alt="{{ $img->alt ?? '' }}">
-                            <input type="text" name="photo[{{ $index }}][url]" value="{{ $img->url }}" hidden>
-                            <input type="text" name="photo[{{ $index }}][alt]" value="{{ $img->alt ?? '' }}"
-                                   class="form-control" placeholder="Alt text" style="max-width:260px;">
-                            <button type="button" class="remove-btn" onclick="this.closest('.image-item').remove()">
-                                ✕ Remove
-                            </button>
-                        </div>
+                        <tr class="image-row" data-index="{{ $index }}" style="border-bottom:1px solid var(--border);">
+                            <td style="padding:12px 8px;vertical-align:middle;">
+                                <input type="checkbox" name="selected_images[]" value="{{ $index }}"
+                                       style="width:15px;height:15px;accent-color:var(--primary);">
+                            </td>
+                            <td style="padding:12px 8px;vertical-align:middle;">
+                                <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;">
+                                    <img id="img-preview-{{ $index }}"
+                                         src="{{ config('app.cloud_url') . $img->url }}"
+                                         alt="{{ $img->alt ?? '' }}"
+                                         style="height:90px;width:90px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer;"
+                                         onclick="changeImage({{ $index }})">
+                                    <input type="hidden" name="photo[{{ $index }}][url]"
+                                           id="img-url-{{ $index }}" value="{{ $img->url }}">
+                                    <a href="#" onclick="changeImage({{ $index }});return false;"
+                                       style="font-size:.75rem;color:var(--primary);text-decoration:underline;">
+                                        *Change Image
+                                    </a>
+                                </div>
+                            </td>
+                            <td style="padding:12px 8px;vertical-align:middle;">
+                                <select name="photo[{{ $index }}][type]" class="form-control" style="min-width:140px;">
+                                    <option value="Front Image"  {{ ($img->type ?? '') == 'Front Image'   ? 'selected' : '' }}>Front Image</option>
+                                    <option value="Product Image"{{ ($img->type ?? '') == 'Product Image' ? 'selected' : '' }}>Product Image</option>
+                                    <option value="Back Image"   {{ ($img->type ?? '') == 'Back Image'    ? 'selected' : '' }}>Back Image</option>
+                                    <option value="Side Image"   {{ ($img->type ?? '') == 'Side Image'    ? 'selected' : '' }}>Side Image</option>
+                                    <option value="Detail Image" {{ ($img->type ?? '') == 'Detail Image'  ? 'selected' : '' }}>Detail Image</option>
+                                    <option value="Zoom Image"   {{ ($img->type ?? '') == 'Zoom Image'    ? 'selected' : '' }}>Zoom Image</option>
+                                </select>
+                            </td>
+                            <td style="padding:12px 8px;vertical-align:middle;">
+                                <input type="text" name="photo[{{ $index }}][alt]"
+                                       class="form-control"
+                                       placeholder="Alt text"
+                                       value="{{ $img->alt ?? '' }}"
+                                       style="min-width:200px;">
+                            </td>
+                            <td style="padding:12px 8px;vertical-align:middle;">
+                                <input type="number" name="photo[{{ $index }}][sort_order]"
+                                       class="form-control"
+                                       placeholder="0"
+                                       value="{{ $img->sort_order ?? '' }}"
+                                       style="width:80px;">
+                            </td>
+                            <td style="padding:12px 8px;vertical-align:middle;text-align:center;">
+                                <input type="checkbox" name="photo[{{ $index }}][new_size]"
+                                       value="1"
+                                       {{ ($img->new_size ?? false) ? 'checked' : '' }}
+                                       style="width:16px;height:16px;accent-color:var(--primary);">
+                            </td>
+                            <td style="padding:12px 8px;vertical-align:middle;">
+                                <button type="button" class="btn btn-danger"
+                                        style="padding:5px 14px;font-size:.8rem;"
+                                        onclick="removeImageRow(this)">
+                                    Remove
+                                </button>
+                            </td>
+                        </tr>
                         @endforeach
                     @endif
-                </div>
 
-                <div id="image_container" style="margin-top:10px;"></div>
-                @error('photo') <div class="invalid-feedback" style="display:block;">{{ $message }}</div> @enderror
-            </div>
+                </tbody>
+            </table>
+        </div>
 
-            {{-- Gallery Modal --}}
-            <div id="galleryModal_thumbnail" class="gallery-modal-overlay">
-                <div class="gallery-modal">
-                    <h5>Select Image from Gallery</h5>
-                    <div id="galleryImages_thumbnail" class="gallery-grid"></div>
-                    <div style="margin-top:16px;">
-                        <button type="button" class="btn btn-danger" onclick="closeGallery_thumbnail()">✕ Close</button>
-                    </div>
-                </div>
+        {{-- new uploads land here (JS appends rows to tbody) --}}
+        @error('photo') <div class="invalid-feedback" style="display:block;margin-top:8px;">{{ $message }}</div> @enderror
+    </div>
+
+    {{-- ── Gallery Modal ── --}}
+    <div id="galleryModal_thumbnail" class="gallery-modal-overlay">
+        <div class="gallery-modal">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h5 style="margin:0;">Select Image from Gallery</h5>
+                <button type="button" class="btn btn-danger" style="padding:5px 14px;font-size:.82rem;"
+                        onclick="closeGallery_thumbnail()">✕ Close</button>
             </div>
-        </div>{{-- /tab-image --}}
+            <div id="galleryImages_thumbnail" class="gallery-grid"></div>
+        </div>
+    </div>
+</div>{{-- /tab-image --}}
 
 
         {{-- ══════════════════════════════════
@@ -825,6 +906,137 @@
 
 @push('scripts')
 <script src="{{ asset('backend/summernote/summernote.min.js') }}"></script>
+
+<script>
+/* ── Select-all checkbox ──────────────────────────────────────────── */
+document.getElementById('selectAllImages').addEventListener('change', function () {
+    document.querySelectorAll('#imageTableBody input[type="checkbox"]')
+            .forEach(cb => cb.checked = this.checked);
+});
+
+/* ── Remove a table row ───────────────────────────────────────────── */
+function removeImageRow(btn) {
+    btn.closest('tr').remove();
+}
+
+
+
+
+var _mlWidget        = null;
+var _mlTargetIndex   = null;
+
+function changeImage(index) {
+    _mlTargetIndex = index;
+
+    // Build folder from product name (same logic as your upload widget)
+    const titleInput =
+        document.querySelector('[name="product_description[1][name]"]') ||
+        document.querySelector('[name="title"]');
+    const title  = titleInput ? titleInput.value.trim() : 'product';
+    const slug   = title.toLowerCase().replace(/[^a-z0-9]/g, '') || 'product';
+    const folder = 'ecommerce/' + slug;
+
+    fetch('/admin/cloudinary-ml-auth')
+        .then(r => r.json())
+        .then(auth => {
+
+            // Reuse widget if already created (avoids memory leaks)
+            if (!_mlWidget) {
+                _mlWidget = cloudinary.createMediaLibrary(
+                    {
+                        cloud_name : auth.cloud_name,
+                        api_key    : auth.api_key,
+                        username   : auth.username,
+                        timestamp  : auth.timestamp,
+                        signature  : auth.signature,
+                        multiple   : false,
+                        max_files  : 1,
+                        insert_caption: 'Select Image',
+                    },
+                    {
+                        insertHandler: function(data) {
+                            if (data && data.assets && data.assets[0]) {
+                                const url      = data.assets[0].secure_url;
+                                const preview  = document.getElementById('img-preview-' + _mlTargetIndex);
+                                const urlInput = document.getElementById('img-url-'     + _mlTargetIndex);
+                                if (preview)  preview.src    = url;
+                                if (urlInput) urlInput.value = url;
+                            }
+                        }
+                    }
+                );
+            }
+
+            // ✅ .show() with folder opens directly inside that folder
+            _mlWidget.show({
+                folder: {
+                    path         : folder,
+                    resource_type: 'image'
+                }
+            });
+        })
+        .catch(err => {
+            console.error('[ML Auth Error]', err);
+            alert('Could not open media library. See console.');
+        });
+}
+/* ── Add NEW image row (called by initCloudinary on upload success) ── */
+function addImageField(url) {
+    const tbody = document.getElementById('imageTableBody');
+    const index = tbody.querySelectorAll('tr.image-row').length;
+
+    const tr = document.createElement('tr');
+    tr.className = 'image-row';
+    tr.dataset.index = index;
+    tr.style.borderBottom = '1px solid #e2e8f0';
+
+    tr.innerHTML = `
+        <td style="padding:12px 8px;vertical-align:middle;">
+            <input type="checkbox" name="selected_images[]" value="${index}"
+                   style="width:15px;height:15px;accent-color:#2563eb;">
+        </td>
+        <td style="padding:12px 8px;vertical-align:middle;">
+            <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;">
+                <img id="img-preview-${index}" src="${url}" alt="preview"
+                     style="height:90px;width:90px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer;"
+                     onclick="changeImage(${index})">
+                <input type="hidden" name="photo[${index}][url]" id="img-url-${index}" value="${url}">
+                <a href="#" onclick="changeImage(${index});return false;"
+                   style="font-size:.75rem;color:#2563eb;text-decoration:underline;">*Change Image</a>
+            </div>
+        </td>
+        <td style="padding:12px 8px;vertical-align:middle;">
+            <select name="photo[${index}][type]" class="form-control" style="min-width:140px;">
+                <option value="Front Image">Front Image</option>
+                <option value="Product Image">Product Image</option>
+                <option value="Back Image">Back Image</option>
+                <option value="Side Image">Side Image</option>
+                <option value="Detail Image">Detail Image</option>
+                <option value="Zoom Image">Zoom Image</option>
+            </select>
+        </td>
+        <td style="padding:12px 8px;vertical-align:middle;">
+            <input type="text" name="photo[${index}][alt]" class="form-control"
+                   placeholder="Alt text" style="min-width:200px;">
+        </td>
+        <td style="padding:12px 8px;vertical-align:middle;">
+            <input type="number" name="photo[${index}][sort_order]" class="form-control"
+                   placeholder="0" style="width:80px;">
+        </td>
+        <td style="padding:12px 8px;vertical-align:middle;text-align:center;">
+            <input type="checkbox" name="photo[${index}][new_size]" value="1"
+                   style="width:16px;height:16px;accent-color:#2563eb;">
+        </td>
+        <td style="padding:12px 8px;vertical-align:middle;">
+            <button type="button" class="btn btn-danger"
+                    style="padding:5px 14px;font-size:.8rem;"
+                    onclick="removeImageRow(this)">Remove</button>
+        </td>
+    `;
+
+    tbody.appendChild(tr);
+}
+</script>
 
 <script>
 
