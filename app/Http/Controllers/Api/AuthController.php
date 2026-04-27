@@ -102,11 +102,23 @@ class AuthController extends Controller
             return response()->json(['message' => 'OTP expired'], 400);
         }
 
-        $user = Customer::firstOrCreate(
-            [
-                'phone' => $request->mobile,
-            ]
+        // $user = Customer::firstOrCreate(
+        //     [
+        //         'phone' => $request->mobile,
+        //     ]
+        // );
+
+        try {
+    $user = Customer::firstOrCreate(
+        [
+            'phone' => $request->mobile,
+        ]
         );
+} catch (\Exception $e) {
+    return response()->json([
+        'error' => $e->getMessage()
+    ], 500);
+}
 
         $token = $user->createToken('auth_token')->plainTextToken;
 

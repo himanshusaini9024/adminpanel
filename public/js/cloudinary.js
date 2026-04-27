@@ -1,17 +1,27 @@
 function initCloudinary(inputId, folderBase = "ecommerce") {
 
-    // Upload button
-    document.getElementById(inputId + "_upload").onclick = function () {
+    const uploadBtn = document.getElementById(inputId + "_upload");
 
+    if (!uploadBtn) {
+        console.warn('[Cloudinary] Upload button not found: #' + inputId + '_upload');
+        return;
+    }
 
-        let title = document.getElementById('inputTitle').value;
+    uploadBtn.onclick = function () {
+   console.log("Cloudinary button clicked");
+        // ── Get product name from the actual input name in the blade ──
+        // Supports both old name="title" and new name="product_description[1][name]"
+        const titleInput =
+            document.getElementById('inputTitle') ||
+            document.querySelector('[name="product_description[1][name]"]') ||
+            document.querySelector('[name="title"]');
 
-        // convert to slug (black shirt → blackshirt)
-        let slug = title.toLowerCase()
-            .replace(/[^a-z0-9]/g, '')
-            .trim();
+        const title = titleInput ? titleInput.value.trim() : 'product';
 
-        let folder = folderBase + '/' + slug;
+        // Convert title to a URL-safe slug  e.g. "Black Shirt!" → "blackshirt"
+        const slug = title.toLowerCase().replace(/[^a-z0-9]/g, '').trim() || 'product';
+
+        const folder = folderBase + '/' + slug;
 
         fetch(`/admin/cloudinary-signature?folder=${encodeURIComponent(folder)}`)
             .then(res => res.json())
@@ -20,88 +30,98 @@ function initCloudinary(inputId, folderBase = "ecommerce") {
                 var widget = cloudinary.createUploadWidget({
                     cloudName: data.cloudName,
                     apiKey: data.apiKey,
-
                     uploadSignature: data.signature,
                     uploadSignatureTimestamp: data.timestamp,
-
                     folder: folder,
-                     multiple:true,
-
+                    multiple: true,
                     use_filename: true,
-                    unique_filename: false
-
+                    unique_filename: false,
                 }, (error, result) => {
-                    if (!error && result && result.event === "success") {
-                         let url = result.info.secure_url;
 
-                        addImageField(url);
+                    if (error) {
+                        console.error('[Cloudinary] Widget error:', error);
+                        return;
+                    }
+
+                    if (result && result.event === "success") {
+                        addImageField(result.info.secure_url);
                     }
                 });
 
                 widget.open();
-            });
+            })
+            .catch(err => console.error('[Cloudinary] Signature fetch failed:', err));
     };
 
-    // Gallery open
+    // ── Gallery open ──────────────────────────────────────────────────
     window["openGallery_" + inputId] = function () {
-        document.getElementById('galleryModal_' + inputId).style.display = 'block';
+        const modal = document.getElementById('galleryModal_' + inputId);
+        if (modal) modal.classList.add('open');
 
         fetch('/admin/cloudinary-images')
             .then(res => res.json())
             .then(data => {
                 let html = '';
                 data.resources.forEach(img => {
-                    html += `<img src="${img.secure_url}" style="width:120px;cursor:pointer"
-                    onclick="selectImage('${inputId}','${img.secure_url}')">`;
+                    html += `<img src="${img.secure_url}"
+                                  style="width:120px; cursor:pointer;"
+                                  onclick="selectImage('${inputId}','${img.secure_url}')">`;
                 });
-
-                document.getElementById('galleryImages_' + inputId).innerHTML = html;
-            });
+                const galleryEl = document.getElementById('galleryImages_' + inputId);
+                if (galleryEl) galleryEl.innerHTML = html;
+            })
+            .catch(err => console.error('[Cloudinary] Gallery fetch failed:', err));
     };
 
-    // Close gallery
+    // ── Gallery close ─────────────────────────────────────────────────
     window["closeGallery_" + inputId] = function () {
-        document.getElementById('galleryModal_' + inputId).style.display = 'none';
+        const modal = document.getElementById('galleryModal_' + inputId);
+        if (modal) modal.classList.remove('open');
     };
 }
 
-// Set image (global)
+// ── Set single image (used by gallery select) ─────────────────────────
 function setImage(inputId, url) {
-    document.getElementById(inputId).value = url;
+    const input = document.getElementById(inputId);
+    if (input) input.value = url;
 
-    let holder = document.getElementById("holder_" + inputId);
+    const holder = document.getElementById("holder_" + inputId);
     if (holder) {
-        holder.innerHTML = `<img src="${url}" style="height:100px;">`;
+        holder.innerHTML = `<img src="${url}" style="height:100px; border-radius:6px;">`;
     }
 }
 
-// Select image
+// ── Select image from gallery ─────────────────────────────────────────
 function selectImage(inputId, url) {
     setImage(inputId, url);
-    document.getElementById('galleryModal_' + inputId).style.display = 'none';
+    const modal = document.getElementById('galleryModal_' + inputId);
+    if (modal) modal.classList.remove('open');
 }
 
-
+// ── Add a new image row to the form ──────────────────────────────────
 function addImageField(url) {
+    const container = document.getElementById('image_container');
+    if (!container) return;
 
-    let container = document.getElementById('image_container');
-    let index = container.children.length;
-    let html = `
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-            
-            <!-- Hidden input -->
-            <input type="text"  name="photo[${index}][url]"  value="${url}" class="form-control">
+    // Count existing rows in BOTH the static holder AND the dynamic container
+    // so indexes never collide on re-upload or after remove
+    const existingCount = document.querySelectorAll('#holder .image-item').length;
+    const addedCount    = container.querySelectorAll('.image-item').length;
+    const index         = existingCount + addedCount;
 
-            <!-- Preview -->
-            <img src="${url}" style="height:60px;">
-            <input type="text" name="photo[${index}][alt]" value="" class ="form-control">
+    const div = document.createElement('div');
+    div.className = 'image-item';  // reuses your blade's .image-item styles
 
-            <!-- Remove button -->
-            <button type="button" onclick="this.parentElement.remove()" class="btn btn-danger">
-                Remove
-            </button>
-        </div>
+    div.innerHTML = `
+        <img src="${url}" alt="preview">
+        <input type="text"  name="photo[${index}][url]" value="${url}" hidden>
+        <input type="text"  name="photo[${index}][alt]" value=""
+               class="form-control" placeholder="Alt text" style="max-width:260px;">
+        <button type="button" class="remove-btn"
+                onclick="this.closest('.image-item').remove()">
+            ✕ Remove
+        </button>
     `;
 
-    container.insertAdjacentHTML('beforeend', html);
+    container.appendChild(div);
 }

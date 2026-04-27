@@ -11,10 +11,11 @@ class OrderController extends Controller
 {
     //
 
-    public function index()
+    public function index(Request $request)
     {
+        $customerId = $request->customer_id;
         $orders = Order::with('items')
-            ->where('user_id', auth()->id())
+            ->where('customer_id', $customerId)
             ->latest()
             ->get();
 
@@ -23,15 +24,15 @@ class OrderController extends Controller
 
     public function store(Request $request)
     {
+
         $lastOrder = Order::latest()->first();
         $nextId = $lastOrder ? $lastOrder->id + 1 : 1;
 
         $orderNumber = 100 + $nextId; // start from 101
-
         $order = Order::create([
             'order_number' => $orderNumber, // ✅ FIX HERE
 
-            'user_id' => auth()->id() ?? 1,
+            'customer_id' => $request->customer_id,
             'sub_total' => $request->sub_total,
             'total_amount' => $request->total_amount,
             'quantity' => $request->quantity,
@@ -69,14 +70,14 @@ class OrderController extends Controller
     {
         $order = Order::latest()->first();
 
-    if (!$order) {
-        return response()->json([
-            'message' => 'No order found'
-        ], 404);
-    }
+        if (!$order) {
+            return response()->json([
+                'message' => 'No order found'
+            ], 404);
+        }
 
-    return response()->json([
-        'order' => $order
-    ]);
+        return response()->json([
+            'order' => $order
+        ]);
     }
 }

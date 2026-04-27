@@ -111,75 +111,161 @@ class ProductController extends Controller
         return view('backend.product.edit', compact('product', 'brands', 'categories', 'items'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
+
+
     public function update(Request $request, $id)
     {
-
         $product = Product::findOrFail($id);
 
-        $validatedData = $request->validate([
-            'title' => 'required|string',
-            'summary' => 'required|string',
-            'description' => 'nullable|string',
-            'photo' => 'required',
-            'size' => 'nullable',
-            'stock' => 'required|numeric',
-            'color' => 'required|string',
-            'cat_id' => 'required|exists:categories,id',
-            'child_cat_id' => 'nullable|exists:categories,id',
-            'is_featured' => 'sometimes|in:1',
-            'brand_id' => 'nullable|exists:brands,id',
-            'status' => 'required|in:active,inactive',
-            'condition' => 'required|in:default,new,hot',
-            'price' => 'required|numeric',
-            'discount' => 'nullable|numeric',
+        // ── Validation ────────────────────────────────────────────────────
+        $request->validate([
+            // General tab
+            'product_description.1.name' => 'required|string|max:255',
+            'cat_id'                     => 'required|exists:categories,id',
+            'child_cat_id'               => 'nullable|exists:categories,id',
+            'furniture_type'             => 'nullable|in:1,2,3,4,5',
+            'condition'                  => 'nullable|in:default,new,hot',
+            'status'                     => 'required|in:active,inactive',
+            'date_added'                 => 'nullable|date',
+
+            // SEO tab
+            'product_description.1.meta_title'       => 'nullable|string|max:255',
+            'product_description.1.meta_description' => 'nullable|string|max:500',
+            'product_description.1.meta_keyword'     => 'nullable|string',
+            'product_description.1.schema_gtm'       => 'nullable|string',
+            'product_description.1.description'      => 'nullable|string',
+            'alt'                                    => 'nullable|string|max:255',
+            'search_tags'                            => 'nullable|string',
+            'rating'                                 => 'nullable|numeric|min:0',
+            'star'                                   => 'nullable|numeric|min:0|max:5',
+            'no_follow'                              => 'nullable|string',
+
+            // Data tab
+            'summary'   => 'required|string',
+            'sku'       => 'nullable|string|max:100',
+            'brand_id'  => 'nullable|exists:brands,id',
+            'size'      => 'nullable|array',
+            'size.*'    => 'nullable|in:S,M,L,XL',
+            'color'     => 'nullable|string|max:50',
+
+            // Price tab
+            'price'         => 'required|numeric|min:0',
+            'discount'      => 'nullable|numeric|min:0|max:100',
+            'special_price' => 'nullable|numeric|min:0',
+            'stock'         => 'required|numeric|min:0',
+
+            // Image tab
+            'photo'       => 'nullable|array',
+            'photo.*.url' => 'required_with:photo|string',
+            'photo.*.alt' => 'nullable|string',
+
+            // Dimension tab (clothing measurements)
+            'chest'         => 'nullable|numeric|min:0',
+            'length'        => 'nullable|numeric|min:0',
+            'shoulder'      => 'nullable|numeric|min:0',
+            'sleeve_length' => 'nullable|numeric|min:0',
+            'waist'         => 'nullable|numeric|min:0',
+            'hip'           => 'nullable|numeric|min:0',
+
+            // FAQ tab
+            'faqs'            => 'nullable|array',
+            'faqs.*.question' => 'required_with:faqs|string',
+            'faqs.*.answer'   => 'required_with:faqs|string',
         ]);
 
-        $validatedData['is_featured'] = $request->input('is_featured', 0);
-
-        if ($request->has('size')) {
-            $validatedData['size'] = implode(',', $request->input('size'));
-        } else {
-            $validatedData['size'] = '';
+        // ── Size: array → comma-separated string ──────────────────────────
+        $size = null;
+        if ($request->filled('size') && is_array($request->size)) {
+            $size = implode(',', $request->size);
         }
 
-
-        // remove base URL from photo
-
-
-        $baseUrl = "https://res.cloudinary.com/ds48lk80f/";
-
-        $photos = $validatedData['photo'];
-
-        foreach ($photos as $key => $photo) {
-            $photos[$key]['url'] = str_replace($baseUrl, '', $photo['url']);
+        // ── Photos: clean & re-encode, keep existing if none submitted ────
+        $photo = $product->photo; // fallback: preserve current images
+        if ($request->has('photo') && is_array($request->photo)) {
+            $clean = [];
+            foreach ($request->photo as $p) {
+                if (!empty($p['url'])) {
+                    $clean[] = [
+                        'url' => $p['url'],
+                        'alt' => $p['alt'] ?? null,
+                    ];
+                }
+            }
+            if (!empty($clean)) {
+                $photo = json_encode($clean);
+            }
         }
 
-        $validatedData['photo'] = json_encode($photos);
-        $status = $product->update($validatedData);
+        // ── FAQs: filter empty rows, encode to JSON ───────────────────────
+        $faqs = null;
+        if ($request->has('faqs') && is_array($request->faqs)) {
+            $filtered = collect($request->faqs)
+                ->filter(fn($f) => !empty($f['question']) && !empty($f['answer']))
+                ->values()
+                ->toArray();
 
-        $message = $status
-            ? 'Product Successfully updated'
-            : 'Please try again!!';
+            $faqs = !empty($filtered) ? json_encode($filtered) : null;
+        }
 
-        return redirect()->route('product.index')->with(
-            $status ? 'success' : 'error',
-            $message
-        );
+        // ── Build update payload ──────────────────────────────────────────
+        $data = [
+            // General
+            'title'          => $request->input('product_description.1.name'),
+            'display_name'   => $request->input('product_description.1.displaysetname'),
+            'furniture_type' => $request->input('furniture_type'),
+            'cat_id'         => $request->input('cat_id'),
+            'child_cat_id'   => $request->input('child_cat_id'),
+            'condition'      => $request->input('condition'),
+            'status'         => $request->input('status'),
+            'date_added'     => $request->input('date_added'),
+            'is_featured'    => $request->has('is_featured') ? 1 : 0,
+
+            // SEO
+            'meta_title'       => $request->input('product_description.1.meta_title'),
+            'meta_description' => $request->input('product_description.1.meta_description'),
+            'meta_keyword'     => $request->input('product_description.1.meta_keyword'),
+            'schema_gtm'       => $request->input('product_description.1.schema_gtm'),
+            'description'      => $request->input('product_description.1.description'),
+            'alt'              => $request->input('alt'),
+            'search_tags'      => $request->input('search_tags'),
+            'rating'           => $request->input('rating'),
+            'star'             => $request->input('star'),
+            'no_follow'        => $request->input('no_follow'),
+
+            // Data
+            'summary'  => $request->input('summary'),
+            'sku'      => $request->input('sku'),
+            'brand_id' => $request->input('brand_id'),
+            'size'     => $size,
+            'color'    => $request->input('color'),
+
+            // Price
+            'price'         => $request->input('price'),
+            'discount'      => $request->input('discount', 0),
+            'special_price' => $request->input('special_price'),
+            'stock'         => $request->input('stock'),
+
+            // Images
+            'photo' => $photo,
+
+            // Clothing dimensions
+            'chest'         => $request->input('chest'),
+            'length'        => $request->input('length'),
+            'shoulder'      => $request->input('shoulder'),
+            'sleeve_length' => $request->input('sleeve_length'),
+            'waist'         => $request->input('waist'),
+            'hip'           => $request->input('hip'),
+
+            // FAQ
+            'faqs' => $faqs,
+        ];
+
+        $product->update($data);
+
+        return redirect()->route('product.index')
+            ->with('success', 'Product updated successfully.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function destroy($id)
     {
         $product = Product::findOrFail($id);

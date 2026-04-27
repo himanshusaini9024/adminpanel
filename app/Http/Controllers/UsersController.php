@@ -39,7 +39,7 @@ class UsersController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email',
-            'password' => 'required|string|min:6|confirmed',
+            'password' => 'required|string|min:6',
             'role' => 'required|in:admin,user',
             'status' => 'required|in:active,inactive',
             'photo' => 'nullable|string|max:500',

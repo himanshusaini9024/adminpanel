@@ -28,6 +28,7 @@ Route::get('/search', [HomepageController::class, 'search']);
 Route::get('/category/{slug}', [CategoryController::class, 'show']);
 Route::get('/product/{pid}', [ProductController::class, 'show']);
 Route::post('/contact', [ContactController::class, 'store']);
+Route::get('/products', [ProductController::class, 'index']);
 
 Route::post('/send-otp', [AuthController::class, 'sendOtp']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
