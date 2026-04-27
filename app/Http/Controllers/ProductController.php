@@ -42,6 +42,8 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
+
+        // dd($request->all());exit;    
         $validatedData = $request->validate([
             'title' => 'required|string',
             'summary' => 'required|string',
@@ -186,7 +188,7 @@ class ProductController extends Controller
             foreach ($request->photo as $p) {
                 if (!empty($p['url'])) {
                     $clean[] = [
-                        'url' => $p['url'],
+                        'url' => str_replace('https://res.cloudinary.com/ds48lk80f','', $p['url']),
                         'alt' => $p['alt'] ?? null,
                     ];
                 }
@@ -206,7 +208,6 @@ class ProductController extends Controller
 
             $faqs = !empty($filtered) ? json_encode($filtered) : null;
         }
-
         // ── Build update payload ──────────────────────────────────────────
         $data = [
             // General

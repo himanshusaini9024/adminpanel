@@ -2,7 +2,7 @@
 
 @section('main-content')
 <style>
-.custom-select {
+.color-select {
     position: relative;
     width: 100%;
 }
@@ -12,17 +12,22 @@
     border: 1px solid #ccc;
     cursor: pointer;
     background: #fff;
+    user-select: none;
+    width: 100%;
+    display: block;
 }
 
 .options {
     position: absolute;
     width: 100%;
-    max-height: 200px; /* ✅ Scroll */
+    max-height: 200px;
     overflow-y: auto;
     border: 1px solid #ddd;
     background: #fff;
     display: none;
-    z-index: 999;
+    z-index: 9999;
+    top: 100%;
+    left: 0;
 }
 
 .option {
@@ -42,6 +47,7 @@
     height: 16px;
     border-radius: 3px;
     border: 1px solid #ccc;
+    flex-shrink: 0;
 }
 </style>
 
@@ -50,9 +56,10 @@
     <div class="card-body">
       <form method="post" action="{{route('product.store')}}">
         {{csrf_field()}}
+
         <div class="form-group">
           <label for="inputTitle" class="col-form-label">Title <span class="text-danger">*</span></label>
-          <input id="inputTitle" type="text" name="title" placeholder="Enter title"  value="{{old('title')}}" class="form-control">
+          <input id="inputTitle" type="text" name="title" placeholder="Enter title" value="{{old('title')}}" class="form-control">
           @error('title')
           <span class="text-danger">{{$message}}</span>
           @enderror
@@ -74,12 +81,10 @@
           @enderror
         </div>
 
-
         <div class="form-group">
           <label for="is_featured">Is Featured</label><br>
-          <input type="checkbox" name='is_featured' id='is_featured' value='1' checked> Yes                        
+          <input type="checkbox" name='is_featured' id='is_featured' value='1' checked> Yes
         </div>
-              {{-- {{$categories}} --}}
 
         <div class="form-group">
           <label for="cat_id">Category <span class="text-danger">*</span></label>
@@ -95,15 +100,12 @@
           <label for="child_cat_id">Sub Category</label>
           <select name="child_cat_id" id="child_cat_id" class="form-control">
               <option value="">--Select any category--</option>
-              {{-- @foreach($parent_cats as $key=>$parent_cat)
-                  <option value='{{$parent_cat->id}}'>{{$parent_cat->title}}</option>
-              @endforeach --}}
           </select>
         </div>
 
         <div class="form-group">
           <label for="price" class="col-form-label">Price(NRS) <span class="text-danger">*</span></label>
-          <input id="price" type="number" name="price" placeholder="Enter price"  value="{{old('price')}}" class="form-control">
+          <input id="price" type="number" name="price" placeholder="Enter price" value="{{old('price')}}" class="form-control">
           @error('price')
           <span class="text-danger">{{$message}}</span>
           @enderror
@@ -111,14 +113,15 @@
 
         <div class="form-group">
           <label for="discount" class="col-form-label">Discount(%)</label>
-          <input id="discount" type="number" name="discount" min="0" max="100" placeholder="Enter discount"  value="{{old('discount')}}" class="form-control">
+          <input id="discount" type="number" name="discount" min="0" max="100" placeholder="Enter discount" value="{{old('discount')}}" class="form-control">
           @error('discount')
           <span class="text-danger">{{$message}}</span>
           @enderror
         </div>
+
         <div class="form-group">
           <label for="size">Size</label>
-          <select name="size[]" class="form-control selectpicker"  multiple data-live-search="true">
+          <select name="size[]" class="form-control selectpicker" multiple data-live-search="true">
               <option value="">--Select any size--</option>
               <option value="S">Small (S)</option>
               <option value="M">Medium (M)</option>
@@ -129,13 +132,11 @@
 
         <div class="form-group">
           <label for="brand_id">Brand</label>
-          {{-- {{$brands}} --}}
-
           <select name="brand_id" class="form-control">
               <option value="">--Select Brand--</option>
-             @foreach($brands as $brand)
-              <option value="{{$brand->id}}">{{$brand->title}}</option>
-             @endforeach
+              @foreach($brands as $brand)
+                <option value="{{$brand->id}}">{{$brand->title}}</option>
+              @endforeach
           </select>
         </div>
 
@@ -150,43 +151,33 @@
         </div>
 
         <div class="form-group">
-                <label>Select Color</label>
-
-                <div class="custom-select" id="colorDropdown">
-                    <div class="select-btn">Select Color</div>
-
-                    <div class="options">
-                        @php
-                        $colors = [
-                        'red','blue','yellow','green','orange','purple','cyan','magenta',
-                        'lime','teal','indigo','violet','black','white','gray','silver',
-                        'charcoal','beige','ivory','pink','brown','gold','turquoise',
-                        'tan','olive','rust','sage','navy','maroon','coral','plum','lavender'
-                        ];
-                        @endphp
-
-                        @foreach($colors as $color)
-                        <div class="option" data-value="{{ $color }}">
-                            <span class="color-box" style="background: {{ $color }}"></span>
-                            {{ ucfirst($color) }}
-                        </div>
-                        @endforeach
-                    </div>
-                </div>
-
-                <!-- Hidden input for form submit -->
-                <input type="hidden" name="color" id="selectedColor" value="{{ old('color') }}">
-            </div>
+  <label for="color">Select Color</label>
+  <select name="color" id="color" class="form-control">
+      <option value="">-- Select Color --</option>
+      @php
+      $colors = [
+          'red','blue','yellow','green','orange','purple','cyan','magenta',
+          'lime','teal','indigo','violet','black','white','gray','silver',
+          'charcoal','beige','ivory','pink','brown','gold','turquoise',
+          'tan','olive','rust','sage','navy','maroon','coral','plum','lavender'
+      ];
+      @endphp
+      @foreach($colors as $color)
+      <option value="{{ $color }}" {{ old('color') == $color ? 'selected' : '' }}>
+          {{ ucfirst($color) }}
+      </option>
+      @endforeach
+  </select>
+</div>
 
         <div class="form-group">
           <label for="stock">Quantity <span class="text-danger">*</span></label>
-          <input id="quantity" type="number" name="stock" min="0" placeholder="Enter quantity"  value="{{old('stock')}}" class="form-control">
+          <input id="quantity" type="number" name="stock" min="0" placeholder="Enter quantity" value="{{old('stock')}}" class="form-control">
           @error('stock')
           <span class="text-danger">{{$message}}</span>
           @enderror
         </div>
-      
-        
+
         <div class="form-group">
           <label for="status" class="col-form-label">Status <span class="text-danger">*</span></label>
           <select name="status" class="form-control">
@@ -197,10 +188,12 @@
           <span class="text-danger">{{$message}}</span>
           @enderror
         </div>
+
         <div class="form-group mb-3">
           <button type="reset" class="btn btn-warning">Reset</button>
-           <button class="btn btn-success" type="submit">Submit</button>
+          <button class="btn btn-success" type="submit">Submit</button>
         </div>
+
       </form>
     </div>
 </div>
@@ -211,115 +204,104 @@
 <link rel="stylesheet" href="{{asset('backend/summernote/summernote.min.css')}}">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.1/css/bootstrap-select.css" />
 @endpush
+
 @push('scripts')
 <script src="/vendor/laravel-filemanager/js/stand-alone-button.js"></script>
 <script src="{{asset('backend/summernote/summernote.min.js')}}"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.1/js/bootstrap-select.min.js"></script>
 
 <script>
-    // $('#lfm').filemanager('image');
+    $(document).ready(function () {
 
-    $(document).ready(function() {
-      $('#summary').summernote({
-        placeholder: "Write short description.....",
-          tabsize: 2,
-          height: 100
-      });
+        // Summernote
+        $('#summary').summernote({
+            placeholder: "Write short description.....",
+            tabsize: 2,
+            height: 100
+        });
+
+        $('#description').summernote({
+            placeholder: "Write detail description.....",
+            tabsize: 2,
+            height: 150
+        });
+
+        // Category AJAX
+        $('#cat_id').change(function () {
+            var cat_id = $(this).val();
+            if (cat_id != null && cat_id != '') {
+                $.ajax({
+                    url: "/admin/category/" + cat_id + "/child",
+                    data: {
+                        _token: "{{csrf_token()}}",
+                        id: cat_id
+                    },
+                    type: "POST",
+                    success: function (response) {
+                        if (typeof (response) != 'object') {
+                            response = $.parseJSON(response);
+                        }
+                        var html_option = "<option value=''>----Select sub category----</option>";
+                        if (response.status) {
+                            var data = response.data;
+                            if (response.data) {
+                                $('#child_cat_div').removeClass('d-none');
+                                $.each(data, function (id, title) {
+                                    html_option += "<option value='" + id + "'>" + title + "</option>";
+                                });
+                            }
+                        } else {
+                            $('#child_cat_div').addClass('d-none');
+                        }
+                        $('#child_cat_id').html(html_option);
+                    }
+                });
+            } else {
+                $('#child_cat_div').addClass('d-none');
+            }
+        });
+
     });
-
-    $(document).ready(function() {
-      $('#description').summernote({
-        placeholder: "Write detail description.....",
-          tabsize: 2,
-          height: 150
-      });
-    });
-    // $('select').selectpicker();
-
 </script>
 
 <script>
-  $('#cat_id').change(function(){
-    var cat_id=$(this).val();
-    // alert(cat_id);
-    if(cat_id !=null){
-      // Ajax call
-      $.ajax({
-        url:"/admin/category/"+cat_id+"/child",
-        data:{
-          _token:"{{csrf_token()}}",
-          id:cat_id
-        },
-        type:"POST",
-        success:function(response){
-          if(typeof(response) !='object'){
-            response=$.parseJSON(response)
-          }
-          // console.log(response);
-          var html_option="<option value=''>----Select sub category----</option>"
-          if(response.status){
-            var data=response.data;
-            // alert(data);
-            if(response.data){
-              $('#child_cat_div').removeClass('d-none');
-              $.each(data,function(id,title){
-                html_option +="<option value='"+id+"'>"+title+"</option>"
-              });
+    // Color Dropdown — runs after DOM is ready
+    (function () {
+        var btn        = document.getElementById('colorSelectBtn');
+        var optionsDiv = document.getElementById('colorOptions');
+        var hiddenInput = document.getElementById('selectedColor');
+
+        // Set default value on page load (useful for edit page)
+        var defaultValue = hiddenInput.value;
+        if (defaultValue) {
+            var defaultOption = optionsDiv.querySelector('[data-value="' + defaultValue + '"]');
+            if (defaultOption) {
+                btn.innerHTML = defaultOption.innerHTML;
             }
-            else{
-            }
-          }
-          else{
-            $('#child_cat_div').addClass('d-none');
-          }
-          $('#child_cat_id').html(html_option);
         }
-      });
-    }
-    else{
-    }
-  })
 
-  document.addEventListener("DOMContentLoaded", function () {
-    const dropdown = document.getElementById("colorDropdown");
-    const btn = dropdown.querySelector(".select-btn");
-    const options = dropdown.querySelector(".options");
-    const hiddenInput = document.getElementById("selectedColor");
-
-    // ✅ SET DEFAULT VALUE (EDIT PAGE FIX)
-    const defaultValue = hiddenInput.value;
-
-    if (defaultValue) {
-        const selectedOption = dropdown.querySelector(`[data-value="${defaultValue}"]`);
-        if (selectedOption) {
-            btn.innerHTML = selectedOption.innerHTML;
-        }
-    }
-
-    // Toggle dropdown
-    btn.addEventListener("click", function () {
-        options.style.display =
-            options.style.display === "block" ? "none" : "block";
-    });
-
-    // Select option
-    dropdown.querySelectorAll(".option").forEach(option => {
-        option.addEventListener("click", function () {
-            const value = this.dataset.value;
-
-            btn.innerHTML = this.innerHTML;
-            hiddenInput.value = value;
-
-            options.style.display = "none";
+        // Toggle open/close
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            optionsDiv.style.display = (optionsDiv.style.display === 'block') ? 'none' : 'block';
         });
-    });
 
-    // Close when clicking outside
-    document.addEventListener("click", function (e) {
-        if (!dropdown.contains(e.target)) {
-            options.style.display = "none";
-        }
-    });
-});
+        // Select a color
+        var allOptions = optionsDiv.querySelectorAll('.option');
+        allOptions.forEach(function (option) {
+            option.addEventListener('click', function (e) {
+                e.stopPropagation();
+                hiddenInput.value = this.dataset.value;
+                btn.innerHTML = this.innerHTML;
+                optionsDiv.style.display = 'none';
+            });
+        });
+
+        // Close when clicking outside
+        document.addEventListener('click', function () {
+            optionsDiv.style.display = 'none';
+        });
+    })();
 </script>
+
 @endpush
