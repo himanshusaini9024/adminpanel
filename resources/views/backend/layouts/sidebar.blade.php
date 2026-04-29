@@ -1,3 +1,4 @@
+<script src="https://media-library.cloudinary.com/global/all.js"></script>
 <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
 
     <!-- Sidebar - Brand -->
@@ -32,6 +33,12 @@
         <a class="nav-link" href="{{route('file-manager')}}">
             <i class="fas fa-fw fa-chart-area"></i>
             <span>Media Manager</span></a>
+    </li>
+
+      <li class="nav-item">
+    <button id="open-cloudinary" class="btn btn-primary">
+    Open File Manager
+</button>
     </li>
 
     <li class="nav-item">
@@ -225,3 +232,54 @@
     </div>
 
 </ul>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const btn = document.getElementById("open-cloudinary");
+    var folderBase = "ecommerce";
+        const folder = folderBase;
+
+    if (!btn) {
+        console.error("Cloudinary button not found");
+        return;
+    }
+
+    btn.addEventListener("click", function () {
+
+        console.log("Opening Cloudinary ML...");
+
+        // fetch('/admin/cloudinary-ml-auth')
+      
+
+             fetch(`/admin/cloudinary-signature?folder=${encodeURIComponent(folder)}`)
+            .then(res => res.json())
+            .then(data => {
+
+                var widget = cloudinary.createUploadWidget({
+                    cloudName: data.cloudName,
+                    apiKey: data.apiKey,
+                    uploadSignature: data.signature,
+                    uploadSignatureTimestamp: data.timestamp,
+                    folder: folder,
+                    multiple: true,
+                    use_filename: true,
+                    unique_filename: false,
+                }, (error, result) => {
+
+                    if (error) {
+                        console.error('[Cloudinary] Widget error:', error);
+                        return;
+                    }
+
+                    if (result && result.event === "success") {
+                        addImageField(result.info.secure_url);
+                    }
+                });
+
+                widget.open();
+            })
+            .catch(err => console.error('[Cloudinary] Signature fetch failed:', err));
+    });
+
+});
+</script>

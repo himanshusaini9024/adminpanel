@@ -30,9 +30,7 @@
                 <label for="inputPhoto" class="col-form-label">Photo <span class="text-danger">*</span></label>
                 <div class="input-group">
                     <span class="input-group-btn">
-                        <!-- <a id="lfm" data-input="thumbnail" data-preview="holder" class="btn btn-primary">
-                <i class="fa fa-picture-o"></i> Choose
-                </a> -->
+
 
                         <a id="upload_widget" class="btn btn-primary">
                             <i class="fa fa-picture-o"></i> Choose
@@ -77,38 +75,38 @@
 <script src="https://upload-widget.cloudinary.com/global/all.js"></script>
 <script src="{{asset('backend/summernote/summernote.min.js')}}"></script>
 <script>
-// $('#lfm').filemanager('image');
+    // $('#lfm').filemanager('image');
 
-$(document).ready(function() {
-    $('#description').summernote({
-        placeholder: "Write short description.....",
-        tabsize: 2,
-        height: 150
+    $(document).ready(function() {
+        $('#description').summernote({
+            placeholder: "Write short description.....",
+            tabsize: 2,
+            height: 150
+        });
     });
-});
 
 
-var myWidget = cloudinary.createUploadWidget({
-    cloudName: 'ds48lk80f',
-    uploadPreset: 'ecommerce_upload'
-}, (error, result) => {
+    var myWidget = cloudinary.createUploadWidget({
+        cloudName: 'ds48lk80f',
+        uploadPreset: 'ecommerce_upload'
+    }, (error, result) => {
 
-    if (!error && result && result.event === "success") {
+        if (!error && result && result.event === "success") {
 
-        let imageUrl = result.info.secure_url;
+            let imageUrl = result.info.secure_url;
 
-        // set hidden input value
-        document.getElementById('thumbnail').value = imageUrl;
+            // set hidden input value
+            document.getElementById('thumbnail').value = imageUrl;
 
-        // show preview
-        document.getElementById('holder').innerHTML =
-            '<img src="' + imageUrl + '" style="height:80px;">';
-    }
+            // show preview
+            document.getElementById('holder').innerHTML =
+                '<img src="' + imageUrl + '" style="height:80px;">';
+        }
 
-});
+    });
 
-document.getElementById("upload_widget").addEventListener("click", function() {
-    myWidget.open();
-}, false);
+    document.getElementById("upload_widget").addEventListener("click", function() {
+        myWidget.open();
+    }, false);
 </script>
 @endpush

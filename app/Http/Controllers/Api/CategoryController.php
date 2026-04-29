@@ -16,12 +16,14 @@ class CategoryController extends Controller
         $size = $request->query('size');
         $color = $request->query('color');
         $sort = $request->query('sort');
+        $status = 'active';
 
         // ✅ Base Query
         $products = DB::table('products')
             ->join('categories', 'products.cat_id', '=', 'categories.id')
             ->where('categories.slug', $slug)
             ->whereNotNull('products.slug')
+            ->where('products.status' , $status)
             ->select(
                 'products.id',
                 'products.title as name',

@@ -36,10 +36,11 @@ class BannerController extends Controller
      */
     public function store(Request $request)
     {
+
         $validatedData = $request->validate([
             'title' => 'required|string|max:50',
             'description' => 'nullable|string',
-            'photo' => 'required|string',
+            // 'photo' => 'required|string',
             'status' => 'required|in:active,inactive',
         ]);
 
@@ -90,15 +91,16 @@ class BannerController extends Controller
      */
     public function update(Request $request, $id)
     {
+        // dd($request->all());exit;
         $banner = Banner::findOrFail($id);
 
         $validatedData = $request->validate([
             'title' => 'required|string|max:50',
             'description' => 'nullable|string',
-            'photo' => 'required|string',
+            'photo' => 'required',
             'status' => 'required|in:active,inactive',
         ]);
-
+        $validatedData['photo'] = json_encode($request->photo);
         $status = $banner->update($validatedData);
 
         $message = $status
@@ -131,5 +133,4 @@ class BannerController extends Controller
             $message
         );
     }
-
 }
