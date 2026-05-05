@@ -59,7 +59,9 @@ public function index()
 
             'sizes' => $sizes,
             'colors' => $colors,
+            'description' => html_entity_decode($product->description, ENT_QUOTES, 'UTF-8'),
             'images' => $images,
+            'measurements' => $product->measurements,
 
             'punctuation' => [
                 'countOpinions' => $count,

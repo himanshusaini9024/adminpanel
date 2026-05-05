@@ -758,28 +758,28 @@
                         <div class="form-group">
                             <label>Chest (cm)</label>
                             <input type="number" name="chest" class="form-control" step="0.1"
-                       value="{{ old('chest', $product->chest ?? '') }}">
+                       value="{{ old('chest', $measurment->chest ?? '') }}">
                         </div>
                     </div>
                     <div class="form-col">
                         <div class="form-group">
                             <label>Length (cm)</label>
                 <input type="number" name="length" class="form-control" step="0.1"
-                       value="{{ old('length', $product->length ?? '') }}">
+                       value="{{ old('length', $measurment->length ?? '') }}">
                         </div>
                     </div>
                     <div class="form-col">
                         <div class="form-group">
                            <label>Shoulder (cm)</label>
                 <input type="number" name="shoulder" class="form-control" step="0.1"
-                       value="{{ old('shoulder', $product->shoulder ?? '') }}">
+                       value="{{ old('shoulder', $measurment->shoulder ?? '') }}">
                         </div>
                     </div>
                     <div class="form-col">
                         <div class="form-group">
                             <label>Sleeve Length (cm)</label>
                 <input type="number" name="sleeve_length" class="form-control" step="0.1"
-                       value="{{ old('sleeve_length', $product->sleeve_length ?? '') }}">
+                       value="{{ old('sleeve_length', $measurment->sleeve_length ?? '') }}">
                         </div>
                     </div>
                 </div>
@@ -788,14 +788,14 @@
                         <div class="form-group">
                             <label>Waist (cm)</label>
                 <input type="number" name="waist" class="form-control" step="0.1"
-                       value="{{ old('waist', $product->waist ?? '') }}">
+                       value="{{ old('waist', $measurment->waist ?? '') }}">
                         </div>
                     </div>
                     <div class="form-col">
                         <div class="form-group">
                                 <label>Hip (cm)</label>
                 <input type="number" name="hip" class="form-control" step="0.1"
-                       value="{{ old('hip', $product->hip ?? '') }}">
+                       value="{{ old('hip', $measurment->hip ?? '') }}">
                         </div>
                     </div>
                    

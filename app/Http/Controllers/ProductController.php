@@ -107,16 +107,20 @@ class ProductController extends Controller
     {
         $brands = Brand::get();
         $product = Product::findOrFail($id);
+        $measurment = json_decode($product->measurements);
+  
+
         $categories = Category::where('is_parent', 1)->get();
         $items = Product::where('id', $id)->get();
 
-        return view('backend.product.edit', compact('product', 'brands', 'categories', 'items'));
+        return view('backend.product.edit', compact('product','measurment', 'brands', 'categories', 'items'));
     }
 
 
 
     public function update(Request $request, $id)
     {
+
         $product = Product::findOrFail($id);
 
         // ── Validation ────────────────────────────────────────────────────
@@ -188,7 +192,7 @@ class ProductController extends Controller
             foreach ($request->photo as $p) {
                 if (!empty($p['url'])) {
                     $clean[] = [
-                        'url' => str_replace('https://res.cloudinary.com/ds48lk80f','', $p['url']),
+                        'url' => str_replace('https://res.cloudinary.com/ds48lk80f', '', $p['url']),
                         'alt' => $p['alt'] ?? null,
                     ];
                 }
@@ -208,6 +212,17 @@ class ProductController extends Controller
 
             $faqs = !empty($filtered) ? json_encode($filtered) : null;
         }
+        $measurements = [
+            'chest'         => $request->input('chest'),
+            'length'        => $request->input('length'),
+            'shoulder'      => $request->input('shoulder'),
+            'sleeve_length' => $request->input('sleeve_length'),
+            'waist'         => $request->input('waist'),
+            'hip'           => $request->input('hip'),
+        ];
+
+        // remove null values (clean JSON)
+        $measurements = array_filter($measurements, fn($v) => !is_null($v));
         // ── Build update payload ──────────────────────────────────────────
         $data = [
             // General
@@ -250,12 +265,7 @@ class ProductController extends Controller
             'photo' => $photo,
 
             // Clothing dimensions
-            'chest'         => $request->input('chest'),
-            'length'        => $request->input('length'),
-            'shoulder'      => $request->input('shoulder'),
-            'sleeve_length' => $request->input('sleeve_length'),
-            'waist'         => $request->input('waist'),
-            'hip'           => $request->input('hip'),
+            'measurements' => !empty($measurements) ? json_encode($measurements) : null,
 
             // FAQ
             'faqs' => $faqs,
