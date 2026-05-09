@@ -34,13 +34,34 @@
 // ];
 
 
-return [
+// return [
 
-    'paths' => ['api/*'],
+//     'paths' => ['api/*'],
+
+//     'allowed_methods' => ['*'],
+
+//     'allowed_origins' => ['*'],
+
+//     'allowed_origins_patterns' => [],
+
+//     'allowed_headers' => ['*'],
+
+//     'exposed_headers' => [],
+
+//     'max_age' => 0,
+
+//     'supports_credentials' => true,
+
+// ];
+return [
+    'paths' => ['api/*', 'sanctum/csrf-cookie'],
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    'allowed_origins' => [
+        'http://192.168.137.63:3000',
+        'http://localhost:3000',
+    ],
 
     'allowed_origins_patterns' => [],
 
@@ -50,6 +71,5 @@ return [
 
     'max_age' => 0,
 
-    'supports_credentials' => false,
-
+    'supports_credentials' => true,
 ];

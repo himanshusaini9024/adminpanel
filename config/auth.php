@@ -35,18 +35,34 @@ return [
     |
     */
 
-    'guards' => [
-        'web' => [
-            'driver' => 'session',
-            'provider' => 'users',
-        ],
+    // 'guards' => [
+    //     'web' => [
+    //         'driver' => 'session',
+    //         'provider' => 'users',
+    //     ],
 
-        'api' => [
-            'driver' => 'token',
-            'provider' => 'users',
-            'hash' => false,
-        ],
+    //     'api' => [
+    //         'driver' => 'token',
+    //         'provider' => 'users',
+    //         'hash' => false,
+    //     ],
+    // ],
+
+    'guards' => [
+
+    // ADMIN PANEL
+    'web' => [
+        'driver' => 'session',
+        'provider' => 'users',
     ],
+
+    // CUSTOMER API
+    'customer' => [
+        'driver' => 'session',
+        'provider' => 'customers',
+    ],
+
+],
 
     /*
     |--------------------------------------------------------------------------
@@ -65,18 +81,34 @@ return [
     |
     */
 
-    'providers' => [
-        'users' => [
-            'driver' => 'eloquent',
-            'model' => App\Models\User::class,
-        ],
+    // 'providers' => [
+    //     'users' => [
+    //         'driver' => 'eloquent',
+    //         'model' => App\Models\User::class,
+    //     ],
 
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
+    //     // 'users' => [
+    //     //     'driver' => 'database',
+    //     //     'table' => 'users',
+    //     // ],
         
+    // ],
+
+    'providers' => [
+
+    // ADMIN USERS
+    'users' => [
+        'driver' => 'eloquent',
+        'model' => App\Models\User::class,
     ],
+
+    // ECOMMERCE CUSTOMERS
+    'customers' => [
+        'driver' => 'eloquent',
+        'model' => App\Models\Customer::class,
+    ],
+
+],
 
     /*
     |--------------------------------------------------------------------------

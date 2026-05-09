@@ -20,8 +20,12 @@ return [
     //     'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1',
     //     Sanctum::currentApplicationUrlWithPort()
     // ))),
-    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', 'localhost:3000')),
-
+    // 'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', 'localhost:3000')),
+'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', implode(',', [
+    'localhost',
+    'localhost:3000',
+    '192.168.137.63:3000',   // ✅ your local IP frontend
+]))),
     /*
     |--------------------------------------------------------------------------
     | Sanctum Guards
@@ -34,7 +38,7 @@ return [
     |
     */
 
-    'guard' => ['web'],
+    'guard' => ['web','customer'],
 
     /*
     |--------------------------------------------------------------------------

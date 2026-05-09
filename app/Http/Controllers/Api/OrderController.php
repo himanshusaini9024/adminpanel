@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\OrderItem;
 use App\Models\Order;
+use Illuminate\Support\Facades\Auth;
 
 class OrderController extends Controller
 {
@@ -13,7 +14,12 @@ class OrderController extends Controller
 
     public function index(Request $request)
     {
-        $customerId = $request->customer_id;
+
+// ✅ Get from authenticated session, not request param
+    $customerId = Auth::guard('customer')->id();
+
+    
+        // $customerId = $request->customer_id;
         $orders = Order::with('items')
             ->where('customer_id', $customerId)
             ->latest()
