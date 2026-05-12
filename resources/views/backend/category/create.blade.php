@@ -39,22 +39,26 @@
           </select>
         </div>
 
-        <div class="form-group">
-          <label for="inputPhoto" class="col-form-label">Photo</label>
-          <div class="input-group">
-              <span class="input-group-btn">
-                  <a id="lfm" data-input="thumbnail" data-preview="holder" class="btn btn-primary">
-                  <i class="fa fa-picture-o"></i> Choose
-                  </a>
-              </span>
-          <input id="thumbnail" class="form-control" type="text" name="photo" value="{{old('photo')}}">
-        </div>
-        <div id="holder" style="margin-top:15px;max-height:100px;"></div>
+         <div class="form-group">
+                <label for="inputPhoto" class="col-form-label">Photo <span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <span class="input-group-btn">
 
-          @error('photo')
-          <span class="text-danger">{{$message}}</span>
-          @enderror
-        </div>
+
+                        <a id="upload_widget" class="btn btn-primary">
+                            <i class="fa fa-picture-o"></i> Choose
+                        </a>
+
+                        <input id="thumbnail" type="hidden" name="photo">
+                        <div id="holder"></div>
+                    </span>
+                    <input id="thumbnail" class="form-control" type="text" name="photo" value="{{old('photo')}}">
+                </div>
+                <div id="holder" style="margin-top:15px;max-height:100px;"></div>
+                @error('photo')
+                <span class="text-danger">{{$message}}</span>
+                @enderror
+            </div>
         
         <div class="form-group">
           <label for="status" class="col-form-label">Status <span class="text-danger">*</span></label>
@@ -82,8 +86,11 @@
 @push('scripts')
 <script src="/vendor/laravel-filemanager/js/stand-alone-button.js"></script>
 <script src="{{asset('backend/summernote/summernote.min.js')}}"></script>
+
+<script src="https://upload-widget.cloudinary.com/global/all.js"></script>
+<script src="{{asset('backend/summernote/summernote.min.js')}}"></script>
 <script>
-    $('#lfm').filemanager('image');
+//    $('#lfm').filemanager('image');
 
     $(document).ready(function() {
       $('#summary').summernote({
@@ -92,6 +99,30 @@
           height: 120
       });
     });
+
+    var myWidget = cloudinary.createUploadWidget({
+        cloudName: 'ds48lk80f',
+        uploadPreset: 'ecommerce_upload'
+    }, (error, result) => {
+
+        if (!error && result && result.event === "success") {
+
+            let imageUrl = result.info.secure_url;
+
+            // set hidden input value
+            document.getElementById('thumbnail').value = imageUrl;
+
+            // show preview
+            document.getElementById('holder').innerHTML =
+                '<img src="' + imageUrl + '" style="height:80px;">';
+        }
+
+    });
+
+    document.getElementById("upload_widget").addEventListener("click", function() {
+        myWidget.open();
+    }, false);
+    
 </script>
 
 <script>

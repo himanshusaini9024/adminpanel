@@ -95,16 +95,39 @@ class CategoryController extends Controller
      */
     public function update(Request $request, $id)
     {
+
+      
+ 
         $category = Category::findOrFail($id);
 
         $validatedData = $request->validate([
             'title' => 'required|string',
             'summary' => 'nullable|string',
-            'photo' => 'nullable|string',
+            'photo' => 'required',
             'status' => 'required|in:active,inactive',
             'is_parent' => 'sometimes|in:1',
             'parent_id' => 'nullable|exists:categories,id',
         ]);
+
+        //   $photo = $product->photo; // fallback: preserve current images
+        if ($request->has('photo') && is_array($request->photo)) {
+            $clean = [];
+            foreach ($request->photo as $p) {
+                if (!empty($p['url'])) {
+                    $clean[] = [
+                        'url' => str_replace('https://res.cloudinary.com/ds48lk80f', '', $p['url']),
+                        'alt' => $p['alt'] ?? null,
+                    ];
+                }
+            }
+            if (!empty($clean)) {
+                $validatedData['photo'] = json_encode($clean);
+            }
+        }
+        // $validatedData['photo'] = json_encode($request->photo);
+  
+        
+
 
         $validatedData['is_parent'] = $request->input('is_parent', 0);
 

@@ -28,6 +28,7 @@ class CategoryController extends Controller
                 'products.id',
                 'products.title as name',
                 'products.slug',
+                'categories.photo as banner',
                 'products.cat_id',
                 'products.price as currentPrice',
                 'products.status',
@@ -60,9 +61,13 @@ class CategoryController extends Controller
 
         // ✅ FORMAT RESPONSE
         $formatted = [];
+        $catbanner = null;
 
         foreach ($result as $item) {
             $images = json_decode($item->photo ?? '[]', true);
+                   if (!$catbanner) {
+        $catbanner = $item->banner;
+    }
 
             if (!is_array($images)) {
                 $images = [];
@@ -81,7 +86,8 @@ class CategoryController extends Controller
         }
 
         return response()->json([
-            'category' => $formatted
+            'category' => $formatted,
+            'catbanner' => $catbanner
         ]);
     }
 }
