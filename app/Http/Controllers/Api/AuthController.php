@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers\Api;
+
 use App\Http\Controllers\Controller;
 
 
@@ -62,10 +63,7 @@ class AuthController extends Controller
         $response = curl_exec($curl);
 
         $result = json_decode($response, true);
-        return response()->json([
-            'raw' => $response,
-            'decoded' => $result
-        ]);
+
         if (curl_errno($curl)) {
             return response()->json([
                 'message' => 'SMS failed',
@@ -109,16 +107,16 @@ class AuthController extends Controller
         // );
 
         try {
-    $user = Customer::firstOrCreate(
-        [
-            'phone' => $request->mobile,
-        ]
-        );
-} catch (\Exception $e) {
-    return response()->json([
-        'error' => $e->getMessage()
-    ], 500);
-}
+            $user = Customer::firstOrCreate(
+                [
+                    'phone' => $request->mobile,
+                ]
+            );
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage()
+            ], 500);
+        }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -132,25 +130,25 @@ class AuthController extends Controller
     }
 
     public function firebaseLogin(Request $request)
-{
-    $phone = $request->phone;
-    $uid = $request->uid;
+    {
+        $phone = $request->phone;
+        $uid = $request->uid;
 
-    $user = Customer::where('phone', $phone)->first();
+        $user = Customer::where('phone', $phone)->first();
 
-    if (!$user) {
-        $user = Customer::create([
-            'phone' => $phone,
+        if (!$user) {
+            $user = Customer::create([
+                'phone' => $phone,
+            ]);
+        }
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'user' => $user,
+            'token' => $token,
         ]);
     }
-
-    $token = $user->createToken('auth_token')->plainTextToken;
-
-    return response()->json([
-        'user' => $user,
-        'token' => $token,
-    ]);
-}
 
     public function login(Request $request)
     {
