@@ -59,9 +59,9 @@ class WebhookController extends Controller
 
             $order->courier_name = $courier;
 
-            $order->shipment_status = $status;
+            $order->shipping_status = $status;
 
-            $order->status = 'process';
+            $order->status = 'shipped';
 
 
             $order->save();
