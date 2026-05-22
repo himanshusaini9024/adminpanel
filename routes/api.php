@@ -35,7 +35,7 @@ Route::post('/send-otp', [AuthController::class, 'sendOtp']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/firebase-login', [AuthController::class, 'firebaseLogin']);
-Route::any('/shipping/webhook', [WebhookController::class, 'handle']);
+Route::any('/order-track/webhook', [WebhookController::class, 'handle']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [UserController::class, 'getProfile']);
