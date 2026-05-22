@@ -21,15 +21,36 @@ class WebhookController extends Controller
 
         \Log::info('Shiprocket Webhook', $request->all());
 
-        $awb = $request->awb;
-        $status = $request->current_status;
+        $data = $request->all();
 
-        $order = Order::where('awb_code', $awb)->first();
+        $awb = $data['awb'] ?? null;
+
+        $status = $data['shipment_status'] ?? null;
+
+        $courier = $data['courier_name'] ?? null;
+
+        $orderId = $data['order_id'] ?? null;
+
+        // remove DHI-
+        $orderNumber = str_replace('DHI-', '', $orderId);
+
+        $order = Order::where('order_number', $orderNumber)->first();
 
         if ($order) {
 
-            $order->shipping_status = $status;
+            $order->awb_code = $awb;
+
+            $order->courier_name = $courier;
+
+            $order->shipment_status = $status;
+
             $order->save();
+
+            \Log::info('Order Updated', [
+                'order_id' => $order->id,
+                'awb' => $awb,
+                'status' => $status
+            ]);
         }
 
         return response()->json([
