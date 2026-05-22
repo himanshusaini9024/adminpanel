@@ -35,6 +35,8 @@ Route::post('/send-otp', [AuthController::class, 'sendOtp']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/firebase-login', [AuthController::class, 'firebaseLogin']);
+    Route::post('/shiprocket/webhook', [WebhookController::class, 'handle']);
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [UserController::class, 'getProfile']);
     Route::post('/user/update-profile', [UserController::class, 'updateProfile']);
@@ -51,5 +53,4 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/orders', [OrderController::class, 'store']);
     Route::get('/orders/latest', [OrderController::class, 'latest']);
     Route::get('/orders', [OrderController::class, 'index']);
-    Route::post('/shiprocket/webhook', [WebhookController::class, 'handle']);
 });
