@@ -36,6 +36,23 @@ class WebhookController extends Controller
 
         $order = Order::where('order_number', $orderNumber)->first();
 
+        if (!$order && $awb) {
+
+            $order = Order::where('awb_code', $awb)->first();
+        }
+
+        if (!$order) {
+
+            \Log::error('Order not found', [
+                'order_number' => $orderNumber,
+                'awb' => $awb
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Order not found'
+            ]);
+        }
         if ($order) {
 
             $order->awb_code = $awb;
@@ -43,6 +60,9 @@ class WebhookController extends Controller
             $order->courier_name = $courier;
 
             $order->shipment_status = $status;
+
+            $order->status = 'process';
+
 
             $order->save();
 
