@@ -99,10 +99,10 @@ class OrderController extends Controller
         // Shiprocket API
         try {
 
-            $shiprocketResponse = $shiprocket->createOrder(
-                $order,
-                $shiprocketItems
-            );
+            // $shiprocketResponse = $shiprocket->createOrder(
+            //     $order,
+            //     $shiprocketItems
+            // );
 
 
 
