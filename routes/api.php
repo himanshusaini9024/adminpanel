@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\CustomerAddressController;
 use App\Http\Controllers\Api\WebhookController;
+use App\Http\Controllers\Api\ReturnController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -53,4 +54,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/orders', [OrderController::class, 'store']);
     Route::get('/orders/latest', [OrderController::class, 'latest']);
     Route::get('/orders', [OrderController::class, 'index']);
+    Route::middleware('auth:sanctum')->post(
+        '/returns/create',
+        [ReturnController::class, 'create']
+    );
+
+    
 });

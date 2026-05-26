@@ -30,6 +30,7 @@ class CategoryController extends Controller
                 'products.slug',
                 'categories.photo as banner',
                 'products.cat_id',
+                'products.sku',
                 'products.price as currentPrice',
                 'products.status',
                 'products.size',
@@ -75,6 +76,7 @@ class CategoryController extends Controller
             $formatted[] = [
                 'id' => $item->id,
                 'name' => $item->name,
+                'sku' => $item->sku,
                 'slug' => $item->slug,
                 'cat_id' => $item->cat_id,
                 'currentPrice' => $item->currentPrice,

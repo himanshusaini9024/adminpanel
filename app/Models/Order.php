@@ -38,4 +38,9 @@ class Order extends Model
     return $this->hasMany(OrderItem::class);
 }
 
+public function returnRequest()
+{
+    return $this->hasOne(ReturnOrder::class, 'order_id','id');
+}
+
 }

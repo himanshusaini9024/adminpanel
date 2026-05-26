@@ -19,7 +19,6 @@ public function index()
     public function show($slug)
     {
         $product = Product::getProductBySlug($slug);
-
         if (!$product) {
             return response()->json([
                 'message' => 'Product not found'
@@ -49,6 +48,7 @@ public function index()
         return response()->json([
             'id' => (string) $product->id,
             'name' => $product->title,
+            'sku' => $product->sku,
             'slug' => $product->slug,
             'price' => (float) $product->price,
             'discount' => (int) $product->discount,

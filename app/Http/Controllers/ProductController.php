@@ -148,7 +148,7 @@ class ProductController extends Controller
 
             // Data tab
             'summary'   => 'required|string',
-            'sku'       => 'nullable|string|max:100',
+            'sku'       => 'required|string|max:100',
             'brand_id'  => 'nullable|exists:brands,id',
             'size'      => 'nullable|array',
             'size.*'    => 'nullable|in:S,M,L,XL',

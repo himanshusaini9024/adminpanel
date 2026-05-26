@@ -132,6 +132,13 @@
         </a>
     </li>
 
+    <li class="nav-item">
+    <a class="nav-link" href="{{ url('admin/returns') }}">
+        <i class="fas fa-undo"></i>
+        <span>Returns</span>
+    </a>
+</li>
+
     <!-- Reviews -->
     <li class="nav-item">
         <a class="nav-link" href="{{route('review.index')}}">

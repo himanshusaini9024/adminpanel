@@ -80,4 +80,95 @@ class ShiprocketService
             $payload
         )->json();
     }
+
+    public function createReturn($return, $sku)
+    {
+        $token = $this->login();
+
+        $order = $return->order;
+
+        $response = Http::withToken($token)
+            ->post(
+                'https://apiv2.shiprocket.in/v1/external/orders/create/return',
+                [
+
+                    "order_id" => "RETURN_" . $order->id,
+
+                    "order_date" => now(),
+
+                    // CUSTOMER PICKUP ADDRESS
+                    "pickup_customer_name" =>
+                    $order->first_name . ' ' .
+                        $order->last_name,
+
+                    "pickup_address" => $order->address1 . ',' . $order->address2,
+
+                    "pickup_city" => $order->city,
+
+                    "pickup_state" => $order->state,
+
+                    "pickup_pincode" => $order->post_code,
+
+                    "pickup_country" => "India",
+
+                    "pickup_email" => $order->email,
+
+                    "pickup_phone" => $order->phone,
+
+                    // YOUR WAREHOUSE
+                    "shipping_customer_name" => "Dhirago",
+
+                    "shipping_address" =>
+                    "Home",
+
+                    "shipping_city" => "Udaipur",
+
+                    "shipping_state" => "Rajasthan",
+
+                    "shipping_pincode" => "313001",
+
+                    "shipping_country" => "India",
+
+                    "shipping_email" => "admin@test.com",
+
+                    "shipping_phone" => "9999999999",
+
+                    // ITEMS
+                    "order_items" => [
+                        [
+                            "name" => "Return Product",
+                            "sku" => $sku,
+                            "units" => 1,
+                            "selling_price" =>
+                            $order->total_amount
+                        ]
+                    ],
+
+                    "payment_method" => "Prepaid",
+
+                    "sub_total" => $order->total_amount,
+
+                    "length" => 10,
+                    "breadth" => 10,
+                    "height" => 10,
+                    "weight" => 0.5
+                ]
+            );
+
+        return $response->json();
+    }
+
+
+    public function trackByAwb($awb)
+    {
+        $token = $this->login();
+
+        $response = Http::withToken($token)
+            ->get(
+                $this->baseUrl .
+                    '/courier/track/awb/' . $awb
+            );
+
+        return $response->json();
+    }
 }

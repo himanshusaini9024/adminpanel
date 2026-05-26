@@ -21,7 +21,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Admin\CloudinaryController;
 use Illuminate\Http\Request;
-
+use App\Http\Controllers\Api\ReturnController;
 use UniSharp\LaravelFilemanager\Lfm;
 
 /*
@@ -294,6 +294,21 @@ Route::get('/cloudinary-ml-auth', function () {
         'username'   => $username,
     ]);
 });
+
+ Route::get(
+        '/returns',
+        [ReturnController::class, 'adminReturns']
+    );
+
+    Route::post(
+        '/returns/{id}/{sku}/approve',
+        [ReturnController::class, 'approve']
+    );
+
+    Route::post(
+        '/returns/{id}/reject',
+        [ReturnController::class, 'reject']
+    );
 
 });
 

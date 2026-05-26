@@ -5,10 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Order;
+use App\Models\ReturnOrder;
 
 class WebhookController extends Controller
 {
-   public function handle(Request $request)
+    public function handle(Request $request)
     {
         $token = $request->header('Authorization');
         if ($token !== 'dhirago_shiprocket_secure_12345') {
@@ -18,6 +19,52 @@ class WebhookController extends Controller
         }
         \Log::info('Shiprocket Webhook', $request->all());
         $data = $request->all();
+
+        if (isset($data['channel_order_id'])) {
+
+            $return = ReturnOrder::where(
+                'reverse_shipment_id',
+                $data['shipment_id'] ?? null
+            )->first();
+
+            if ($return) {
+
+                $status = strtoupper($data['status'] ?? '');
+
+                if (str_contains($status, 'CANCEL')) {
+
+                    $return->status = 'rejected';
+                } elseif (str_contains($status, 'PICKUP')) {
+
+                    $return->status = 'pickup_scheduled';
+                } elseif (str_contains($status, 'PICKED')) {
+
+                    $return->status = 'picked_up';
+                } elseif (str_contains($status, 'TRANSIT')) {
+
+                    $return->status = 'in_transit';
+                } elseif (str_contains($status, 'DELIVERED')) {
+
+                    $return->status = 'delivered';
+                }
+
+                $return->courier =
+                    $data['company_name'] ?? null;
+
+                $return->save();
+
+                \Log::info('RETURN UPDATED', [
+                    'return_id' => $return->id,
+                    'status' => $return->status
+                ]);
+            }
+
+            return response()->json([
+                'success' => true
+            ]);
+        }
+
+
         $awb = $data['awb'] ?? null;
         $status = $data['shipment_status'] ?? null;
         $courier = $data['courier_name'] ?? null;
@@ -52,8 +99,10 @@ class WebhookController extends Controller
             ]);
         }
 
+
         return response()->json([
-            'success' => true
+            'success' => true,
+            'data'=> $data
         ]);
     }
 }

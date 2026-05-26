@@ -15,7 +15,7 @@ class OrderController extends Controller
     public function index(Request $request)
     {
         $customerId = $request->customer_id;
-        $orders = Order::with('items')
+        $orders = Order::with('items',  'returnRequest')
             ->where('customer_id', $customerId)
             ->latest()
             ->get();
@@ -25,6 +25,7 @@ class OrderController extends Controller
 
     public function store(Request $request, ShiprocketService $shiprocket)
     {
+
 
         $lastOrder = Order::latest()->first();
         $nextId = $lastOrder ? $lastOrder->id + 1 : 1;
@@ -75,6 +76,7 @@ class OrderController extends Controller
                 'order_id' => $order->id,
 
                 'product_id' => $item['id'],
+                'sku' => $item['sku'],
 
                 'image' => $item['thumb']['url'] ?? null,
 
@@ -88,7 +90,7 @@ class OrderController extends Controller
             // shiprocket items
             $shiprocketItems[] = [
                 "name" => $item['name'],
-                "sku" => "SKU-" . $item['id'],
+                "sku" =>  $item['sku'],
                 "units" => $item['quantity'],
                 "selling_price" => $item['price'],
             ];
@@ -97,7 +99,26 @@ class OrderController extends Controller
         // Shiprocket API
         try {
 
-          $shiprocketResponse = $shiprocket->createOrder(
+            $shiprocketResponse = $shiprocket->createOrder(
+                $order,
+                $shiprocketItems
+            );
+
+
+
+            // save shipment details
+            // if (isset($shiprocketResponse['shipment_id'])) {
+
+            //     $order->shipment_id =
+            //         $shiprocketResponse['shipment_id'];
+
+            //     $order->awb_code =
+            //         $shiprocketResponse['awb_code'] ?? null;
+
+            //     $order->save();
+            // }
+            if (app()->environment('production')) {
+                $shiprocketResponse = $shiprocket->createOrder(
                     $order,
                     $shiprocketItems
                 );
@@ -113,30 +134,28 @@ class OrderController extends Controller
 
                     $order->save();
                 }
-            // if (app()->environment('production')) {
-            //     $shiprocketResponse = $shiprocket->createOrder(
-            //         $order,
-            //         $shiprocketItems
-            //     );
+            } else {
 
-            //     // save shipment details
-            //     if (isset($shiprocketResponse['shipment_id'])) {
+                $shiprocketResponse = [
+                    'testing' => true,
+                    'message' => 'Shipment skipped in local/testing environment'
+                ];
+            }
 
-            //         $order->shipment_id =
-            //             $shiprocketResponse['shipment_id'];
 
-            //         $order->awb_code =
-            //             $shiprocketResponse['awb_code'] ?? null;
+            if ($order->awb_code) {
 
-            //         $order->save();
-            //     }
-            // } else {
+                $tracking =
+                    $shiprocket->trackByAwb($order->awb_code);
 
-            //     $shiprocketResponse = [
-            //         'testing' => true,
-            //         'message' => 'Shipment skipped in local/testing environment'
-            //     ];
-            // }
+                $etd =
+                    $tracking['tracking_data']['etd']
+                    ?? null;
+
+                $order->expected_delivery_date = $etd;
+
+                $order->save();
+            }
         } catch (\Exception $e) {
 
             $shiprocketResponse = [
