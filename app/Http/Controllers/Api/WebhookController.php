@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Models\ReturnOrder;
+use App\Services\ShiprocketService;
+
 
 class WebhookController extends Controller
 {
-    public function handle(Request $request)
+    public function handle(Request $request, ShiprocketService $shiprocket)
     {
         $token = $request->header('Authorization');
         if ($token !== 'dhirago_shiprocket_secure_12345') {
@@ -89,20 +91,62 @@ class WebhookController extends Controller
             $order->awb_code = $awb;
             $order->courier_name = $courier;
             $order->shipping_status = $status;
+            $order->expected_delivery_date =
+                $data['etd'] ?? null;
+
             $order->status = 'shipped';
             $order->save();
+
+            //tracking
+
+            if ($awb) {
+
+                \Log::info('AWB FOUND', [
+                    'awb' => $awb
+                ]);
+
+                $tracking =
+                    $shiprocket->trackByAwb($awb);
+
+                \Log::info('Tracking Response', [
+                    'tracking' => $tracking
+                ]);
+
+                $etd =
+                    $tracking['tracking_data']['etd']
+                    ?? null;
+
+                \Log::info('ETD FOUND', [
+                    'etd' => $etd
+                ]);
+
+                if ($etd) {
+
+                    $order->expected_delivery_date =
+                        \Carbon\Carbon::parse($etd);
+
+                    $order->save();
+
+                    \Log::info('ORDER UPDATED', [
+                        'order_id' => $order->id,
+                        'etd' => $order->expected_delivery_date
+                    ]);
+                }
+            }
 
             \Log::info('Order Updated', [
                 'order_id' => $order->id,
                 'awb' => $awb,
-                'status' => $status
+                'status' => $status,
+
+                'etd' => $order->expected_delivery_date
             ]);
         }
 
 
         return response()->json([
             'success' => true,
-            'data'=> $data
+            'data' => $data
         ]);
     }
 }

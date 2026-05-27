@@ -104,9 +104,6 @@ class OrderController extends Controller
             //     $shiprocketItems
             // );
 
-
-
-            // save shipment details
             // if (isset($shiprocketResponse['shipment_id'])) {
 
             //     $order->shipment_id =
@@ -143,19 +140,6 @@ class OrderController extends Controller
             }
 
 
-            if ($order->awb_code) {
-
-                $tracking =
-                    $shiprocket->trackByAwb($order->awb_code);
-
-                $etd =
-                    $tracking['tracking_data']['etd']
-                    ?? null;
-
-                $order->expected_delivery_date = $etd;
-
-                $order->save();
-            }
         } catch (\Exception $e) {
 
             $shiprocketResponse = [
