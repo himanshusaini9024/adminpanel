@@ -38,6 +38,35 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/firebase-login', [AuthController::class, 'firebaseLogin']);
 Route::any('/order-track/webhook', [WebhookController::class, 'handle']);
 
+
+Route::get('/webhook/whatsapp', function (Request $request) {
+
+    $verify_token = "EAAcM9YoBTosBRq5tAbmvxRGzsCmT3Ofx7Kicg0fU8UHpZCSCY1ygVnZCUhgJMlktByBJiT2hjEoitgV7FoU21ANZBDPZCT2WhOds793shcut9fiOquRi8Y0kCtsnZBS7yhXiZB6kCIctTFZBmm4nHp2B95SJoYWGgEk8ClQ8c5LJFxyRRN369y05oOMVzHcpAZDZD";
+
+    $mode = $request->get('hub_mode');
+    $token = $request->get('hub_verify_token');
+    $challenge = $request->get('hub_challenge');
+
+    if ($mode === 'subscribe' && $token === $verify_token) {
+
+        Log::info('WhatsApp Webhook Verified');
+
+        return response($challenge, 200);
+    }
+
+    return response('Verification failed', 403);
+});
+
+
+Route::post('/webhook/whatsapp', function (Request $request) {
+
+    Log::info('WhatsApp Webhook Payload', $request->all());
+
+    return response()->json([
+        'status' => 'success'
+    ], 200);
+});
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [UserController::class, 'getProfile']);
     Route::post('/user/update-profile', [UserController::class, 'updateProfile']);
@@ -58,6 +87,4 @@ Route::middleware('auth:sanctum')->group(function () {
         '/returns/create',
         [ReturnController::class, 'create']
     );
-
-    
 });
