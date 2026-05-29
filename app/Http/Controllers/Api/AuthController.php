@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\Customer;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
@@ -22,7 +23,6 @@ class AuthController extends Controller
 
         $otp = rand(100000, 999999);
 
-        // Save OTP in DB
         DB::table('otps')->updateOrInsert(
             ['mobile' => $request->mobile],
             [
@@ -33,40 +33,69 @@ class AuthController extends Controller
             ]
         );
 
-        // 🔥 Fast2SMS cURL
+        $mobile = '91' . $request->mobile;
 
-        // $fields = [
-        //     "route" => "otp",
-        //     "variables_values" => "$otp",
-        //     "numbers" => $request->mobile,
-        // ];
-        $fields = [
-            "route" => "q",   // ✅ IMPORTANT CHANGE
-            "message"  => "Your One-Time Password (OTP) for login is $otp. This code is valid for five minutes. For your security, please do not share this OTP with anyone.",
-            "numbers" => $request->mobile,
+        $data = [
+            "messaging_product" => "whatsapp",
+            "to" => $mobile,
+            "type" => "template",
+            "template" => [
+                "name" => "otp_verification",
+                "language" => [
+                    "code" => "en"
+                ],
+                "components" => [
+                    [
+                        "type" => "body",
+                        "parameters" => [
+                            [
+                                "type" => "text",
+                                "text" => (string) $otp
+                            ]
+                        ]
+                    ],
+                    [
+                        "type" => "button",
+                        "sub_type" => "url",
+                        "index" => "0",
+                        "parameters" => [
+                            [
+                                "type" => "text",
+                                "text" => (string) $otp
+                            ]
+                        ]
+                    ]
+                ]
+            ]
         ];
 
         $curl = curl_init();
 
         curl_setopt_array($curl, [
-            CURLOPT_URL => "https://www.fast2sms.com/dev/bulkV2",
+            CURLOPT_URL => 'https://graph.facebook.com/v22.0/1167074889813778/messages',
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($fields),
+            CURLOPT_POSTFIELDS => json_encode($data),
             CURLOPT_HTTPHEADER => [
-                "authorization: " . env('FAST2SMS_API_KEY'),
-                "accept: application/json",
-                "content-type: application/json"
+                'Authorization: Bearer ' . env('WHATSAPP_TOKEN'),
+                'Content-Type: application/json'
             ],
         ]);
 
         $response = curl_exec($curl);
 
-        $result = json_decode($response, true);
+        Log::info('WhatsApp API Response', [
+            'response' => json_decode($response, true)
+        ]);
 
         if (curl_errno($curl)) {
+
+            Log::error('WhatsApp CURL Error', [
+                'error' => curl_error($curl)
+            ]);
+
             return response()->json([
-                'message' => 'SMS failed',
+                'message' => 'WhatsApp failed',
                 'error' => curl_error($curl)
             ], 500);
         }
@@ -75,7 +104,6 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'OTP sent successfully',
-            // 🔥 show OTP only in local
             'otp' => app()->environment('local') ? $otp : null
         ]);
     }
