@@ -8,14 +8,15 @@ use App\Models\OrderItem;
 use App\Models\Order;
 use App\Services\ShiprocketService;
 use Illuminate\Support\Facades\Mail;
-
+use Illuminate\Support\Facades\Auth;
 class OrderController extends Controller
 {
     //
 
     public function index(Request $request)
     {
-        $customerId = $request->customer_id;
+        // $customerId = $request->customer_id;
+            $customerId = Auth::guard('customer')->id();
         $orders = Order::with('items',  'returnRequest')
             ->where('customer_id', $customerId)
             ->latest()

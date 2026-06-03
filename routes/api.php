@@ -10,6 +10,8 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\PaymentController;
+use Illuminate\Support\Facades\Auth;
+
 use App\Http\Controllers\Api\CustomerAddressController;
 use App\Http\Controllers\Api\WebhookController;
 use App\Http\Controllers\Api\ReturnController;
@@ -67,7 +69,8 @@ Route::post('/webhook/whatsapp', function (Request $request) {
     ], 200);
 });
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware('auth:customer')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [UserController::class, 'getProfile']);
     Route::post('/user/update-profile', [UserController::class, 'updateProfile']);
     Route::post('/user/update-password', [UserController::class, 'updatePassword']);
