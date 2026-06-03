@@ -24,7 +24,7 @@ return [
 'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', implode(',', [
     'localhost',
     'localhost:3000',
-    '192.168.137.63:3000',   // ✅ your local IP frontend
+    '192.168.137.116:3000',   // ✅ your local IP frontend
 ]))),
     /*
     |--------------------------------------------------------------------------
