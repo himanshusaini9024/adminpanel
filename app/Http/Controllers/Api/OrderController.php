@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Services\ShiprocketService;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
+
 class OrderController extends Controller
 {
     //
@@ -16,7 +17,7 @@ class OrderController extends Controller
     public function index(Request $request)
     {
         // $customerId = $request->customer_id;
-            $customerId = Auth::guard('customer')->id();
+        $customerId = Auth::guard('customer')->id();
         $orders = Order::with('items',  'returnRequest')
             ->where('customer_id', $customerId)
             ->latest()
@@ -116,7 +117,9 @@ class OrderController extends Controller
 
             //     $order->save();
             // }
-            if (app()->environment('production')) {
+            $allowshipment = env('SHIPMENT_LIVE');
+
+            if ($allowshipment) {
                 $shiprocketResponse = $shiprocket->createOrder(
                     $order,
                     $shiprocketItems
@@ -143,7 +146,7 @@ class OrderController extends Controller
 
             Mail::send([], [], function ($message) use ($order, $request) {
 
-    $html = '
+                $html = '
     <!DOCTYPE html>
     <html>
     <head>
@@ -176,7 +179,7 @@ class OrderController extends Controller
                                 </h2>
 
                                 <p style="font-size:16px;color:#555;line-height:26px;">
-                                    Hi '.$request->name.',
+                                    Hi ' . $request->name . ',
                                 </p>
 
                                 <p style="font-size:16px;color:#555;line-height:26px;">
@@ -192,22 +195,22 @@ class OrderController extends Controller
 
                                             <p style="margin:0 0 10px;">
                                                 <strong>Order Number:</strong>
-                                                #'.$order->order_number.'
+                                                #' . $order->order_number . '
                                             </p>
 
                                             <p style="margin:0 0 10px;">
                                                 <strong>Payment Method:</strong>
-                                                '.$order->payment_method.'
+                                                ' . $order->payment_method . '
                                             </p>
 
                                             <p style="margin:0 0 10px;">
                                                 <strong>Payment Status:</strong>
-                                                '.$order->payment_status.'
+                                                ' . $order->payment_status . '
                                             </p>
 
                                             <p style="margin:0;">
                                                 <strong>Total Amount:</strong>
-                                                ₹'.$order->total_amount.'
+                                                ₹' . $order->total_amount . '
                                             </p>
 
                                         </td>
@@ -221,11 +224,11 @@ class OrderController extends Controller
                                 </h3>
 
                                 <p style="font-size:15px;color:#666;line-height:24px;">
-                                    '.$order->first_name.'<br>
-                                    '.$order->address1.' '.$order->address2.'<br>
-                                    '.$order->city.', '.$order->state.'<br>
-                                    '.$order->post_code.'<br>
-                                    Phone: '.$order->phone.'
+                                    ' . $order->first_name . '<br>
+                                    ' . $order->address1 . ' ' . $order->address2 . '<br>
+                                    ' . $order->city . ', ' . $order->state . '<br>
+                                    ' . $order->post_code . '<br>
+                                    Phone: ' . $order->phone . '
                                 </p>
 
                                 <!-- Button -->
@@ -253,7 +256,7 @@ class OrderController extends Controller
                         <tr>
                             <td style="background:#fafafa;padding:20px;text-align:center;
                                 font-size:13px;color:#999;">
-                                © '.date('Y').' DHIRAGO. All rights reserved.
+                                © ' . date('Y') . ' DHIRAGO. All rights reserved.
                             </td>
                         </tr>
 
@@ -267,11 +270,10 @@ class OrderController extends Controller
     </html>
     ';
 
-    $message->to($request->email)
-        ->subject('Your Order Has Been Placed Successfully')
-        ->html($html);
-});
-
+                $message->to($request->email)
+                    ->subject('Your Order Has Been Placed Successfully')
+                    ->html($html);
+            });
         } catch (\Exception $e) {
 
             $shiprocketResponse = [

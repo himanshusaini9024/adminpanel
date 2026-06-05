@@ -40,7 +40,7 @@ class ReturnController extends Controller
 
         $return = ReturnOrder::create([
             'order_id' => $order->id,
-            'user_id' => auth()->id(),
+            'user_id' => $request->customer_id,
             'reason' => $request->reason,
             'comment' => $request->comment,
             'status' => 'pending'
