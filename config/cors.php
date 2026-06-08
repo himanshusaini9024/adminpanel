@@ -61,7 +61,7 @@ return [
     'allowed_origins' => [
         'http://192.168.137.116:3000',
         'http://localhost:3000',
-        'https://staging.dhirago.com/',
+        'https://staging.dhirago.com',
     ],
 
     'allowed_origins_patterns' => [],
