@@ -86,8 +86,6 @@ Route::middleware('auth:customer')->group(function () {
     Route::post('/orders', [OrderController::class, 'store']);
     Route::get('/orders/latest', [OrderController::class, 'latest']);
     Route::get('/orders', [OrderController::class, 'index']);
-    Route::middleware('auth:sanctum')->post(
-        '/returns/create',
-        [ReturnController::class, 'create']
-    );
+    Route::post('/returns/create', [ReturnController::class, 'create']);
+
 });
