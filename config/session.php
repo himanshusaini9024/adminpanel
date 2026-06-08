@@ -142,8 +142,7 @@ return [
     |
     */
 
-    'path' => '/',
-'same_site' => 'lax',   // or 'none' if truly cross-origin
+    'path' => '/', // or 'none' if truly cross-origin
 'secure' => true,
 /*
     |--------------------------------------------------------------------------
@@ -197,6 +196,6 @@ return [
     |
     */
 
-    'same_site' => 'lax',
+    'same_site' => 'none',
 
 ];
