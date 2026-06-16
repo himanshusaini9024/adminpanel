@@ -31,9 +31,9 @@ class ShiprocketService
     public function createOrder($order, $items)
     {
         $token = $this->login();
-    Log::info('token', [
-                    'token' => $token
-                ]);
+        Log::info('token', [
+            'token' => $token
+        ]);
         $payload = [
             "order_id" => "DHI-" . $order->order_number,
             "order_date" => now()->format('Y-m-d H:i'),
@@ -76,12 +76,19 @@ class ShiprocketService
             "height" => 3,
             "weight" => 0.5,
         ];
-        return Http::withHeaders([
+        $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . $token,
         ])->post(
             $this->baseUrl . '/orders/create/adhoc',
             $payload
-        )->json();
+        );
+
+        Log::info('Shiprocket Raw Response', [
+            'status' => $response->status(),
+            'body' => $response->body(),
+        ]);
+
+        return $response->json();
     }
 
     public function createReturn($return, $sku)
