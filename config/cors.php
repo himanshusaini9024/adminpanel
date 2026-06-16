@@ -59,7 +59,7 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
-        'http://192.168.137.116:3000',
+        'http://192.168.137.10:3000',
         'http://localhost:3000',
         'https://staging.dhirago.com',
     ],

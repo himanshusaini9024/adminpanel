@@ -37,70 +37,53 @@ class HomepageController extends Controller
         return Cache::remember($cacheKey, 30, function () use ($query) {
 
             // 🔥 PRODUCTS
-            $products = DB::table('products')
+            $results = DB::table('products')
                 ->select(
                     'id',
-                    DB::raw('title as name'),
+                    'title as name',
                     'slug',
                     'photo',
                     DB::raw("'product' as type"),
                     DB::raw("
-                    (CASE 
-                        WHEN title LIKE ? THEN 0
-                        WHEN title LIKE ? THEN 1
-                        WHEN title LIKE ? THEN 2
-                        ELSE 3
-                    END) as relevance
-                ")
+            CASE
+                WHEN title LIKE '{$query}%' THEN 1
+                ELSE 2
+            END as relevance
+        ")
                 )
-                ->addBinding([
-                    $query,
-                    $query . '%',
-                    '%' . $query . '%'
-                ], 'select')
-                ->where('title', 'LIKE', '%' . $query . '%')
-                ->orderBy('relevance') // ✅ SORT FIX
-                ->limit(5)
-                ->get();
-
-
-            // 🔥 CATEGORIES
-            $categories = DB::table('categories')
-                ->select(
-                    'id',
-                    DB::raw('title as name'), // ✅ unified field
-                    'slug',
-                    'photo',
-                    DB::raw("'category' as type"),
-                    DB::raw("
-                    (CASE 
-                        WHEN title LIKE ? THEN 0
-                        WHEN title LIKE ? THEN 1
-                        WHEN title LIKE ? THEN 2
-                        ELSE 3
-                    END) as relevance
+                ->where('title', 'LIKE', "%{$query}%")
+                ->unionAll(
+                    DB::table('categories')
+                        ->select(
+                            'id',
+                            'title as name',
+                            'slug',
+                            'photo',
+                            DB::raw("'category' as type"),
+                            DB::raw("
+                    CASE
+                        WHEN title LIKE '{$query}%' THEN 1
+                        ELSE 2
+                    END as relevance
                 ")
-                )
-                ->addBinding([
-                    $query,
-                    $query . '%',
-                    '%' . $query . '%'
-                ], 'select')
-                ->where('title', 'LIKE', '%' . $query . '%')
-                ->orderBy('relevance') // ✅ SORT FIX
-                ->limit(5)
-                ->get();
+                        )
+                        ->where('title', 'LIKE', "%{$query}%")->where('status', 'active')
+                );
 
+            $results = DB::query()
+                ->fromSub($results, 'search')
+                ->orderBy('relevance')
+                ->limit(10)
+                ->get();
 
             // 🔥 SUGGESTIONS (FAST AUTOCOMPLETE)
             $suggestions = DB::table('products')
-                ->whereRaw("LOWER(title) LIKE ?", [strtolower($query) . '%'])
+                ->where('title', 'LIKE', $query . '%')
                 ->limit(5)
                 ->pluck('title');
 
             return response()->json([
-                'products' => $products,
-                'categories' => $categories,
+                'results' => $results,
                 'suggestions' => $suggestions
             ]);
         });

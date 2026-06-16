@@ -79,11 +79,11 @@
                  
                     <tr>
                       <td>Coupon</td>
-                      <td> : $ {{number_format($order->coupon,2)}}</td>
+                      <td> : ₹ {{number_format($order->coupon,2)}}</td>
                     </tr>
                     <tr>
                         <td>Total Amount</td>
-                        <td> : $ {{number_format($order->total_amount,2)}}</td>
+                        <td> : ₹ {{number_format($order->total_amount,2)}}</td>
                     </tr>
                     <tr>
                         <td>Payment Method</td>
@@ -103,7 +103,7 @@
               <table class="table">
                     <tr class="">
                         <td>Full Name</td>
-                        <td> : {{$order->first_name}} {{$order->last_name}}</td>
+                        <td> : {{$order->first_name}} </td>
                     </tr>
                     <tr>
                         <td>Email</td>
