@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Services\ShiprocketService;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class OrderController extends Controller
 {
@@ -34,6 +35,11 @@ class OrderController extends Controller
         $nextId = $lastOrder ? $lastOrder->id + 1 : 1;
 
         $orderNumber = 100 + $nextId;
+        Log::info('Order request received', [
+            'email' => $request->email,
+            'payment_method' => $request->payment_method,
+            'amount' => $request->total_amount
+        ]);
         // Create order first
         $order = Order::create([
 
@@ -101,29 +107,17 @@ class OrderController extends Controller
 
         // Shiprocket API
         try {
-
-            // $shiprocketResponse = $shiprocket->createOrder(
-            //     $order,
-            //     $shiprocketItems
-            // );
-
-            // if (isset($shiprocketResponse['shipment_id'])) {
-
-            //     $order->shipment_id =
-            //         $shiprocketResponse['shipment_id'];
-
-            //     $order->awb_code =
-            //         $shiprocketResponse['awb_code'] ?? null;
-
-            //     $order->save();
-            // }
             $allowshipment = env('SHIPMENT_LIVE');
 
             if ($allowshipment) {
+                Log::info('Creating Shiprocket order');
                 $shiprocketResponse = $shiprocket->createOrder(
                     $order,
                     $shiprocketItems
                 );
+                 Log::info('Shiprocket response', [
+        'response' => $shiprocketResponse
+    ]);
 
                 // save shipment details
                 if (isset($shiprocketResponse['shipment_id'])) {
@@ -137,13 +131,17 @@ class OrderController extends Controller
                     $order->save();
                 }
             } else {
+Log::info('Shiprocket disabled');
 
                 $shiprocketResponse = [
                     'testing' => true,
                     'message' => 'Shipment skipped in local/testing environment'
                 ];
             }
-
+            Log::info('Starting email send', [
+    'to' => $request->email
+]);
+try {
             Mail::send([], [], function ($message) use ($order, $request) {
 
                 $html = '
@@ -274,6 +272,16 @@ class OrderController extends Controller
                     ->subject('Your Order Has Been Placed Successfully')
                     ->html($html);
             });
+              Log::info('Email sent successfully', [
+        'to' => $request->email
+    ]);
+            } catch (\Exception $mailException) {
+
+    Log::error('Email sending failed', [
+        'message' => $mailException->getMessage(),
+        'trace' => $mailException->getTraceAsString()
+    ]);
+}
         } catch (\Exception $e) {
 
             $shiprocketResponse = [
