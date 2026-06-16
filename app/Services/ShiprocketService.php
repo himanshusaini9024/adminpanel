@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class ShiprocketService
 {
@@ -30,7 +31,9 @@ class ShiprocketService
     public function createOrder($order, $items)
     {
         $token = $this->login();
-
+    Log::info('token', [
+                    'token' => $token
+                ]);
         $payload = [
             "order_id" => "DHI-" . $order->order_number,
             "order_date" => now()->format('Y-m-d H:i'),

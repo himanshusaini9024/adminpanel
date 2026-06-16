@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Services\ShiprocketService;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class OrderController extends Controller
 {
@@ -124,6 +125,9 @@ class OrderController extends Controller
                     $order,
                     $shiprocketItems
                 );
+                Log::info('Shiprocket response', [
+                    'response' => $shiprocketResponse
+                ]);
 
                 // save shipment details
                 if (isset($shiprocketResponse['shipment_id'])) {
@@ -137,6 +141,7 @@ class OrderController extends Controller
                     $order->save();
                 }
             } else {
+                 Log::info('Shiprocket disabled');
 
                 $shiprocketResponse = [
                     'testing' => true,
