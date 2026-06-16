@@ -76,6 +76,7 @@ class ShiprocketService
             "height" => 3,
             "weight" => 0.5,
         ];
+        Log::info('Shiprocket Payload', $payload);
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . $token,
         ])->post(
