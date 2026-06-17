@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Api\CustomerAddressController;
 use App\Http\Controllers\Api\WebhookController;
 use App\Http\Controllers\Api\ReturnController;
+use App\Http\Controllers\Api\NewsletterController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -68,6 +70,7 @@ Route::post('/webhook/whatsapp', function (Request $request) {
         'status' => 'success'
     ], 200);
 });
+Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe']);
 
 Route::middleware('auth:customer')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
