@@ -126,7 +126,7 @@ class CategoryController extends Controller
         }
         // $validatedData['photo'] = json_encode($request->photo);
   
-        
+            
 
 
         $validatedData['is_parent'] = $request->input('is_parent', 0);

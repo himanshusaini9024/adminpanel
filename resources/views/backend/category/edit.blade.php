@@ -179,7 +179,7 @@
     imgWrapper.innerHTML = `
         <img src="${url}" style="max-height:100px; display:block;">
         <button type="button" onclick="this.parentElement.remove()" style="margin-top:5px;">Remove</button>
-        <input type="hidden" name="photo[]" value="${url}">
+        <input type="hidden" name="photo" value="${url}">
     `;
 
     container.appendChild(imgWrapper);
