@@ -501,7 +501,7 @@
                     </div>
                     <div class="form-col">
                         <div class="form-group">
-                            <label>SKU / Model</label>
+                            <label>SKU / Model <span class="req">*</span></label>
                             <input type="text" name="sku" class="form-control" placeholder="SKU"
                                    value="{{ old('sku', $product->sku ?? '') }}">
                         </div>

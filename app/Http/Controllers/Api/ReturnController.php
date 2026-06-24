@@ -16,7 +16,8 @@ class ReturnController extends Controller
     {
         $request->validate([
             'order_id' => 'required',
-            'reason' => 'required'
+            'reason' => 'required',
+            'comment' => 'required'
         ]);
 
         $order = Order::where(
