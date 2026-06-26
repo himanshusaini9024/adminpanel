@@ -129,8 +129,7 @@ class ShiprocketService
                     // YOUR WAREHOUSE
                     "shipping_customer_name" => "Dhirago",
 
-                    "shipping_address" =>
-                    "Home",
+                    "shipping_address" => "Home",
 
                     "shipping_city" => "Udaipur",
 

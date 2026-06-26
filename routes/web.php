@@ -35,7 +35,7 @@ Route::get('cache-clear', function () {
     return redirect()->back();
 })->name('cache.clear');
 
-Route::get('storage-link', [AdminController::class,'storageLink'])->name('storage.link');
+Route::get('storage-link', [AdminController::class, 'storageLink'])->name('storage.link');
 
 /*
 |--------------------------------------------------------------------------
@@ -45,12 +45,12 @@ Route::get('storage-link', [AdminController::class,'storageLink'])->name('storag
 
 Auth::routes(['register' => false]);
 
-Route::get('user/login', [FrontendController::class,'login'])->name('login.form');
-Route::post('user/login', [FrontendController::class,'loginSubmit'])->name('login.submit');
-Route::get('user/logout', [FrontendController::class,'logout'])->name('user.logout');
+Route::get('user/login', [FrontendController::class, 'login'])->name('login.form');
+Route::post('user/login', [FrontendController::class, 'loginSubmit'])->name('login.submit');
+Route::get('user/logout', [FrontendController::class, 'logout'])->name('user.logout');
 
-Route::get('user/register', [FrontendController::class,'register'])->name('register.form');
-Route::post('user/register', [FrontendController::class,'registerSubmit'])->name('register.submit');
+Route::get('user/register', [FrontendController::class, 'register'])->name('register.form');
+Route::post('user/register', [FrontendController::class, 'registerSubmit'])->name('register.submit');
 
 /*
 |--------------------------------------------------------------------------
@@ -58,10 +58,10 @@ Route::post('user/register', [FrontendController::class,'registerSubmit'])->name
 |--------------------------------------------------------------------------
 */
 
-Route::get('password/reset',[ForgotPasswordController::class,'showLinkRequestForm'])->name('password.request');
-Route::post('password/email',[ForgotPasswordController::class,'sendResetLinkEmail'])->name('password.email');
-Route::get('password/reset/{token}',[ResetPasswordController::class,'showResetForm'])->name('password.reset');
-Route::post('password/reset',[ResetPasswordController::class,'reset'])->name('password.update');
+Route::get('password/reset', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
+Route::post('password/email', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
+Route::get('password/reset/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
+Route::post('password/reset', [ResetPasswordController::class, 'reset'])->name('password.update');
 
 /*
 |--------------------------------------------------------------------------
@@ -69,8 +69,8 @@ Route::post('password/reset',[ResetPasswordController::class,'reset'])->name('pa
 |--------------------------------------------------------------------------
 */
 
-Route::get('login/{provider}', [LoginController::class,'redirect'])->name('login.redirect');
-Route::get('login/{provider}/callback', [LoginController::class,'Callback'])->name('login.callback');
+Route::get('login/{provider}', [LoginController::class, 'redirect'])->name('login.redirect');
+Route::get('login/{provider}/callback', [LoginController::class, 'Callback'])->name('login.callback');
 
 /*
 |--------------------------------------------------------------------------
@@ -92,20 +92,20 @@ Route::get('/home', function () {
 |--------------------------------------------------------------------------
 */
 
-Route::get('/about-us',[FrontendController::class,'aboutUs'])->name('about-us');
-Route::get('/contact',[FrontendController::class,'contact'])->name('contact');
-Route::post('/contact/message',[MessageController::class,'store'])->name('contact.store');
+Route::get('/about-us', [FrontendController::class, 'aboutUs'])->name('about-us');
+Route::get('/contact', [FrontendController::class, 'contact'])->name('contact');
+Route::post('/contact/message', [MessageController::class, 'store'])->name('contact.store');
 
-Route::get('/product-detail/{slug}',[FrontendController::class,'productDetail'])->name('product-detail');
-Route::post('/product/search',[FrontendController::class,'productSearch'])->name('product.search');
+Route::get('/product-detail/{slug}', [FrontendController::class, 'productDetail'])->name('product-detail');
+Route::post('/product/search', [FrontendController::class, 'productSearch'])->name('product.search');
 
-Route::get('/product-cat/{slug}',[FrontendController::class,'productCat'])->name('product-cat');
-Route::get('/product-sub-cat/{slug}/{sub_slug}',[FrontendController::class,'productSubCat'])->name('product-sub-cat');
-Route::get('/product-brand/{slug}',[FrontendController::class,'productBrand'])->name('product-brand');
+Route::get('/product-cat/{slug}', [FrontendController::class, 'productCat'])->name('product-cat');
+Route::get('/product-sub-cat/{slug}/{sub_slug}', [FrontendController::class, 'productSubCat'])->name('product-sub-cat');
+Route::get('/product-brand/{slug}', [FrontendController::class, 'productBrand'])->name('product-brand');
 
-Route::get('/product-grids',[FrontendController::class,'productGrids'])->name('product-grids');
-Route::get('/product-lists',[FrontendController::class,'productLists'])->name('product-lists');
-Route::match(['get','post'],'/filter',[FrontendController::class,'productFilter'])->name('shop.filter');
+Route::get('/product-grids', [FrontendController::class, 'productGrids'])->name('product-grids');
+Route::get('/product-lists', [FrontendController::class, 'productLists'])->name('product-lists');
+Route::match(['get', 'post'], '/filter', [FrontendController::class, 'productFilter'])->name('shop.filter');
 
 /*
 |--------------------------------------------------------------------------
@@ -113,17 +113,17 @@ Route::match(['get','post'],'/filter',[FrontendController::class,'productFilter'
 |--------------------------------------------------------------------------
 */
 
-Route::get('/add-to-cart/{slug}',[CartController::class,'addToCart'])->name('add-to-cart')->middleware('user');
-Route::post('/add-to-cart',[CartController::class,'singleAddToCart'])->name('single-add-to-cart')->middleware('user');
+Route::get('/add-to-cart/{slug}', [CartController::class, 'addToCart'])->name('add-to-cart')->middleware('user');
+Route::post('/add-to-cart', [CartController::class, 'singleAddToCart'])->name('single-add-to-cart')->middleware('user');
 
-Route::get('cart-delete/{id}',[CartController::class,'cartDelete'])->name('cart-delete');
-Route::post('cart-update',[CartController::class,'cartUpdate'])->name('cart.update');
+Route::get('cart-delete/{id}', [CartController::class, 'cartDelete'])->name('cart-delete');
+Route::post('cart-update', [CartController::class, 'cartUpdate'])->name('cart.update');
 
-Route::get('/cart',function(){
+Route::get('/cart', function () {
     return view('frontend.pages.cart');
 })->name('cart');
 
-Route::get('/checkout',[CartController::class,'checkout'])->name('checkout')->middleware('user');
+Route::get('/checkout', [CartController::class, 'checkout'])->name('checkout')->middleware('user');
 
 /*
 |--------------------------------------------------------------------------
@@ -131,12 +131,12 @@ Route::get('/checkout',[CartController::class,'checkout'])->name('checkout')->mi
 |--------------------------------------------------------------------------
 */
 
-Route::get('/wishlist',function(){
+Route::get('/wishlist', function () {
     return view('frontend.pages.wishlist');
 })->name('wishlist');
 
-Route::get('/wishlist/{slug}',[WishlistController::class,'wishlist'])->name('add-to-wishlist')->middleware('user');
-Route::get('wishlist-delete/{id}',[WishlistController::class,'wishlistDelete'])->name('wishlist-delete');
+Route::get('/wishlist/{slug}', [WishlistController::class, 'wishlist'])->name('add-to-wishlist')->middleware('user');
+Route::get('wishlist-delete/{id}', [WishlistController::class, 'wishlistDelete'])->name('wishlist-delete');
 
 /*
 |--------------------------------------------------------------------------
@@ -144,11 +144,11 @@ Route::get('wishlist-delete/{id}',[WishlistController::class,'wishlistDelete'])-
 |--------------------------------------------------------------------------
 */
 
-Route::post('cart/order',[OrderController::class,'store'])->name('cart.order');
-Route::get('order/pdf/{id}',[OrderController::class,'pdf'])->name('order.pdf');
-Route::get('/income',[OrderController::class,'incomeChart'])->name('product.order.income');
-Route::get('/product/track',[OrderController::class,'orderTrack'])->name('order.track');
-Route::post('product/track/order',[OrderController::class,'productTrackOrder'])->name('product.track.order');
+Route::post('cart/order', [OrderController::class, 'store'])->name('cart.order');
+Route::get('order/pdf/{id}', [OrderController::class, 'pdf'])->name('order.pdf');
+Route::get('/income', [OrderController::class, 'incomeChart'])->name('product.order.income');
+Route::get('/product/track', [OrderController::class, 'orderTrack'])->name('order.track');
+Route::post('product/track/order', [OrderController::class, 'productTrackOrder'])->name('product.track.order');
 
 /*
 |--------------------------------------------------------------------------
@@ -156,12 +156,12 @@ Route::post('product/track/order',[OrderController::class,'productTrackOrder'])-
 |--------------------------------------------------------------------------
 */
 
-Route::get('/blog',[FrontendController::class,'blog'])->name('blog');
-Route::get('/blog-detail/{slug}',[FrontendController::class,'blogDetail'])->name('blog.detail');
+Route::get('/blog', [FrontendController::class, 'blog'])->name('blog');
+Route::get('/blog-detail/{slug}', [FrontendController::class, 'blogDetail'])->name('blog.detail');
 
-Route::post('/blog/filter',[FrontendController::class,'blogFilter'])->name('blog.filter');
-Route::get('blog-cat/{slug}',[FrontendController::class,'blogByCategory'])->name('blog.category');
-Route::get('blog-tag/{slug}',[FrontendController::class,'blogByTag'])->name('blog.tag');
+Route::post('/blog/filter', [FrontendController::class, 'blogFilter'])->name('blog.filter');
+Route::get('blog-cat/{slug}', [FrontendController::class, 'blogByCategory'])->name('blog.category');
+Route::get('blog-tag/{slug}', [FrontendController::class, 'blogByTag'])->name('blog.tag');
 
 /*
 |--------------------------------------------------------------------------
@@ -169,11 +169,11 @@ Route::get('blog-tag/{slug}',[FrontendController::class,'blogByTag'])->name('blo
 |--------------------------------------------------------------------------
 */
 
-Route::resource('/review',ProductReviewController::class);
-Route::post('product/{slug}/review',[ProductReviewController::class,'store'])->name('review.store');
+Route::resource('/review', ProductReviewController::class);
+Route::post('product/{slug}/review', [ProductReviewController::class, 'store'])->name('review.store');
 
-Route::post('post/{slug}/comment',[PostCommentController::class,'store'])->name('post-comment.store');
-Route::resource('/comment',PostCommentController::class);
+Route::post('post/{slug}/comment', [PostCommentController::class, 'store'])->name('post-comment.store');
+Route::resource('/comment', PostCommentController::class);
 
 /*
 |--------------------------------------------------------------------------
@@ -181,7 +181,7 @@ Route::resource('/comment',PostCommentController::class);
 |--------------------------------------------------------------------------
 */
 
-Route::post('/coupon-store',[CouponController::class,'couponStore'])->name('coupon-store');
+Route::post('/coupon-store', [CouponController::class, 'couponStore'])->name('coupon-store');
 
 /*
 |--------------------------------------------------------------------------
@@ -189,9 +189,9 @@ Route::post('/coupon-store',[CouponController::class,'couponStore'])->name('coup
 |--------------------------------------------------------------------------
 */
 
-Route::get('payment',[PayPalController::class,'payment'])->name('payment');
-Route::get('cancel',[PayPalController::class,'cancel'])->name('payment.cancel');
-Route::get('payment/success',[PayPalController::class,'success'])->name('payment.success');
+Route::get('payment', [PayPalController::class, 'payment'])->name('payment');
+Route::get('cancel', [PayPalController::class, 'cancel'])->name('payment.cancel');
+Route::get('payment/success', [PayPalController::class, 'success'])->name('payment.success');
 
 /*
 |--------------------------------------------------------------------------
@@ -199,103 +199,103 @@ Route::get('payment/success',[PayPalController::class,'success'])->name('payment
 |--------------------------------------------------------------------------
 */
 
-Route::group(['prefix'=>'admin','middleware'=>['auth','admin']],function(){
+Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin']], function () {
 
-    Route::get('/',[AdminController::class,'index'])->name('admin');
-  Route::get('/file-manager', function () {
-            return view('backend.layouts.file-manager');
-        })->name('file-manager');
-    Route::resource('users',App\Http\Controllers\UsersController::class);
-    Route::resource('banner',App\Http\Controllers\BannerController::class);
-    Route::resource('brand',App\Http\Controllers\BrandController::class);
-    Route::resource('category',App\Http\Controllers\CategoryController::class);
-    Route::resource('product',App\Http\Controllers\ProductController::class);
- Route::get('settings', [AdminController::class, 'settings'])->name('settings');
-  Route::get('change-password', [AdminController::class, 'changePassword'])->name('change.password.form');
-        Route::post('change-password', [AdminController::class, 'changPasswordStore'])->name('change.password');
-    Route::resource('post-category',App\Http\Controllers\PostCategoryController::class);
-    Route::resource('post-tag',App\Http\Controllers\PostTagController::class);
-    Route::resource('post',App\Http\Controllers\PostController::class);
+    Route::get('/', [AdminController::class, 'index'])->name('admin');
+    Route::get('/file-manager', function () {
+        return view('backend.layouts.file-manager');
+    })->name('file-manager');
+    Route::resource('users', App\Http\Controllers\UsersController::class);
+    Route::resource('banner', App\Http\Controllers\BannerController::class);
+    Route::resource('brand', App\Http\Controllers\BrandController::class);
+    Route::resource('category', App\Http\Controllers\CategoryController::class);
+    Route::resource('product', App\Http\Controllers\ProductController::class);
+    Route::get('settings', [AdminController::class, 'settings'])->name('settings');
+    Route::get('change-password', [AdminController::class, 'changePassword'])->name('change.password.form');
+    Route::post('change-password', [AdminController::class, 'changPasswordStore'])->name('change.password');
+    Route::resource('post-category', App\Http\Controllers\PostCategoryController::class);
+    Route::resource('post-tag', App\Http\Controllers\PostTagController::class);
+    Route::resource('post', App\Http\Controllers\PostController::class);
 
-    Route::resource('review',ProductReviewController::class);
-    Route::resource('comment',PostCommentController::class);
+    Route::resource('review', ProductReviewController::class);
+    Route::resource('comment', PostCommentController::class);
 
-    Route::resource('message',MessageController::class);
-    Route::get('/message/five',[MessageController::class,'messageFive'])->name('messages.five');
+    Route::resource('message', MessageController::class);
+    Route::get('/message/five', [MessageController::class, 'messageFive'])->name('messages.five');
 
-    Route::resource('order',OrderController::class);
-    Route::resource('shipping',App\Http\Controllers\ShippingController::class);
-    Route::resource('coupon',CouponController::class);
+    Route::resource('order', OrderController::class);
+    Route::resource('shipping', App\Http\Controllers\ShippingController::class);
+    Route::resource('coupon', CouponController::class);
 
-    Route::get('/profile',[AdminController::class,'profile'])->name('admin-profile');
-    Route::post('/profile/{id}',[AdminController::class,'profileUpdate'])->name('profile-update');
+    Route::get('/profile', [AdminController::class, 'profile'])->name('admin-profile');
+    Route::post('/profile/{id}', [AdminController::class, 'profileUpdate'])->name('profile-update');
 
-    Route::get('/notifications',[NotificationController::class,'index'])->name('all.notification');
-    Route::get('/notification/{id}',[NotificationController::class,'show'])->name('admin.notification');
-    Route::delete('/notification/{id}',[NotificationController::class,'delete'])->name('notification.delete');
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('all.notification');
+    Route::get('/notification/{id}', [NotificationController::class, 'show'])->name('admin.notification');
+    Route::delete('/notification/{id}', [NotificationController::class, 'delete'])->name('notification.delete');
     // routes/web.php
-Route::get('/cloudinary-images', [App\Http\Controllers\Admin\CloudinaryController::class, 'index']);
+    Route::get('/cloudinary-images', [App\Http\Controllers\Admin\CloudinaryController::class, 'index']);
 
-Route::get('/cloudinary-signature', function (Request $request) {
+    Route::get('/cloudinary-signature', function (Request $request) {
 
-    $timestamp = time();
-    $folder = $request->query('folder');
-    $params = [
-        'timestamp' => $timestamp,
-        'folder' => $folder,
+        $timestamp = time();
+        $folder = $request->query('folder');
+        $params = [
+            'timestamp' => $timestamp,
+            'folder' => $folder,
 
-        // 🔥 MUST MATCH FRONTEND
-      'use_filename' => true,        
-        'unique_filename' => false,
-        'source' => 'uw'
-    ];
+            // 🔥 MUST MATCH FRONTEND
+            'use_filename' => true,
+            'unique_filename' => false,
+            'source' => 'uw'
+        ];
 
-    ksort($params);
+        ksort($params);
 
-    $toSign = '';
-    foreach ($params as $key => $value) {
-        if (is_bool($value)) {
-            $value = $value ? 'true' : 'false';
+        $toSign = '';
+        foreach ($params as $key => $value) {
+            if (is_bool($value)) {
+                $value = $value ? 'true' : 'false';
+            }
+            $toSign .= $key . '=' . $value . '&';
         }
-        $toSign .= $key . '=' . $value . '&';
-    }
 
-    $toSign = rtrim($toSign, '&');
-    $signature = sha1($toSign . env('CLOUDIARY_API_SECRECTKEY'));
+        $toSign = rtrim($toSign, '&');
+        $signature = sha1($toSign . env('CLOUDIARY_API_SECRECTKEY'));
 
 
-    
 
-    return response()->json([
-        'signature' => $signature,
-        'timestamp' => $timestamp,
-        'apiKey' => env('CLOUDIARY_API_KEY'),
-        'cloudName' => 'ds48lk80f'
-    ]);
-});
 
-Route::get('/cloudinary-ml-auth', function () {
-    $cloudName = 'ds48lk80f';
-    $apiKey    = env('CLOUDIARY_API_KEY');
-    $apiSecret = env('CLOUDIARY_API_SECRECTKEY');
-    $username  = env('CLOUDINARY_USERNAME'); // your Cloudinary login EMAIL
+        return response()->json([
+            'signature' => $signature,
+            'timestamp' => $timestamp,
+            'apiKey' => env('CLOUDIARY_API_KEY'),
+            'cloudName' => 'ds48lk80f'
+        ]);
+    });
 
-    $timestamp = time();
+    Route::get('/cloudinary-ml-auth', function () {
+        $cloudName = 'ds48lk80f';
+        $apiKey    = env('CLOUDIARY_API_KEY');
+        $apiSecret = env('CLOUDIARY_API_SECRECTKEY');
+        $username  = env('CLOUDINARY_USERNAME'); // your Cloudinary login EMAIL
 
-    // ML widget signature format
-    $toSign    = 'cloud_name=' . $cloudName . '&timestamp=' . $timestamp . '&username=' . $username;
-    $signature = hash('sha256', $toSign . $apiSecret);
+        $timestamp = time();
 
-    return response()->json([
-        'cloud_name' => $cloudName,
-        'api_key'    => $apiKey,
-        'timestamp'  => $timestamp,
-        'signature'  => $signature,
-        'username'   => $username,
-    ]);
-});
+        // ML widget signature format
+        $toSign    = 'cloud_name=' . $cloudName . '&timestamp=' . $timestamp . '&username=' . $username;
+        $signature = hash('sha256', $toSign . $apiSecret);
 
- Route::get(
+        return response()->json([
+            'cloud_name' => $cloudName,
+            'api_key'    => $apiKey,
+            'timestamp'  => $timestamp,
+            'signature'  => $signature,
+            'username'   => $username,
+        ]);
+    });
+
+    Route::get(
         '/returns',
         [ReturnController::class, 'adminReturns']
     );
@@ -310,6 +310,10 @@ Route::get('/cloudinary-ml-auth', function () {
         [ReturnController::class, 'reject']
     );
 
+    Route::post(
+    '/refund/{id}/{paymentId}/process',
+    [ReturnController::class, 'processRefund']
+);
 });
 
 /*
@@ -318,16 +322,15 @@ Route::get('/cloudinary-ml-auth', function () {
 |--------------------------------------------------------------------------
 */
 
-Route::group(['prefix'=>'user','middleware'=>['user']],function(){
+Route::group(['prefix' => 'user', 'middleware' => ['user']], function () {
 
-    Route::get('/',[HomeController::class,'index'])->name('user');
+    Route::get('/', [HomeController::class, 'index'])->name('user');
 
-    Route::get('/profile',[HomeController::class,'profile'])->name('user-profile');
-    Route::post('/profile/{id}',[HomeController::class,'profileUpdate'])->name('user-profile-update');
+    Route::get('/profile', [HomeController::class, 'profile'])->name('user-profile');
+    Route::post('/profile/{id}', [HomeController::class, 'profileUpdate'])->name('user-profile-update');
 
-    Route::get('/order',[HomeController::class,'orderIndex'])->name('user.order.index');
-    Route::get('/order/show/{id}',[HomeController::class,'orderShow'])->name('user.order.show');
-
+    Route::get('/order', [HomeController::class, 'orderIndex'])->name('user.order.index');
+    Route::get('/order/show/{id}', [HomeController::class, 'orderShow'])->name('user.order.show');
 });
 
 /*
@@ -336,6 +339,6 @@ Route::group(['prefix'=>'user','middleware'=>['user']],function(){
 |--------------------------------------------------------------------------
 */
 
-Route::group(['prefix'=>'laravel-filemanager','middleware'=>['web','auth']],function(){
+Route::group(['prefix' => 'laravel-filemanager', 'middleware' => ['web', 'auth']], function () {
     Lfm::routes();
 });

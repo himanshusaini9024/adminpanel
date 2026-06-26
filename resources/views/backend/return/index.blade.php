@@ -4,15 +4,15 @@
 
 @section('main-content')
 @if(session('success'))
-    <div class="alert alert-success">
-        {{ session('success') }}
-    </div>
+<div class="alert alert-success">
+    {{ session('success') }}
+</div>
 @endif
 
 @if(session('error'))
-    <div class="alert alert-danger">
-        {{ session('error') }}
-    </div>
+<div class="alert alert-danger">
+    {{ session('error') }}
+</div>
 @endif
 <div class="card">
     <h5 class="card-header">
@@ -31,6 +31,7 @@
                         <th>Reason</th>
                         <th>Comment</th>
                         <th>Status</th>
+                        <th>Refund Process</th>
                         <th>Reverse AWB</th>
                         <th>Courier</th>
                         <th>Action</th>
@@ -40,7 +41,7 @@
                 <tbody>
 
                     @forelse($returns as $return)
- 
+
                     <tr>
                         <td>{{ $return->id }}</td>
 
@@ -64,29 +65,46 @@
                         <td>
 
                             @if($return->status == 'pending')
-                                <span class="badge badge-warning">
-                                    Pending
-                                </span>
+                            <span class="badge badge-warning">
+                                Pending
+                            </span>
 
                             @elseif($return->status == 'pickup_scheduled')
 
-                                <span class="badge badge-info">
-                                    Pickup Scheduled
-                                </span>
+                            <span class="badge badge-info">
+                                Pickup Scheduled
+                            </span>
 
                             @elseif($return->status == 'rejected')
 
-                                <span class="badge badge-danger">
-                                    Rejected
-                                </span>
+                            <span class="badge badge-danger">
+                                Rejected
+                            </span>
 
-                            @elseif($return->status == 'completed')
+                            @elseif($return->status == 'delivered')
 
-                                <span class="badge badge-success">
-                                    Completed
-                                </span>
+                            <span class="badge badge-success">
+                                Completed
+                            </span>
                             @endif
 
+                        </td>
+                        <td>
+                            @if($return->status == 'delivered')
+                            <span class="badge badge-danger">
+                                Apply Refund Process
+                            </span>
+
+                            @elseif($return->status == 'refundprocess')
+
+                            <span class="badge badge-success">
+                                Refund Process </span>
+
+                            @elseif($return->status == 'refunded')
+
+                            <span class="badge badge-success">
+                                Refund Done </span>
+                            @endif
                         </td>
 
                         <td>
@@ -104,8 +122,7 @@
                             <form
                                 action="{{ url('admin/returns/'.$return->id.'/'.($return->order->items->first()->sku ?? 'NOSKU').'/approve') }}"
                                 method="POST"
-                                style="display:inline-block"
-                            >
+                                style="display:inline-block">
                                 @csrf
 
                                 <button class="btn btn-success btn-sm">
@@ -116,8 +133,7 @@
                             <form
                                 action="{{ url('admin/returns/'.$return->id.'/reject') }}"
                                 method="POST"
-                                style="display:inline-block"
-                            >
+                                style="display:inline-block">
                                 @csrf
 
                                 <button class="btn btn-danger btn-sm">
@@ -125,11 +141,27 @@
                                 </button>
                             </form>
 
+                            @elseif($return->status == 'delivered')
+
+                            <form
+                                action="{{ url('admin/refund/'.$return->id.'/'.$return->order->razorpay_payment_id.'/process') }}"
+                                method="POST"
+                                style="display:inline-block">
+                                @csrf
+
+                                <button class="btn btn-warning btn-sm">
+                                    Apply Redund Process
+                                </button>
+                            </form>
+
                             @else
 
-                                <span class="text-muted">
-                                    Processed 
-                                </span>
+                            <span class="text-muted">
+                                Processed
+                            </span>
+
+
+
 
                             @endif
 

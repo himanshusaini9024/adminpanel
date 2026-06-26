@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Models\ReturnOrder;
 use App\Models\Order;
 use App\Services\ShiprocketService;
+use Razorpay\Api\Api;
 
 class ReturnController extends Controller
 {
@@ -56,16 +57,15 @@ class ReturnController extends Controller
     // ADMIN RETURNS LIST
     public function adminReturns()
     {
-        $returns = ReturnOrder::with('order','items')
+        $returns = ReturnOrder::with('order', 'items')
             ->latest()
             ->get();
-
 
         return view('backend.return.index', compact('returns'));
     }
 
     // APPROVE RETURN
-    public function approve($id,$sku)
+    public function approve($id, $sku)
     {
         $return = ReturnOrder::with('order')
             ->findOrFail($id);
@@ -81,8 +81,8 @@ class ReturnController extends Controller
 
         $shiprocket = new ShiprocketService();
 
-        $response = $shiprocket->createReturn($return,$sku);
-       
+        $response = $shiprocket->createReturn($return, $sku);
+
 
 
         if (
@@ -140,5 +140,60 @@ class ReturnController extends Controller
         return redirect()
             ->back()
             ->with('success', 'Return Rejet successfully');
+    }
+
+    public function processRefund($id, $paymentId)
+    {
+        try {
+
+            $return = ReturnOrder::with('order')
+                ->findOrFail($id);
+
+            if ($return->status !== 'delivered') {
+
+                return back()->with(
+                    'error',
+                    'Product not received yet'
+                );
+            }
+
+            $api = new Api(
+                env('RAZORPAY_KEY_ID'),
+                env('RAZORPAY_KEY_SECRET')
+            );
+
+            $refund = $api->payment
+                ->fetch($paymentId)
+                ->refund([
+                    'amount' =>
+                    $return->order->total_amount * 100
+                ]);
+
+            $return->update([
+                'status' => 'refundprocess',
+                'refund_id' => $refund['id'],
+                'refund_amount' => $return->order->total_amount,
+                'refunded_at' => now()
+            ]);
+
+            // $return->order->update([
+            //     'status' => 'refunded'
+            // ]);
+
+            return back()->with(
+                'success',
+                'Refund processed successfully'
+            );
+        } catch (\Exception $e) {
+
+            \Log::error('Refund Error', [
+                'message' => $e->getMessage()
+            ]);
+
+            return back()->with(
+                'error',
+                $e->getMessage()
+            );
+        }
     }
 }

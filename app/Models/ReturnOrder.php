@@ -20,6 +20,7 @@ class ReturnOrder extends Model
         'reverse_awb',
           'reverse_order_id',
     'reverse_shipment_id',
+    'refund_id','refund_amount','refunded_at',
         'courier'
     ];
       public function order()

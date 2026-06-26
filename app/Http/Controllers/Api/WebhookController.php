@@ -124,6 +124,7 @@ class WebhookController extends Controller
 
                     $order->expected_delivery_date =
                         \Carbon\Carbon::parse($etd);
+                    $order->courier_name = $tracking['tracking_data']['courier_name'];
 
                     $order->save();
 

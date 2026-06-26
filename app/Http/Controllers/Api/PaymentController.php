@@ -31,7 +31,6 @@ class PaymentController extends Controller
 
     public function verifyPayment(Request $request)
     {
-        \Log::info("VERIFY DATA:", $request->all());
 
         $api = new Api(env('RAZORPAY_KEY_ID'), env('RAZORPAY_KEY_SECRET'));
 
