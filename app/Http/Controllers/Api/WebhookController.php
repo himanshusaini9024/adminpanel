@@ -112,27 +112,36 @@ class WebhookController extends Controller
                     'tracking' => $tracking
                 ]);
 
+                $trackingData =
+                    $tracking['tracking']['tracking_data'] ?? [];
+
                 $etd =
-                    $tracking['tracking_data']['etd']
-                    ?? null;
+                    $trackingData['etd'] ?? null;
+
+                $shipmentTrack =
+                    $trackingData['shipment_track'][0] ?? [];
+
+                $courierName =
+                    $shipmentTrack['courier_name'] ?? null;
 
                 \Log::info('ETD FOUND', [
-                    'etd' => $etd
+                    'etd' => $etd,
+                    'courier_name' => $courierName
                 ]);
 
                 if ($etd) {
 
                     $order->expected_delivery_date =
                         \Carbon\Carbon::parse($etd);
-                    $order->courier_name = $tracking['tracking_data']['courier_name'];
-
-                    $order->save();
-
-                    \Log::info('ORDER UPDATED', [
-                        'order_id' => $order->id,
-                        'etd' => $order->expected_delivery_date
-                    ]);
                 }
+
+                if ($courierName) {
+
+                    $order->courier_name =
+                        $courierName;
+                }
+
+                $order->save();
             }
 
             \Log::info('Order Updated', [
