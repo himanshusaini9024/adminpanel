@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\OrderItem;
 use App\Models\Order;
 use App\Services\ShiprocketService;
+use App\Services\OrderService;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -14,13 +15,24 @@ use Illuminate\Support\Facades\Log;
 
 class OrderController extends Controller
 {
-    //
-
+    /**
+     * Customer's own order list. Scoped to the authenticated customer only —
+     * never trust a customer_id passed in from the client for this.
+     */
     public function index(Request $request)
     {
-        // $customerId = $request->customer_id;
         $customerId = Auth::guard('customer')->id();
-        $orders = Order::with('items',  'returnRequest')
+
+        if (!$customerId) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $orders = Order::with([
+                'items',
+                'returnRequest',
+                'returnRequest.orderItem',
+                'returnRequest.replacementOrder.items',
+            ])
             ->where('customer_id', $customerId)
             ->latest()
             ->get();
@@ -28,120 +40,13 @@ class OrderController extends Controller
         return response()->json($orders);
     }
 
-    public function store(Request $request, ShiprocketService $shiprocket)
+    public function store(Request $request, OrderService $orderService)
     {
-        DB::beginTransaction();
-
         try {
+            $order = $orderService->createOrder($request->all());
 
-            Log::info('Order Data', $request->all());
-
-            // Create Order
-            $order = Order::create([
-                'customer_id'          => $request->customer_id,
-
-                'razorpay_payment_id'  => $request->payment_id,
-                'razorpay_order_id'    => $request->razorpay_order_id,
-
-                'sub_total'            => $request->sub_total,
-                'total_amount'         => $request->total_amount,
-                'quantity'             => $request->quantity,
-
-                'city'                 => $request->city,
-
-                'payment_method'       => $request->payment_method,
-                'payment_status'       => $request->payment_status,
-
-                'status'               => 'new',
-
-                'first_name'           => $request->name,
-                'last_name'            => $request->name,
-
-                'phone'                => $request->phone,
-
-                'address1'             => $request->address1,
-                'address2'             => $request->address2,
-
-                'state'                => $request->state,
-                'country'              => 'IND',
-
-                'email'                => $request->email,
-                'post_code'            => $request->pincode,
-            ]);
-
-            // Safe Order Number
-            $order->order_number = 100 + $order->id;
-            $order->save();
-
-            $shiprocketItems = [];
-
-            foreach ($request->items as $item) {
-
-                OrderItem::create([
-                    'order_id'  => $order->id, // FIXED
-                    'order_number' => $order->order_number,
-
-
-                    'product_id' => $item['id'],
-                    'sku'        => $item['sku'],
-
-                    'image'      => $item['thumb']['url'] ?? null,
-
-                    'price'      => $item['price'],
-                    'quantity'   => $item['quantity'],
-
-                    'size'       => $item['size'] ?? null,
-                    'color'      => $item['color'] ?? null,
-                ]);
-
-                $shiprocketItems[] = [
-                    "name"          => $item['name'],
-                    "sku"           => $item['sku'],
-                    "units"         => $item['quantity'],
-                    "selling_price" => $item['price'],
-                ];
-            }
-
-            // Shiprocket
-            $allowshipment = env('SHIPMENT_LIVE', false);
-
-            if ($allowshipment) {
-
-                $shiprocketResponse = $shiprocket->createOrder(
-                    $order,
-                    $shiprocketItems
-                );
-
-                Log::info('Shiprocket Response', [
-                    'response' => $shiprocketResponse
-                ]);
-
-                if (isset($shiprocketResponse['shipment_id'])) {
-
-                    $order->shipment_id = $shiprocketResponse['shipment_id'];
-
-                    $order->awb_code =
-                        $shiprocketResponse['awb_code'] ?? null;
-
-                    $order->save();
-                }
-            } else {
-
-                Log::info('Shiprocket disabled');
-
-                $shiprocketResponse = [
-                    'testing' => true,
-                    'message' => 'Shipment skipped in testing mode'
-                ];
-            }
-
-            DB::commit();
-
-            // Send Mail AFTER successful commit
             try {
-
                 Mail::send([], [], function ($message) use ($order, $request) {
-
                     $html = '
             <!DOCTYPE html>
             <html>
@@ -264,29 +169,22 @@ class OrderController extends Controller
 
             </body>
             </html>
-            ';
+            '; // unchanged HTML
 
                     $message->to($request->email)
                         ->subject('Your Order Has Been Placed Successfully')
                         ->html($html);
                 });
             } catch (\Exception $mailError) {
-
-                Log::error('Mail Error', [
-                    'message' => $mailError->getMessage()
-                ]);
+                Log::error('Mail Error', ['message' => $mailError->getMessage()]);
             }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Order created successfully',
-                'order' => $order,
-                'shiprocket' => $shiprocketResponse,
+                'order'   => $order,
             ]);
         } catch (\Exception $e) {
-
-            DB::rollBack();
-
             Log::error('Order Error', [
                 'message' => $e->getMessage(),
                 'line'    => $e->getLine(),
@@ -299,18 +197,32 @@ class OrderController extends Controller
             ], 500);
         }
     }
+
     public function latest(Request $request)
     {
         $order = Order::latest()->first();
 
         if (!$order) {
-            return response()->json([
-                'message' => 'No order found'
-            ], 404);
+            return response()->json(['message' => 'No order found'], 404);
         }
 
-        return response()->json([
-            'order' => $order
+        return response()->json(['order' => $order]);
+    }
+
+    /**
+     * Called by your Shiprocket webhook (or an admin action) when the forward
+     * shipment is actually delivered. This is what the 7-day return window
+     * should be measured from — not the estimated delivery date.
+     */
+    public function markDelivered(Request $request, $orderNumber)
+    {
+        $order = Order::where('order_number', $orderNumber)->firstOrFail();
+
+        $order->update([
+            'status'       => 'delivered',
+            'delivered_at' => $request->input('delivered_at', now()),
         ]);
+
+        return response()->json(['success' => true, 'order' => $order]);
     }
 }

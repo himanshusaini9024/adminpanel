@@ -31,6 +31,7 @@
                         <th>Reason</th>
                         <th>Comment</th>
                         <th>Status</th>
+                        <th>Type</th>
                         <th>Refund Process</th>
                         <th>Reverse AWB</th>
                         <th>Courier</th>
@@ -42,7 +43,7 @@
 
                     @forelse($returns as $return)
 
-                    <tr>
+                    <tr class="{{ ($return->type ?? '') === 'exchange' ? 'bg-warning' : '' }}">
                         <td>{{ $return->id }}</td>
 
                         <td>
@@ -51,7 +52,6 @@
 
                         <td>
                             {{ $return->order->first_name ?? '' }}
-                            {{ $return->order->last_name ?? '' }}
                         </td>
 
                         <td>
@@ -90,21 +90,51 @@
 
                         </td>
                         <td>
+                            <span class="badge badge-primary">
+                                {{ $return->type ?? '-' }}
+                            </span>
+                        </td>
+
+                        <td>
+
+                            @if($return->type == 'return')
+
                             @if($return->status == 'delivered')
                             <span class="badge badge-danger">
-                                Apply Refund Process
+                                Ready For Refund
                             </span>
 
                             @elseif($return->status == 'refundprocess')
-
                             <span class="badge badge-success">
-                                Refund Process </span>
+                                Refund Processing
+                            </span>
 
                             @elseif($return->status == 'refunded')
-
                             <span class="badge badge-success">
-                                Refund Done </span>
+                                Refunded
+                            </span>
                             @endif
+
+                            @else
+
+                            @if($return->status == 'delivered')
+                            <span class="badge badge-info">
+                                Ready For Exchange
+                            </span>
+
+                            @elseif($return->status == 'replacement_created')
+                            <span class="badge badge-primary">
+                                Replacement Created
+                            </span>
+
+                            @elseif($return->status == 'replacement_shipped')
+                            <span class="badge badge-success">
+                                Replacement Shipped
+                            </span>
+                            @endif
+
+                            @endif
+
                         </td>
 
                         <td>
@@ -143,16 +173,35 @@
 
                             @elseif($return->status == 'delivered')
 
+                            @if($return->type == 'return')
+
                             <form
                                 action="{{ url('admin/refund/'.$return->id.'/'.$return->order->razorpay_payment_id.'/process') }}"
-                                method="POST"
-                                style="display:inline-block">
+                                method="POST">
+
                                 @csrf
 
                                 <button class="btn btn-warning btn-sm">
-                                    Apply Redund Process
+                                    Refund
                                 </button>
+
                             </form>
+
+                            @else
+
+                            <form
+                                action="{{ url('admin/exchange/'.$return->id.'/process') }}"
+                                method="POST">
+
+                                @csrf
+
+                                <button class="btn btn-primary btn-sm">
+                                    Create Replacement
+                                </button>
+
+                            </form>
+
+                            @endif
 
                             @else
 

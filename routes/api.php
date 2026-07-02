@@ -90,5 +90,6 @@ Route::middleware('auth:customer')->group(function () {
     Route::get('/orders/latest', [OrderController::class, 'latest']);
     Route::get('/orders', [OrderController::class, 'index']);
     Route::post('/returns/create', [ReturnController::class, 'create']);
+Route::post('/webhooks/orders/{orderNumber}/delivered', [OrderController::class, 'markDelivered']);
 
 });

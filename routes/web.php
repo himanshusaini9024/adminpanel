@@ -314,6 +314,14 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin']], function 
     '/refund/{id}/{paymentId}/process',
     [ReturnController::class, 'processRefund']
 );
+
+Route::post(
+    '/exchange/{id}/process',
+    [ReturnController::class,'processExchange']
+);
+
+  Route::post('/returns/{id}/picked-up', [ReturnController::class, 'markPickedUp'])->name('admin.returns.pickedUp');
+    Route::post('/returns/{id}/delivered', [ReturnController::class, 'markDelivered'])->name('admin.returns.delivered');
 });
 
 /*
