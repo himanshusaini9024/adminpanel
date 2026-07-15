@@ -65,7 +65,7 @@ class OrderService
 
                 $shiprocketItems[] = [
                     'name'          => $item['name'],
-                    'sku'           => $item['sku'],
+                    'sku'           => $item['sku'] . '-' . $item['size'],
                     'units'         => $item['quantity'],
                     'selling_price' => $item['price'],
                 ];
