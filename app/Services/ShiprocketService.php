@@ -35,7 +35,7 @@ class ShiprocketService
             'token' => $token
         ]);
         $payload = [
-            "order_id" => "DHI-" . $order->order_number,
+            "order_id" => "DF-" . $order->order_number,
             "order_date" => now()->format('Y-m-d H:i'),
             "pickup_location" => "Home",
 
@@ -88,7 +88,8 @@ class ShiprocketService
             'status' => $response->status(),
             'body' => $response->body(),
         ]);
-
+        Log::info($response->headers());
+        Log::info($response->json());
         return $response->json();
     }
 
