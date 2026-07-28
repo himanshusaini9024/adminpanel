@@ -10,12 +10,14 @@ class ShiprocketService
     protected $baseUrl;
     protected $email;
     protected $password;
+    protected $orderprefix;
 
     public function __construct()
     {
         $this->baseUrl = env('SHIPROCKET_BASE_URL');
         $this->email = env('SHIPROCKET_EMAIL');
         $this->password = env('SHIPROCKET_PASSWORD');
+        $this->orderprefix = env('ORDER_PREFIX');
     }
 
     public function login()
@@ -35,7 +37,7 @@ class ShiprocketService
             'token' => $token
         ]);
         $payload = [
-            "order_id" => "DF-" . $order->order_number,
+            "order_id" => $this->orderprefix . $order->order_number,
             "order_date" => now()->format('Y-m-d H:i'),
             "pickup_location" => "Home",
 

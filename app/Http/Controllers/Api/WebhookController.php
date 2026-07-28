@@ -72,7 +72,7 @@ class WebhookController extends Controller
         $courier = $data['courier_name'] ?? null;
         $orderId = $data['order_id'] ?? null;
         // remove DHI-
-        $orderNumber = str_replace('DHI-', '', $orderId);
+        $orderNumber = str_replace(env('ORDER_PREFIX'), '', $orderId);
         $order = Order::where('order_number', $orderNumber)->first();
         if (!$order && $awb) {
             $order = Order::where('awb_code', $awb)->first();
