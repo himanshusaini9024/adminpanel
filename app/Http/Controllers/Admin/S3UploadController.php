@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -11,94 +12,132 @@ class S3UploadController extends Controller
 {
     private string $root = 'ecommerce';
 
-    private array $imageExts  = ['jpg','jpeg','png','gif','webp','svg'];
-    private array $videoExts  = ['mp4','webm','mov','avi','mkv','flv','wmv','m4v'];
-    private array $docExts    = ['pdf','doc','docx','xls','xlsx','ppt','pptx','txt','csv','rtf','odt','ods'];
-    private array $archiveExts = ['zip','rar','7z','tar','gz'];
+    private array $imageExts   = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+    private array $videoExts   = ['mp4', 'webm', 'mov', 'avi', 'mkv', 'flv', 'wmv', 'm4v'];
+    private array $docExts     = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'rtf', 'odt', 'ods'];
+    private array $archiveExts = ['zip', 'rar', '7z', 'tar', 'gz'];
 
     public function browse(Request $request)
     {
-        $path = $this->sanitizePath($request->query('path', $this->root));
-        $disk = Storage::disk('s3');
+        try {
+            $this->assertS3Configured();
 
-        $folders = collect($disk->directories($path ?: null))
-            ->map(function ($dir) {
-                return [
-                    'name' => basename($dir),
-                    'path' => trim($dir, '/'),
-                ];
-            })
-            ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
-            ->values();
+            $path = $this->sanitizePath($request->query('path', $this->root));
+            $disk = Storage::disk('s3');
 
-        $files = collect($disk->files($path ?: null))
-            ->filter(fn ($file) => !str_ends_with($file, '/.keep'))
-            ->map(function ($file) use ($disk) {
-                $name = basename($file);
-                $ext  = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-                $lastModified = $disk->lastModified($file);
-                $size = $disk->size($file);
-                $type = $this->fileType($ext);
-                $isImage = $type === 'image';
+            // One ListObjects call — avoid per-file lastModified()/size() round-trips
+            // Flysystem v3 returns StorageAttributes objects (not arrays)
+            $listing = collect(iterator_to_array($disk->listContents($path === '' ? '' : $path, false)));
 
-                return [
-                    'name' => $name,
-                    'path' => '/' . ltrim($file, '/'),
-                    'url'  => $this->publicUrl($file) . '?v=' . $lastModified,
-                    'type' => $type,
-                    'ext'  => $ext,
-                    'size' => $size,
-                    'size_human' => $this->humanSize($size),
-                ];
-            })
-            ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
-            ->values();
+            $folders = $listing
+                ->filter(fn ($item) => $item->isDir())
+                ->map(function ($item) {
+                    $dir = trim($item->path(), '/');
+                    return [
+                        'name' => basename($dir),
+                        'path' => $dir,
+                    ];
+                })
+                ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
+                ->values();
 
-        $rootFolders = collect($disk->directories($this->root))
-            ->map(function ($dir) {
-                return [
-                    'name' => basename($dir),
-                    'path' => trim($dir, '/'),
-                ];
-            })
-            ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
-            ->values();
+            $files = $listing
+                ->filter(function ($item) {
+                    if (!$item->isFile()) {
+                        return false;
+                    }
+                    $filePath = $item->path();
+                    return $filePath !== '' && !str_ends_with($filePath, '/.keep');
+                })
+                ->map(function ($item) {
+                    $file = trim($item->path(), '/');
+                    $name = basename($file);
+                    $ext  = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+                    $lastModified = (int) ($item->lastModified() ?: time());
+                    $size = (int) ($item->fileSize() ?: 0);
 
-        return response()->json([
-            'root'        => $this->root,
-            'path'        => $path,
-            'breadcrumbs' => $this->breadcrumbs($path),
-            'folders'     => $folders,
-            'files'       => $files,
-            'sidebar'     => $rootFolders,
-            'prefix'      => $path === '' ? '' : rtrim($path, '/') . '/',
-        ]);
+                    return [
+                        'name'       => $name,
+                        'path'       => '/' . $file,
+                        'url'        => $this->publicUrl($file) . '?v=' . $lastModified,
+                        'type'       => $this->fileType($ext),
+                        'ext'        => $ext,
+                        'size'       => $size,
+                        'size_human' => $this->humanSize($size),
+                    ];
+                })
+                ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
+                ->values();
+
+            $rootFolders = collect($disk->directories($this->root))
+                ->map(function ($dir) {
+                    return [
+                        'name' => basename($dir),
+                        'path' => trim($dir, '/'),
+                    ];
+                })
+                ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
+                ->values();
+
+            return response()->json([
+                'success'     => true,
+                'root'        => $this->root,
+                'path'        => $path,
+                'breadcrumbs' => $this->breadcrumbs($path),
+                'folders'     => $folders,
+                'files'       => $files,
+                'sidebar'     => $rootFolders,
+                'prefix'      => $path === '' ? '' : rtrim($path, '/') . '/',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('S3 browse failed: ' . $e->getMessage(), [
+                'path' => $request->query('path'),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'folders' => [],
+                'files'   => [],
+                'sidebar' => [],
+                'breadcrumbs' => [],
+                'root' => $this->root,
+                'path' => $this->root,
+            ], 500);
+        }
     }
 
     public function createFolder(Request $request)
     {
-        $request->validate([
-            'path' => 'nullable|string|max:300',
-            'name' => 'required|string|max:100',
-        ]);
+        try {
+            $this->assertS3Configured();
 
-        $parent = $this->sanitizePath($request->input('path', $this->root));
-        $name = trim($request->input('name'));
-        $name = preg_replace('/[^a-zA-Z0-9 _\-\.]/', '', $name);
-        $name = trim(preg_replace('/\s+/', '-', $name), '-._');
+            $request->validate([
+                'path' => 'nullable|string|max:300',
+                'name' => 'required|string|max:100',
+            ]);
 
-        if ($name === '') {
-            return response()->json(['message' => 'Invalid folder name'], 422);
+            $parent = $this->sanitizePath($request->input('path', $this->root));
+            $name = trim($request->input('name'));
+            $name = preg_replace('/[^a-zA-Z0-9 _\-\.]/', '', $name);
+            $name = trim(preg_replace('/\s+/', '-', $name), '-._');
+
+            if ($name === '') {
+                return response()->json(['message' => 'Invalid folder name'], 422);
+            }
+
+            $folderPath = trim($parent . '/' . $name, '/');
+            Storage::disk('s3')->put($folderPath . '/.keep', '');
+
+            return response()->json([
+                'success' => true,
+                'path'    => $folderPath,
+                'name'    => basename($folderPath),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('S3 createFolder failed: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
-
-        $folderPath = trim($parent . '/' . $name, '/');
-        Storage::disk('s3')->put($folderPath . '/.keep', '');
-
-        return response()->json([
-            'success' => true,
-            'path'    => $folderPath,
-            'name'    => basename($folderPath),
-        ]);
     }
 
     /**
@@ -107,38 +146,51 @@ class S3UploadController extends Controller
      */
     public function upload(Request $request)
     {
-        $request->validate([
-            'file'   => 'required|file|max:102400',  // 100 MB
-            'folder' => 'nullable|string|max:300',
-        ]);
+        try {
+            $this->assertS3Configured();
 
-        $folder = $this->sanitizePath($request->input('folder', $this->root));
-        $disk   = Storage::disk('s3');
+            $request->validate([
+                'file'   => 'required|file|max:102400', // 100 MB
+                'folder' => 'nullable|string|max:300',
+            ]);
 
-        $file      = $request->file('file');
-        $extension = strtolower($file->getClientOriginalExtension() ?: 'bin');
-        $basename  = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-        $safeName  = Str::slug($basename) ?: 'file';
-        $filename  = $safeName . '.' . $extension;
+            $folder = $this->sanitizePath($request->input('folder', $this->root));
+            $disk   = Storage::disk('s3');
 
-        $path = $folder . '/' . $filename;
+            $file      = $request->file('file');
+            $extension = strtolower($file->getClientOriginalExtension() ?: 'bin');
+            $basename  = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+            $safeName  = Str::slug($basename) ?: 'file';
+            $filename  = $safeName . '.' . $extension;
 
-        $disk->put($path, file_get_contents($file->getRealPath()), [
-            'ContentType' => $file->getMimeType(),
-        ]);
+            $path = $folder . '/' . $filename;
 
-        $version = $disk->lastModified($path);
-        $url     = $this->publicUrl($path) . '?v=' . $version;
-        $type    = $this->fileType($extension);
+            $disk->put($path, file_get_contents($file->getRealPath()), [
+                'ContentType' => $file->getMimeType(),
+            ]);
 
-        return response()->json([
-            'success' => true,
-            'url'     => $url,
-            'path'    => '/' . ltrim($path, '/'),
-            'name'    => $filename,
-            'type'    => $type,
-            'ext'     => $extension,
-        ]);
+            $version = time();
+            try {
+                $version = $disk->lastModified($path);
+            } catch (\Throwable $e) {
+                // ignore
+            }
+
+            $url  = $this->publicUrl($path) . '?v=' . $version;
+            $type = $this->fileType($extension);
+
+            return response()->json([
+                'success' => true,
+                'url'     => $url,
+                'path'    => '/' . ltrim($path, '/'),
+                'name'    => $filename,
+                'type'    => $type,
+                'ext'     => $extension,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('S3 upload failed: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     /**
@@ -146,36 +198,43 @@ class S3UploadController extends Controller
      */
     public function deleteFiles(Request $request)
     {
-        $request->validate([
-            'paths'   => 'required|array|min:1',
-            'paths.*' => 'required|string|max:500',
-        ]);
+        try {
+            $this->assertS3Configured();
 
-        $disk    = Storage::disk('s3');
-        $deleted = [];
-        $errors  = [];
+            $request->validate([
+                'paths'   => 'required|array|min:1',
+                'paths.*' => 'required|string|max:500',
+            ]);
 
-        foreach ($request->input('paths') as $rawPath) {
-            $clean = ltrim(str_replace('\\', '/', (string) $rawPath), '/');
+            $disk    = Storage::disk('s3');
+            $deleted = [];
+            $errors  = [];
 
-            if (!str_starts_with($clean, $this->root . '/') || str_ends_with($clean, '/.keep')) {
-                $errors[] = $rawPath;
-                continue;
+            foreach ($request->input('paths') as $rawPath) {
+                $clean = ltrim(str_replace('\\', '/', (string) $rawPath), '/');
+
+                if (!str_starts_with($clean, $this->root . '/') || str_ends_with($clean, '/.keep')) {
+                    $errors[] = $rawPath;
+                    continue;
+                }
+
+                if ($disk->exists($clean)) {
+                    $disk->delete($clean);
+                    $deleted[] = $rawPath;
+                } else {
+                    $errors[] = $rawPath;
+                }
             }
 
-            if ($disk->exists($clean)) {
-                $disk->delete($clean);
-                $deleted[] = $rawPath;
-            } else {
-                $errors[] = $rawPath;
-            }
+            return response()->json([
+                'success' => true,
+                'deleted' => $deleted,
+                'errors'  => $errors,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('S3 delete failed: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
-
-        return response()->json([
-            'success' => true,
-            'deleted' => $deleted,
-            'errors'  => $errors,
-        ]);
     }
 
     public function index(Request $request)
@@ -194,20 +253,47 @@ class S3UploadController extends Controller
 
     // ─── helpers ────────────────────────────────────────────────────
 
+    private function assertS3Configured(): void
+    {
+        $key    = config('filesystems.disks.s3.key');
+        $secret = config('filesystems.disks.s3.secret');
+        $bucket = config('filesystems.disks.s3.bucket');
+
+        if (empty($key) || empty($secret) || empty($bucket)) {
+            throw new \RuntimeException(
+                'AWS S3 is not configured. Set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_BUCKET and AWS_URL in .env, then run: php artisan config:clear'
+            );
+        }
+    }
+
     private function fileType(string $ext): string
     {
-        if (in_array($ext, $this->imageExts))   return 'image';
-        if (in_array($ext, $this->videoExts))   return 'video';
-        if (in_array($ext, $this->docExts))     return 'document';
-        if (in_array($ext, $this->archiveExts)) return 'archive';
+        if (in_array($ext, $this->imageExts, true)) {
+            return 'image';
+        }
+        if (in_array($ext, $this->videoExts, true)) {
+            return 'video';
+        }
+        if (in_array($ext, $this->docExts, true)) {
+            return 'document';
+        }
+        if (in_array($ext, $this->archiveExts, true)) {
+            return 'archive';
+        }
         return 'other';
     }
 
     private function humanSize(int $bytes): string
     {
-        if ($bytes < 1024) return $bytes . ' B';
-        if ($bytes < 1048576) return round($bytes / 1024, 1) . ' KB';
-        if ($bytes < 1073741824) return round($bytes / 1048576, 1) . ' MB';
+        if ($bytes < 1024) {
+            return $bytes . ' B';
+        }
+        if ($bytes < 1048576) {
+            return round($bytes / 1024, 1) . ' KB';
+        }
+        if ($bytes < 1073741824) {
+            return round($bytes / 1048576, 1) . ' MB';
+        }
         return round($bytes / 1073741824, 2) . ' GB';
     }
 

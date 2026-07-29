@@ -236,11 +236,21 @@ const S3FileManager = (function () {
             headers: { Accept: 'application/json' },
             credentials: 'same-origin',
         })
-            .then(function (r) { return r.json(); })
+            .then(async function (r) {
+                var data = await r.json().catch(function () { return {}; });
+                if (!r.ok || data.success === false) {
+                    throw new Error(data.message || ('Failed to load S3 (HTTP ' + r.status + ')'));
+                }
+                return data;
+            })
             .then(function (data) { render(data); })
             .catch(function (err) {
                 console.error(err);
-                grid.innerHTML = '<div class="s3fm-empty">Failed to load.</div>';
+                grid.innerHTML = '<div class="s3fm-empty" style="color:#b91c1c;max-width:560px;margin:0 auto;">' +
+                    '<strong>Could not load S3 files</strong><br><br>' +
+                    '<code style="font-size:12px;word-break:break-word;">' + escapeHtml(err.message || 'Unknown error') + '</code><br><br>' +
+                    'Check production <code>.env</code> has AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_BUCKET, AWS_DEFAULT_REGION, AWS_URL then run <code>php artisan config:clear</code>.' +
+                    '</div>';
             });
     }
 
