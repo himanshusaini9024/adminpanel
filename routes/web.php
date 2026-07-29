@@ -20,6 +20,7 @@ use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Admin\CloudinaryController;
+use App\Http\Controllers\Admin\S3UploadController;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Api\ReturnController;
 use UniSharp\LaravelFilemanager\Lfm;
@@ -210,6 +211,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin']], function 
     Route::resource('brand', App\Http\Controllers\BrandController::class);
     Route::resource('category', App\Http\Controllers\CategoryController::class);
     Route::resource('product', App\Http\Controllers\ProductController::class);
+    Route::get('product/{id}/copy', [App\Http\Controllers\ProductController::class, 'copy'])->name('product.copy');
     Route::get('settings', [AdminController::class, 'settings'])->name('settings');
     Route::get('change-password', [AdminController::class, 'changePassword'])->name('change.password.form');
     Route::post('change-password', [AdminController::class, 'changPasswordStore'])->name('change.password');
@@ -233,6 +235,13 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin']], function 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('all.notification');
     Route::get('/notification/{id}', [NotificationController::class, 'show'])->name('admin.notification');
     Route::delete('/notification/{id}', [NotificationController::class, 'delete'])->name('notification.delete');
+    // AWS S3 file manager
+    Route::get('/s3-browse', [S3UploadController::class, 'browse'])->name('s3.browse');
+    Route::post('/s3-upload', [S3UploadController::class, 'upload'])->name('s3.upload');
+    Route::post('/s3-folder', [S3UploadController::class, 'createFolder'])->name('s3.folder');
+    Route::get('/s3-images', [S3UploadController::class, 'index'])->name('s3.images');
+    Route::post('/s3-delete', [S3UploadController::class, 'deleteFiles'])->name('s3.delete');
+
     // routes/web.php
     Route::get('/cloudinary-images', [App\Http\Controllers\Admin\CloudinaryController::class, 'index']);
 

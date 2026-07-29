@@ -46,6 +46,10 @@ class CategoryController extends Controller
             'parent_id' => 'nullable|exists:categories,id',
         ]);
 
+        if (!empty($validatedData['photo'])) {
+            $validatedData['photo'] = media_path($validatedData['photo']);
+        }
+
         $slug = generateUniqueSlug($request->title, Category::class);
         $validatedData['slug'] = $slug;
         $validatedData['is_parent'] = $request->input('is_parent', 0);
@@ -109,22 +113,14 @@ class CategoryController extends Controller
             'parent_id' => 'nullable|exists:categories,id',
         ]);
 
-        //   $photo = $product->photo; // fallback: preserve current images
-        if ($request->has('photo') && is_array($request->photo)) {
-            $clean = [];
-            foreach ($request->photo as $p) {
-                if (!empty($p['url'])) {
-                    $clean[] = [
-                        'url' => str_replace('https://res.cloudinary.com/ds48lk80f', '', $p['url']),
-                        'alt' => $p['alt'] ?? null,
-                    ];
-                }
-            }
-            if (!empty($clean)) {
-                $validatedData['photo'] = json_encode($clean);
+        if ($request->filled('photo') && is_string($request->photo)) {
+            $validatedData['photo'] = media_path($request->photo);
+        } elseif ($request->has('photo') && is_array($request->photo)) {
+            $urls = array_values(array_filter($request->photo, fn ($p) => is_string($p) && $p !== ''));
+            if (!empty($urls)) {
+                $validatedData['photo'] = media_path(end($urls));
             }
         }
-        // $validatedData['photo'] = json_encode($request->photo);
   
             
 

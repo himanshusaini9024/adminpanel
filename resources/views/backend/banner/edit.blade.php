@@ -29,24 +29,25 @@
         <div class="input-group">
           <span class="input-group-btn">
             <button type="button" id="upload_widget" class="btn btn-primary">
-              <i class="fa fa-cloud-upload"></i> Upload Image
+              <i class="fa fa-cloud-upload"></i> Add Image
             </button>
           </span>
-          <input id="thumbnail" class="form-control" type="text" name="photo[]" value="{{$banner->photo}}">
         </div>
-        <div id="holder" style="margin-top:15px;"></div>
-        @php
-        $photos = json_decode($banner->photo, true);
-        @endphp
 
-        @if($photos)
-        @foreach($photos as $img)
-        <div style="display:inline-block;margin-right:10px;">
-          <img src="{{$img}}" style="max-height:100px;">
-          <input type="hidden" name="photo[]" value="{{$img}}">
+        <div id="holder" style="margin-top:15px;">
+          @php
+            $photos = is_array($banner->photo) ? $banner->photo : json_decode($banner->photo, true);
+            if (!is_array($photos)) $photos = $banner->photo ? [$banner->photo] : [];
+          @endphp
+          @foreach($photos as $img)
+            <div class="banner-img-item" style="display:inline-block;margin-right:10px;position:relative;">
+              <img src="{{ media_url($img) }}" style="max-height:100px;">
+              <button type="button" onclick="this.parentElement.remove()" style="position:absolute;top:0;right:0;background:#ef4444;color:#fff;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:12px;">✕</button>
+              <input type="hidden" name="photo[]" value="{{ media_path($img) }}">
+            </div>
+          @endforeach
         </div>
-        @endforeach
-        @endif
+
         @error('photo')
         <span class="text-danger">{{$message}}</span>
         @enderror
@@ -75,12 +76,8 @@
 <link rel="stylesheet" href="{{asset('backend/summernote/summernote.min.css')}}">
 @endpush
 @push('scripts')
-<script src="https://widget.cloudinary.com/v2.0/global/all.js"></script>
-<script src="/vendor/laravel-filemanager/js/stand-alone-button.js"></script>
 <script src="{{asset('backend/summernote/summernote.min.js')}}"></script>
 <script>
-  // $('#lfm').filemanager('image');
-
   $(document).ready(function() {
     $('#description').summernote({
       placeholder: "Write short description.....",
@@ -88,80 +85,34 @@
       height: 150
     });
   });
-</script>
 
-<script>
-  document.addEventListener("DOMContentLoaded", function() {
-
-    const btn = document.getElementById("upload_widget");
-
-    if (!btn) {
-      console.error("Button not found");
-      return;
-    }
-
-    btn.addEventListener("click", function() {
-
-      if (typeof cloudinary === "undefined") {
-        console.error("Cloudinary not loaded");
-        return;
-      }
-
-      const titleInput =
-        document.getElementById('inputTitle') ||
-        document.querySelector('[name="title"]');
-
-      const title = titleInput ? titleInput.value.trim() : 'banner';
-      const slug = title.toLowerCase().replace(/[^a-z0-9]/g, '') || 'banner';
-      const folder = "ecommerce/" + slug;
-
-      fetch(`/admin/cloudinary-signature?folder=${encodeURIComponent(folder)}`)
-        .then(res => res.json())
-        .then(data => {
-
-          const widget = cloudinary.createUploadWidget({
-            cloudName: data.cloudName,
-            apiKey: data.apiKey,
-            uploadSignature: data.signature,
-            uploadSignatureTimestamp: data.timestamp,
-            folder: folder,
-            multiple: true,
-            use_filename: true,
-            unique_filename: false,
-          }, (error, result) => {
-
-            if (error) {
-              console.error(error);
-              return;
-            }
-
-            if (result.event === "success") {
-              addImageField(result.info.secure_url);
-            }
-          });
-
-          widget.open();
-        })
-        .catch(err => console.error(err));
-    });
-
-  });
-
-  function addImageField(url) {
-    const container = document.getElementById('holder');
-
-    // create image preview
-    const imgWrapper = document.createElement('div');
-    imgWrapper.style.display = "inline-block";
-    imgWrapper.style.marginRight = "10px";
-
-    imgWrapper.innerHTML = `
-        <img src="${url}" style="max-height:100px; display:block;">
-        <button type="button" onclick="this.parentElement.remove()" style="margin-top:5px;">Remove</button>
-        <input type="hidden" name="photo[]" value="${url}">
-    `;
-
-    container.appendChild(imgWrapper);
+  function addBannerImage(url) {
+    var container = document.getElementById('holder');
+    var wrapper = document.createElement('div');
+    wrapper.className = 'banner-img-item';
+    wrapper.style.cssText = 'display:inline-block;margin-right:10px;position:relative;';
+    wrapper.innerHTML =
+      '<img src="' + toPublicUrl(url) + '" style="max-height:100px;">' +
+      '<button type="button" onclick="this.parentElement.remove()" style="position:absolute;top:0;right:0;background:#ef4444;color:#fff;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:12px;">✕</button>' +
+      '<input type="hidden" name="photo[]" value="' + toStoragePath(url) + '">';
+    container.appendChild(wrapper);
   }
+
+  document.getElementById('upload_widget').addEventListener('click', function(e) {
+    e.preventDefault();
+    var titleInput = document.getElementById('inputTitle');
+    var title = titleInput ? titleInput.value.trim() : 'banner';
+    var folder = 'ecommerce/banners/' + slugifyName(title, 'banner');
+
+    openS3FileManager({
+      path: folder,
+      multiple: true,
+      onSelect: function(items) {
+        (items || []).forEach(function(item) {
+          addBannerImage(item.path || item.url);
+        });
+      }
+    });
+  });
 </script>
 @endpush

@@ -49,18 +49,15 @@
               @endforeach
           </select>
         </div>
-        {{-- {{$post->tags}} --}}
         @php 
-                $post_tags=explode(',',$post->tags);
-                // dd($tags);
-              @endphp
+          $post_tags=explode(',',$post->tags);
+        @endphp
         <div class="form-group">
           <label for="tags">Tag</label>
           <select name="tags[]" multiple  data-live-search="true" class="form-control selectpicker">
               <option value="">--Select any tag--</option>
               @foreach($tags as $key=>$data)
-              
-              <option value="{{$data->title}}"  {{(( in_array( "$data->title",$post_tags ) ) ? 'selected' : '')}}>{{$data->title}}</option>
+                <option value="{{$data->title}}" {{(( in_array( "$data->title",$post_tags ) ) ? 'selected' : '')}}>{{$data->title}}</option>
               @endforeach
           </select>
         </div>
@@ -77,14 +74,17 @@
           <label for="inputPhoto" class="col-form-label">Photo <span class="text-danger">*</span></label>
           <div class="input-group">
               <span class="input-group-btn">
-                  <a id="lfm" data-input="thumbnail" data-preview="holder" class="btn btn-primary">
-                  <i class="fa fa-picture-o"></i> Choose
-                  </a>
+                  <button type="button" id="upload_widget" class="btn btn-primary">
+                    <i class="fa fa-picture-o"></i> Choose
+                  </button>
               </span>
           <input id="thumbnail" class="form-control" type="text" name="photo" value="{{$post->photo}}">
         </div>
-        <div id="holder" style="margin-top:15px;max-height:100px;"></div>
-
+        <div id="holder" style="margin-top:15px;max-height:100px;">
+          @if($post->photo)
+            <img src="{{ media_url($post->photo) }}" style="height:80px;">
+          @endif
+        </div>
           @error('photo')
           <span class="text-danger">{{$message}}</span>
           @enderror
@@ -112,37 +112,28 @@
 @push('styles')
 <link rel="stylesheet" href="{{asset('backend/summernote/summernote.min.css')}}">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.1/css/bootstrap-select.css" />
-
 @endpush
 @push('scripts')
-<script src="/vendor/laravel-filemanager/js/stand-alone-button.js"></script>
 <script src="{{asset('backend/summernote/summernote.min.js')}}"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.1/js/bootstrap-select.min.js"></script>
 
 <script>
-    $('#lfm').filemanager('image');
-
     $(document).ready(function() {
-    $('#summary').summernote({
-      placeholder: "Write short description.....",
-        tabsize: 2,
-        height: 150
-    });
+      $('#summary').summernote({ placeholder: "Write short description.....", tabsize: 2, height: 150 });
+      $('#quote').summernote({ placeholder: "Write short Quote.....", tabsize: 2, height: 100 });
+      $('#description').summernote({ placeholder: "Write detail description.....", tabsize: 2, height: 150 });
     });
 
-    $(document).ready(function() {
-      $('#quote').summernote({
-        placeholder: "Write short Quote.....",
-          tabsize: 2,
-          height: 100
-      });
-    });
-    $(document).ready(function() {
-      $('#description').summernote({
-        placeholder: "Write detail description.....",
-          tabsize: 2,
-          height: 150
-      });
+    initS3SingleUpload({
+        buttonId: 'upload_widget',
+        inputId: 'thumbnail',
+        holderId: 'holder',
+        folderBase: function () {
+            var titleInput = document.getElementById('inputTitle');
+            var title = titleInput ? titleInput.value.trim() : 'post';
+            return 'ecommerce/posts/' + slugifyName(title, 'post');
+        },
+        multiple: false
     });
 </script>
 @endpush

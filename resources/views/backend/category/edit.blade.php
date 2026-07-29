@@ -55,19 +55,11 @@
           </span>
           <input id="thumbnail" class="form-control" type="text" name="photo" value="{{$category->photo}}">
         </div>
-        <div id="holder" style="margin-top:15px;"></div>
-        @php
-        $photos = json_decode($category->photo, true);
-        @endphp
-
-        @if($photos)
-        @foreach($photos as $img)
-        <div style="display:inline-block;margin-right:10px;">
-          <img src="{{$img}}" style="max-height:100px;">
-          <input type="hidden" name="photo" value="{{$img}}">
+        <div id="holder" style="margin-top:15px;">
+          @if($category->photo)
+            <img src="{{ media_url($category->photo) }}" style="max-height:100px;">
+          @endif
         </div>
-        @endforeach
-        @endif
         @error('photo')
         <span class="text-danger">{{$message}}</span>
         @enderror
@@ -96,13 +88,9 @@
 <link rel="stylesheet" href="{{asset('backend/summernote/summernote.min.css')}}">
 @endpush
 @push('scripts')
-<script src="https://widget.cloudinary.com/v2.0/global/all.js"></script>
-
 <script src="/vendor/laravel-filemanager/js/stand-alone-button.js"></script>
 <script src="{{asset('backend/summernote/summernote.min.js')}}"></script>
 <script>
-    $('#lfm').filemanager('image');
-
     $(document).ready(function() {
     $('#summary').summernote({
       placeholder: "Write short description.....",
@@ -110,86 +98,30 @@
         height: 150
     });
     });
-</script>
-<script>
-  document.addEventListener("DOMContentLoaded", function() {
 
-    const btn = document.getElementById("upload_widget");
-
-    if (!btn) {
-      console.error("Button not found");
-      return;
-    }
-
-    btn.addEventListener("click", function() {
-
-      if (typeof cloudinary === "undefined") {
-        console.error("Cloudinary not loaded");
-        return;
-      }
-
-      const titleInput =
-        document.getElementById('inputTitle') ||
-        document.querySelector('[name="title"]');
-
-      const title = titleInput ? titleInput.value.trim() : 'banner';
-      const slug = title.toLowerCase().replace(/[^a-z0-9]/g, '') || 'banner';
-      const folder = "ecommerce/" + slug;
-
-      fetch(`/admin/cloudinary-signature?folder=${encodeURIComponent(folder)}`)
-        .then(res => res.json())
-        .then(data => {
-
-          const widget = cloudinary.createUploadWidget({
-            cloudName: data.cloudName,
-            apiKey: data.apiKey,
-            uploadSignature: data.signature,
-            uploadSignatureTimestamp: data.timestamp,
-            folder: folder,
-            multiple: true,
-            use_filename: true,
-            unique_filename: false,
-          }, (error, result) => {
-
-            if (error) {
-              console.error(error);
-              return;
+    initS3SingleUpload({
+        buttonId: 'upload_widget',
+        inputId: 'thumbnail',
+        holderId: 'holder',
+        folderBase: function () {
+            const current = document.getElementById('thumbnail') ? document.getElementById('thumbnail').value : '';
+            if (current && typeof folderFromImagePath === 'function') {
+                const existing = folderFromImagePath(current);
+                if (existing) return existing;
             }
-
-            if (result.event === "success") {
-              addImageField(result.info.secure_url);
-            }
-          });
-
-          widget.open();
-        })
-        .catch(err => console.error(err));
+            const titleInput = document.getElementById('inputTitle') || document.querySelector('[name="title"]');
+            const title = titleInput ? titleInput.value.trim() : 'category';
+            const slug = (title || 'category').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'category';
+            return 'ecommerce/categories/' + slug;
+        },
+        fallback: 'category',
+        multiple: false
     });
-
-  });
-
-  function addImageField(url) {
-    const container = document.getElementById('holder');
-
-    // create image preview
-    const imgWrapper = document.createElement('div');
-    imgWrapper.style.display = "inline-block";
-    imgWrapper.style.marginRight = "10px";
-
-    imgWrapper.innerHTML = `
-        <img src="${url}" style="max-height:100px; display:block;">
-        <button type="button" onclick="this.parentElement.remove()" style="margin-top:5px;">Remove</button>
-        <input type="hidden" name="photo" value="${url}">
-    `;
-
-    container.appendChild(imgWrapper);
-  }
 </script>
 
 <script>
   $('#is_parent').change(function(){
     var is_checked=$('#is_parent').prop('checked');
-    // alert(is_checked);
     if(is_checked){
       $('#parent_cat_div').addClass('d-none');
       $('#parent_cat_div').val('');

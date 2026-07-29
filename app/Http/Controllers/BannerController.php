@@ -40,12 +40,16 @@ class BannerController extends Controller
         $validatedData = $request->validate([
             'title' => 'required|string|max:50',
             'description' => 'nullable|string',
-            // 'photo' => 'required|string',
+            'photo' => 'nullable|string|max:500',
             'status' => 'required|in:active,inactive',
         ]);
 
         $slug = generateUniqueSlug($request->title, Banner::class);
         $validatedData['slug'] = $slug;
+
+        if (!empty($validatedData['photo'])) {
+            $validatedData['photo'] = media_path($validatedData['photo']);
+        }
 
         $banner = Banner::create($validatedData);
 
@@ -100,7 +104,9 @@ class BannerController extends Controller
             'photo' => 'required',
             'status' => 'required|in:active,inactive',
         ]);
-        $validatedData['photo'] = json_encode($request->photo);
+        $photos = is_array($request->photo) ? $request->photo : [$request->photo];
+        $photos = array_values(array_filter(array_map(fn($p) => media_path($p), $photos)));
+        $validatedData['photo'] = json_encode($photos);
         $status = $banner->update($validatedData);
 
         $message = $status

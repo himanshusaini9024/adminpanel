@@ -43,16 +43,11 @@
                 <label for="inputPhoto" class="col-form-label">Photo <span class="text-danger">*</span></label>
                 <div class="input-group">
                     <span class="input-group-btn">
-
-
                         <a id="upload_widget" class="btn btn-primary">
-                            <i class="fa fa-picture-o"></i> Choose
+                            <i class="fa fa-cloud-upload"></i> Upload
                         </a>
-
-                        <input id="thumbnail" type="hidden" name="photo">
-                        <div id="holder"></div>
                     </span>
-                    <input id="thumbnail" class="form-control" type="text" name="photo" value="{{old('photo')}}">
+                    <input id="thumbnail" class="form-control" type="text" name="photo" value="{{old('photo')}}" readonly>
                 </div>
                 <div id="holder" style="margin-top:15px;max-height:100px;"></div>
                 @error('photo')
@@ -86,12 +81,7 @@
 @push('scripts')
 <script src="/vendor/laravel-filemanager/js/stand-alone-button.js"></script>
 <script src="{{asset('backend/summernote/summernote.min.js')}}"></script>
-
-<script src="https://upload-widget.cloudinary.com/global/all.js"></script>
-<script src="{{asset('backend/summernote/summernote.min.js')}}"></script>
 <script>
-//    $('#lfm').filemanager('image');
-
     $(document).ready(function() {
       $('#summary').summernote({
         placeholder: "Write short description.....",
@@ -100,35 +90,24 @@
       });
     });
 
-    var myWidget = cloudinary.createUploadWidget({
-        cloudName: 'ds48lk80f',
-        uploadPreset: 'ecommerce_upload'
-    }, (error, result) => {
-
-        if (!error && result && result.event === "success") {
-
-            let imageUrl = result.info.secure_url;
-
-            // set hidden input value
-            document.getElementById('thumbnail').value = imageUrl;
-
-            // show preview
-            document.getElementById('holder').innerHTML =
-                '<img src="' + imageUrl + '" style="height:80px;">';
-        }
-
+    initS3SingleUpload({
+        buttonId: 'upload_widget',
+        inputId: 'thumbnail',
+        holderId: 'holder',
+        folderBase: function () {
+            const titleInput = document.getElementById('inputTitle') || document.querySelector('[name="title"]');
+            const title = titleInput ? titleInput.value.trim() : 'category';
+            const slug = (title || 'category').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'category';
+            return 'ecommerce/categories/' + slug;
+        },
+        fallback: 'category',
+        multiple: false
     });
-
-    document.getElementById("upload_widget").addEventListener("click", function() {
-        myWidget.open();
-    }, false);
-    
 </script>
 
 <script>
   $('#is_parent').change(function(){
     var is_checked=$('#is_parent').prop('checked');
-    // alert(is_checked);
     if(is_checked){
       $('#parent_cat_div').addClass('d-none');
       $('#parent_cat_div').val('');

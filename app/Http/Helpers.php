@@ -209,4 +209,60 @@ if (!function_exists('generateUniqueSlug')) {
     }
 }
 
-?>
+if (!function_exists('media_path')) {
+    /**
+     * Strip known media base URLs so only the object path is stored.
+     */
+    function media_path(?string $url): string
+    {
+        if ($url === null || $url === '') {
+            return '';
+        }
+
+        $bases = array_filter([
+            rtrim((string) config('filesystems.disks.s3.url'), '/'),
+            rtrim((string) config('app.cloud_url'), '/'),
+            'https://res.cloudinary.com/ds48lk80f',
+        ]);
+
+        foreach ($bases as $base) {
+            if ($base !== '' && str_starts_with($url, $base)) {
+                return '/' . ltrim(substr($url, strlen($base)), '/');
+            }
+        }
+
+        if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+            $path = parse_url($url, PHP_URL_PATH);
+            return $path ? '/' . ltrim($path, '/') : $url;
+        }
+
+        return str_starts_with($url, '/') ? $url : '/' . ltrim($url, '/');
+    }
+}
+
+if (!function_exists('media_url')) {
+    /**
+     * Build a public media URL from a stored path or absolute URL.
+     * Legacy Cloudinary paths (/image/upload/...) keep working after S3 migration.
+     */
+    function media_url(?string $path): string
+    {
+        if ($path === null || $path === '') {
+            return '';
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        $normalized = '/' . ltrim($path, '/');
+
+        if (str_starts_with($normalized, '/image/upload/')) {
+            return 'https://res.cloudinary.com/ds48lk80f' . $normalized;
+        }
+
+        $base = rtrim((string) (config('filesystems.disks.s3.url') ?: config('app.cloud_url')), '/');
+
+        return $base . $normalized;
+    }
+}

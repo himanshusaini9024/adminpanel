@@ -56,7 +56,11 @@ return [
 
     'asset_url' => env('ASSET_URL', null),
 
-    'cloud_url' => env('CLOUD_URL'),
+    /*
+    | Media CDN / object storage base URL (prefer AWS S3, fallback Cloudinary).
+    | Stored product image paths are relative; prepend this when rendering.
+    */
+    'cloud_url' => rtrim(env('AWS_URL', env('CLOUD_URL', '')), '/') . '/',
 
     /*
     |--------------------------------------------------------------------------

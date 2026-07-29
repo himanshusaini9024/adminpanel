@@ -178,6 +178,43 @@
           @enderror
         </div>
 
+        <hr>
+        <h6 class="mb-3">Dimensions <span class="text-danger">*</span></h6>
+        <div class="form-row">
+          <div class="form-group col-md-4">
+            <label>Chest (cm) <span class="text-danger">*</span></label>
+            <input type="number" step="0.1" name="chest" class="form-control" value="{{ old('chest') }}" required>
+            @error('chest') <span class="text-danger">{{ $message }}</span> @enderror
+          </div>
+          <div class="form-group col-md-4">
+            <label>Length (cm) <span class="text-danger">*</span></label>
+            <input type="number" step="0.1" name="length" class="form-control" value="{{ old('length') }}" required>
+            @error('length') <span class="text-danger">{{ $message }}</span> @enderror
+          </div>
+          <div class="form-group col-md-4">
+            <label>Shoulder (cm) <span class="text-danger">*</span></label>
+            <input type="number" step="0.1" name="shoulder" class="form-control" value="{{ old('shoulder') }}" required>
+            @error('shoulder') <span class="text-danger">{{ $message }}</span> @enderror
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-md-4">
+            <label>Sleeve Length (cm) <span class="text-danger">*</span></label>
+            <input type="number" step="0.1" name="sleeve_length" class="form-control" value="{{ old('sleeve_length') }}" required>
+            @error('sleeve_length') <span class="text-danger">{{ $message }}</span> @enderror
+          </div>
+          <div class="form-group col-md-4">
+            <label>Waist (cm) <span class="text-danger">*</span></label>
+            <input type="number" step="0.1" name="waist" class="form-control" value="{{ old('waist') }}" required>
+            @error('waist') <span class="text-danger">{{ $message }}</span> @enderror
+          </div>
+          <div class="form-group col-md-4">
+            <label>Hip (cm) <span class="text-danger">*</span></label>
+            <input type="number" step="0.1" name="hip" class="form-control" value="{{ old('hip') }}" required>
+            @error('hip') <span class="text-danger">{{ $message }}</span> @enderror
+          </div>
+        </div>
+
         <div class="form-group">
           <label for="status" class="col-form-label">Status <span class="text-danger">*</span></label>
           <select name="status" class="form-control">

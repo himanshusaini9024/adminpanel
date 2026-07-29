@@ -3,12 +3,10 @@
 @section('main-content')
 
 <div class="card">
-    <h5 class="card-header">Edit Post</h5>
+    <h5 class="card-header">Settings</h5>
     <div class="card-body">
     <form method="post" action="{{route('settings.update')}}">
-        @csrf 
-        {{-- @method('PATCH') --}}
-        {{-- {{dd($data)}} --}}
+        @csrf
         <div class="form-group">
           <label for="short_des" class="col-form-label">Short Description <span class="text-danger">*</span></label>
           <textarea class="form-control" id="quote" name="short_des">{{$data->short_des}}</textarea>
@@ -28,14 +26,17 @@
           <label for="inputPhoto" class="col-form-label">Logo <span class="text-danger">*</span></label>
           <div class="input-group">
               <span class="input-group-btn">
-                  <a id="lfm1" data-input="thumbnail1" data-preview="holder1" class="btn btn-primary">
-                  <i class="fa fa-picture-o"></i> Choose
-                  </a>
+                  <button type="button" id="logo_btn" class="btn btn-primary">
+                    <i class="fa fa-picture-o"></i> Choose
+                  </button>
               </span>
-          <input id="thumbnail1" class="form-control" type="text" name="logo" value="{{$data->logo}}">
+          <input id="logo_input" class="form-control" type="text" name="logo" value="{{$data->logo}}">
         </div>
-        <div id="holder1" style="margin-top:15px;max-height:100px;"></div>
-
+        <div id="logo_holder" style="margin-top:15px;max-height:100px;">
+          @if($data->logo)
+            <img src="{{ media_url($data->logo) }}" style="height:80px;">
+          @endif
+        </div>
           @error('logo')
           <span class="text-danger">{{$message}}</span>
           @enderror
@@ -45,14 +46,17 @@
           <label for="inputPhoto" class="col-form-label">Photo <span class="text-danger">*</span></label>
           <div class="input-group">
               <span class="input-group-btn">
-                  <a id="lfm" data-input="thumbnail" data-preview="holder" class="btn btn-primary">
-                  <i class="fa fa-picture-o"></i> Choose
-                  </a>
+                  <button type="button" id="photo_btn" class="btn btn-primary">
+                    <i class="fa fa-picture-o"></i> Choose
+                  </button>
               </span>
-          <input id="thumbnail" class="form-control" type="text" name="photo" value="{{$data->photo}}">
+          <input id="photo_input" class="form-control" type="text" name="photo" value="{{$data->photo}}">
         </div>
-        <div id="holder" style="margin-top:15px;max-height:100px;"></div>
-
+        <div id="photo_holder" style="margin-top:15px;max-height:100px;">
+          @if($data->photo)
+            <img src="{{ media_url($data->photo) }}" style="height:80px;">
+          @endif
+        </div>
           @error('photo')
           <span class="text-danger">{{$message}}</span>
           @enderror
@@ -92,37 +96,33 @@
 @push('styles')
 <link rel="stylesheet" href="{{asset('backend/summernote/summernote.min.css')}}">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.1/css/bootstrap-select.css" />
-
 @endpush
 @push('scripts')
-<script src="/vendor/laravel-filemanager/js/stand-alone-button.js"></script>
 <script src="{{asset('backend/summernote/summernote.min.js')}}"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.1/js/bootstrap-select.min.js"></script>
 
 <script>
-    $('#lfm').filemanager('image');
-    $('#lfm1').filemanager('image');
     $(document).ready(function() {
-    $('#summary').summernote({
-      placeholder: "Write short description.....",
-        tabsize: 2,
-        height: 150
-    });
+      $('#quote').summernote({ placeholder: "Write short Quote.....", tabsize: 2, height: 100 });
+      $('#description').summernote({ placeholder: "Write detail description.....", tabsize: 2, height: 150 });
     });
 
-    $(document).ready(function() {
-      $('#quote').summernote({
-        placeholder: "Write short Quote.....",
-          tabsize: 2,
-          height: 100
-      });
+    // Logo uploader
+    initS3SingleUpload({
+        buttonId: 'logo_btn',
+        inputId: 'logo_input',
+        holderId: 'logo_holder',
+        folderBase: 'ecommerce/settings',
+        multiple: false
     });
-    $(document).ready(function() {
-      $('#description').summernote({
-        placeholder: "Write detail description.....",
-          tabsize: 2,
-          height: 150
-      });
+
+    // Photo uploader
+    initS3SingleUpload({
+        buttonId: 'photo_btn',
+        inputId: 'photo_input',
+        holderId: 'photo_holder',
+        folderBase: 'ecommerce/settings',
+        multiple: false
     });
 </script>
 @endpush

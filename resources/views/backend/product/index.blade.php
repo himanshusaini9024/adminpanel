@@ -84,7 +84,7 @@
                             @php
                               $photo=json_decode($product->photo);
                             @endphp
-                            <img src="{{ config('app.cloud_url'). $photo[0]->url}}" class="img-fluid zoom" style="max-width:80px" alt="{{$product->photo}}">
+                            <img src="{{ media_url($photo[0]->url) }}" class="img-fluid zoom" style="max-width:80px" alt="{{$product->photo}}">
                         @else
                             <img src="{{asset('backend/img/thumbnail-default.jpg')}}" class="img-fluid" style="max-width:80px" alt="avatar.png">
                         @endif
@@ -98,6 +98,7 @@
                     </td>
                     <td>
                         <a href="{{route('product.edit',$product->id)}}" class="btn btn-primary btn-sm float-left mr-1" style="height:30px; width:30px;border-radius:50%" data-toggle="tooltip" title="edit" data-placement="bottom"><i class="fas fa-edit"></i></a>
+                        <a href="{{route('product.copy',$product->id)}}" class="btn btn-info btn-sm float-left mr-1" style="height:30px; width:30px;border-radius:50%" data-toggle="tooltip" title="Copy product" data-placement="bottom"><i class="fas fa-copy"></i></a>
                     <form method="POST" action="{{route('product.destroy',[$product->id])}}">
                       @csrf
                       @method('delete')

@@ -59,7 +59,11 @@ class PostController extends Controller
             $slug = generateUniqueSlug($request->title, Post::class);
             $validated['slug'] = $slug;
             $validated['added_by'] = $validated['added_by'] ?? auth()->id();
-            
+
+            if (!empty($validated['photo'])) {
+                $validated['photo'] = media_path($validated['photo']);
+            }
+
             if ($request->filled('tags')) {
                 $validated['tags'] = implode(',', $request->input('tags'));
             } else {
@@ -127,6 +131,10 @@ class PostController extends Controller
         ]);
 
         try {
+            if (!empty($validated['photo'])) {
+                $validated['photo'] = media_path($validated['photo']);
+            }
+
             if ($request->filled('tags')) {
                 $validated['tags'] = implode(',', $request->input('tags'));
             } else {

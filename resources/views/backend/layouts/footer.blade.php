@@ -52,9 +52,16 @@
   <!-- Page level plugins -->
   <script src="{{asset('backend/vendor/chart.js/Chart.min.js')}}"></script>
 
-  <!-- Page level custom scripts -->
-  {{-- <script src="{{asset('backend/js/demo/chart-area-demo.js')}}"></script> --}}
-  {{-- <script src="{{asset('backend/js/demo/chart-pie-demo.js')}}"></script> --}}
+  <!-- AWS S3 file manager (load before page scripts stack) -->
+  <link rel="stylesheet" href="{{ asset('css/s3-filemanager.css') }}">
+  @php
+    $s3MediaBase = rtrim((string) (config('filesystems.disks.s3.url') ?: config('app.cloud_url')), '/');
+    $s3UploadJsVersion = @filemtime(public_path('js/s3-upload.js')) ?: time();
+  @endphp
+  <script>
+    window.S3_MEDIA_BASE = {!! json_encode($s3MediaBase) !!};
+  </script>
+  <script src="{{ asset('js/s3-upload.js') }}?v={{ $s3UploadJsVersion }}"></script>
 
   @stack('scripts')
 
@@ -63,3 +70,6 @@
       $('.alert').slideUp();
     },4000);
   </script>
+
+</body>
+</html>

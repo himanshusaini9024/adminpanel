@@ -88,6 +88,13 @@ class AdminController extends Controller
         ]);
         
         try {
+            if (!empty($validated['photo'])) {
+                $validated['photo'] = media_path($validated['photo']);
+            }
+            if (!empty($validated['logo'])) {
+                $validated['logo'] = media_path($validated['logo']);
+            }
+
             $settings = Settings::first();
             if (!$settings) {
                 $settings = Settings::create($validated);

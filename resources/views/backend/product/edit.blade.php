@@ -261,8 +261,14 @@
 </style>
 
 <div class="page-header">
-    <h4>✏️ Edit Product</h4>
-    <p>Update product details, pricing, images, dimensions, and more.</p>
+    <h4>{{ !empty($isCopy) ? '📄 Copy Product' : '✏️ Edit Product' }}</h4>
+    <p>
+        @if(!empty($isCopy))
+            All fields are copied from the original. Saving will create a <strong>new</strong> product.
+        @else
+            Update product details, pricing, images, dimensions, and more.
+        @endif
+    </p>
 </div>
 
 {{-- ════════════════════════════════════════════
@@ -281,9 +287,17 @@
     <button class="tab-btn" data-tab="faq">FAQ</button>
 </div>
 
-<form method="POST" action="{{ route('product.update', $product->id) }}" enctype="multipart/form-data" id="formproduct" onsubmit="return validateProductForm()">
+<form method="POST"
+      action="{{ !empty($isCopy) ? route('product.store') : route('product.update', $product->id) }}"
+      enctype="multipart/form-data"
+      id="formproduct"
+      onsubmit="return validateProductForm()">
     @csrf
-    @method('PATCH')
+    @if(empty($isCopy))
+        @method('PATCH')
+    @else
+        <input type="hidden" name="from_copy" value="1">
+    @endif
 
     <div class="tab-panels">
 
@@ -672,7 +686,7 @@
                             <td style="padding:12px 8px;vertical-align:middle;">
                                 <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;">
                                     <img id="img-preview-{{ $index }}"
-                                         src="{{ config('app.cloud_url') . $img->url }}"
+                                         src="{{ media_url($img->url) }}"
                                          alt="{{ $img->alt ?? '' }}"
                                          style="height:90px;width:90px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer;"
                                          onclick="changeImage({{ $index }})">
@@ -752,50 +766,56 @@
         ══════════════════════════════════ --}}
         <div id="tab-dimension" class="tab-panel">
             <div class="form-section">
-                <div class="section-title">Product Dimensions</div>
+                <div class="section-title">Product Dimensions <span class="req">*</span></div>
                 <div class="form-row">
                     <div class="form-col">
                         <div class="form-group">
-                            <label>Chest (cm)</label>
-                            <input type="number" name="chest" class="form-control" step="0.1"
+                            <label>Chest (cm) <span class="req">*</span></label>
+                            <input type="number" name="chest" class="form-control" step="0.1" required
                        value="{{ old('chest', $measurment->chest ?? '') }}">
+                            @error('chest') <div class="invalid-feedback" style="display:block;">{{ $message }}</div> @enderror
                         </div>
                     </div>
                     <div class="form-col">
                         <div class="form-group">
-                            <label>Length (cm)</label>
-                <input type="number" name="length" class="form-control" step="0.1"
+                            <label>Length (cm) <span class="req">*</span></label>
+                <input type="number" name="length" class="form-control" step="0.1" required
                        value="{{ old('length', $measurment->length ?? '') }}">
+                            @error('length') <div class="invalid-feedback" style="display:block;">{{ $message }}</div> @enderror
                         </div>
                     </div>
                     <div class="form-col">
                         <div class="form-group">
-                           <label>Shoulder (cm)</label>
-                <input type="number" name="shoulder" class="form-control" step="0.1"
+                           <label>Shoulder (cm) <span class="req">*</span></label>
+                <input type="number" name="shoulder" class="form-control" step="0.1" required
                        value="{{ old('shoulder', $measurment->shoulder ?? '') }}">
+                            @error('shoulder') <div class="invalid-feedback" style="display:block;">{{ $message }}</div> @enderror
                         </div>
                     </div>
                     <div class="form-col">
                         <div class="form-group">
-                            <label>Sleeve Length (cm)</label>
-                <input type="number" name="sleeve_length" class="form-control" step="0.1"
+                            <label>Sleeve Length (cm) <span class="req">*</span></label>
+                <input type="number" name="sleeve_length" class="form-control" step="0.1" required
                        value="{{ old('sleeve_length', $measurment->sleeve_length ?? '') }}">
+                            @error('sleeve_length') <div class="invalid-feedback" style="display:block;">{{ $message }}</div> @enderror
                         </div>
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-col">
                         <div class="form-group">
-                            <label>Waist (cm)</label>
-                <input type="number" name="waist" class="form-control" step="0.1"
+                            <label>Waist (cm) <span class="req">*</span></label>
+                <input type="number" name="waist" class="form-control" step="0.1" required
                        value="{{ old('waist', $measurment->waist ?? '') }}">
+                            @error('waist') <div class="invalid-feedback" style="display:block;">{{ $message }}</div> @enderror
                         </div>
                     </div>
                     <div class="form-col">
                         <div class="form-group">
-                                <label>Hip (cm)</label>
-                <input type="number" name="hip" class="form-control" step="0.1"
+                                <label>Hip (cm) <span class="req">*</span></label>
+                <input type="number" name="hip" class="form-control" step="0.1" required
                        value="{{ old('hip', $measurment->hip ?? '') }}">
+                            @error('hip') <div class="invalid-feedback" style="display:block;">{{ $message }}</div> @enderror
                         </div>
                     </div>
                    
@@ -889,7 +909,11 @@
              FORM ACTIONS (always visible)
         ══════════════════════════════════ --}}
         <div class="form-actions">
-            <button type="submit" class="btn btn-success">💾 Update Product</button>
+            @if(!empty($isCopy))
+                <button type="submit" class="btn btn-success">💾 Save as New Product</button>
+            @else
+                <button type="submit" class="btn btn-success">💾 Update Product</button>
+            @endif
             <a href="{{ route('product.index') }}" class="btn btn-outline">← Back to Products</a>
         </div>
 
@@ -922,68 +946,23 @@ function removeImageRow(btn) {
 
 
 
-var _mlWidget        = null;
 var _mlTargetIndex   = null;
 
 function changeImage(index) {
-    _mlTargetIndex = index;
-
-    // Build folder from product name (same logic as your upload widget)
-    const titleInput =
-        document.querySelector('[name="product_description[1][name]"]') ||
-        document.querySelector('[name="title"]');
-    const title  = titleInput ? titleInput.value.trim() : 'product';
-    const slug   = title.toLowerCase().replace(/[^a-z0-9]/g, '') || 'product';
-    const folder = 'ecommerce/' + slug;
-
-    fetch('/admin/cloudinary-ml-auth')
-        .then(r => r.json())
-        .then(auth => {
-
-            // Reuse widget if already created (avoids memory leaks)
-            if (!_mlWidget) {
-                _mlWidget = cloudinary.createMediaLibrary(
-                    {
-                        cloud_name : auth.cloud_name,
-                        api_key    : auth.api_key,
-                        username   : auth.username,
-                        timestamp  : auth.timestamp,
-                        signature  : auth.signature,
-                        multiple   : false,
-                        max_files  : 1,
-                        insert_caption: 'Select Image',
-                    },
-                    {
-                        insertHandler: function(data) {
-                            if (data && data.assets && data.assets[0]) {
-                                const url      = data.assets[0].secure_url;
-                                const preview  = document.getElementById('img-preview-' + _mlTargetIndex);
-                                const urlInput = document.getElementById('img-url-'     + _mlTargetIndex);
-                                if (preview)  preview.src    = url;
-                                if (urlInput) urlInput.value = url;
-                            }
-                        }
-                    }
-                );
-            }
-
-            // ✅ .show() with folder opens directly inside that folder
-            _mlWidget.show({
-                folder: {
-                    path         : folder,
-                    resource_type: 'image'
-                }
-            });
-        })
-        .catch(err => {
-            console.error('[ML Auth Error]', err);
-            alert('Could not open media library. See console.');
-        });
+    const urlInput = document.getElementById('img-url-' + index);
+    const current = urlInput ? urlInput.value : '';
+    const existingFolder = typeof folderFromImagePath === 'function' ? folderFromImagePath(current) : '';
+    const productFolder = typeof getProductImageFolder === 'function' ? getProductImageFolder() : 'ecommerce/product';
+    // Open the folder where this image already lives; fallback to product folder
+    changeImageWithS3(index, existingFolder || productFolder);
 }
-/* ── Add NEW image row (called by initCloudinary on upload success) ── */
-function addImageField(url) {
+
+/* ── Add NEW image row (called by initS3Upload on upload success) ── */
+function addImageField(url, path) {
     const tbody = document.getElementById('imageTableBody');
     const index = tbody.querySelectorAll('tr.image-row').length;
+    const storedPath = typeof toStoragePath === 'function' ? toStoragePath(path || url) : (path || url);
+    const previewUrl = typeof toPublicUrl === 'function' ? toPublicUrl(url || path) : (url || path);
 
     const tr = document.createElement('tr');
     tr.className = 'image-row';
@@ -997,10 +976,10 @@ function addImageField(url) {
         </td>
         <td style="padding:12px 8px;vertical-align:middle;">
             <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;">
-                <img id="img-preview-${index}" src="${url}" alt="preview"
+                <img id="img-preview-${index}" src="${previewUrl}" alt="preview"
                      style="height:90px;width:90px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer;"
                      onclick="changeImage(${index})">
-                <input type="hidden" name="photo[${index}][url]" id="img-url-${index}" value="${url}">
+                <input type="hidden" name="photo[${index}][url]" id="img-url-${index}" value="${storedPath}">
                 <a href="#" onclick="changeImage(${index});return false;"
                    style="font-size:.75rem;color:#2563eb;text-decoration:underline;">*Change Image</a>
             </div>
@@ -1071,10 +1050,10 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 
-  if (typeof initCloudinary === 'function') {
-        initCloudinary('thumbnail', 'ecommerce');
+  if (typeof initS3Upload === 'function') {
+        initS3Upload('thumbnail', getProductImageFolder);
     } else {
-        console.error("Cloudinary JS not loaded");
+        console.error("S3 upload JS not loaded");
     }
     });
 
