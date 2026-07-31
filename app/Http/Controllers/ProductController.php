@@ -155,6 +155,7 @@ class ProductController extends Controller
         $this->validateFullProductForm($request);
 
         $data = $this->buildFullProductPayload($request, $product->photo);
+   
         $product->update($data);
 
         return redirect()->route('product.index')
@@ -249,6 +250,7 @@ class ProductController extends Controller
 
     private function buildFullProductPayload(Request $request, $fallbackPhoto = null): array
     {
+             
         $size = null;
         if ($request->filled('size') && is_array($request->size)) {
             $size = implode(',', $request->size);
@@ -260,7 +262,7 @@ class ProductController extends Controller
             foreach ($request->photo as $p) {
                 if (!empty($p['url'])) {
                     $clean[] = [
-                        'url' => media_path($p['url']),
+                        'url' => media_path($p['url']).'?v='.$request->date_added,
                         'alt' => $p['alt'] ?? null,
                         'type' => $p['type'] ?? null,
                         'sort_order' => $p['sort_order'] ?? null,

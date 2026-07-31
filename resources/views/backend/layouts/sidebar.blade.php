@@ -219,6 +219,12 @@
             <i class="fas fa-users"></i>
             <span>Users</span></a>
     </li>
+     <!-- Customers -->
+     <!-- <li class="nav-item">
+        <a class="nav-link" href="{{route('customer.index')}}">
+            <i class="fas fa-user-friends"></i>
+            <span>Customers</span></a>
+    </li> -->
      <!-- General settings -->
      <li class="nav-item">
         <a class="nav-link" href="{{route('settings')}}">

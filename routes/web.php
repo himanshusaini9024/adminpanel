@@ -207,6 +207,11 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin']], function 
         return view('backend.layouts.file-manager');
     })->name('file-manager');
     Route::resource('users', App\Http\Controllers\UsersController::class);
+    Route::get('customer', [App\Http\Controllers\CustomerController::class, 'index'])->name('customer.index');
+    Route::get('customer/{id}/edit', [App\Http\Controllers\CustomerController::class, 'edit'])->name('customer.edit');
+    Route::put('customer/{id}', [App\Http\Controllers\CustomerController::class, 'update'])->name('customer.update');
+    Route::post('customer/{id}/message', [App\Http\Controllers\CustomerController::class, 'sendMessage'])->name('customer.message');
+    Route::delete('customer/{id}', [App\Http\Controllers\CustomerController::class, 'destroy'])->name('customer.destroy');
     Route::resource('banner', App\Http\Controllers\BannerController::class);
     Route::resource('brand', App\Http\Controllers\BrandController::class);
     Route::resource('category', App\Http\Controllers\CategoryController::class);

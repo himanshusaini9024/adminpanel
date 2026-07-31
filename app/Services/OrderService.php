@@ -55,6 +55,7 @@ class OrderService
                     'order_id'     => $order->id,
                     'order_number' => $order->order_number,
                     'product_id'   => $item['id'],
+                    'name'   => $item['name'],
                     'sku'          => $item['sku'],
                     'image'        => $item['thumb']['url'] ?? null,
                     'price'        => $item['price'],

@@ -20,8 +20,12 @@ class OrderPlacedJob implements ShouldQueue
 
     public function handle(WhatsAppService $whatsapp)
     {
-        $order = Order::findOrFail($this->orderId);
+        $order = Order::with('items')->findOrFail($this->orderId);
+           Log::info('storeorder', [
+    'order' => $order->toArray(),
+]);
         Log::info('WhatsApp order', [
+            'order' => $order,
     'id' => $order->id,
     'order_number' => $order->order_number,
 ]);
