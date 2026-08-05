@@ -62,7 +62,7 @@ class OrderStatusNotificationJob implements ShouldQueue
     {
         $name = $order->first_name ?: 'Customer';
         $orderNo = (string) $order->order_number;
-        $orderLabel = env('ORDER_PREFIX', 'DF-') . $orderNo;
+        $orderLabel = env('ORDER_PREFIX') . $orderNo;
         $awb = $order->awb_code ?: 'N/A';
         $trackUrl = env('ORDER_TRACK_URL', 'https://dhirago.com/return/track-order');
 

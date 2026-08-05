@@ -63,27 +63,66 @@ class CustomerAddressController extends Controller
         return CustomerAddress::create($data);
     }
 
+    // ✅ UPDATE address
+    public function update(Request $request, $id)
+    {
+        $customer = $request->user();
+
+        $address = CustomerAddress::where('id', $id)
+            ->where('customer_id', $customer->customer_id)
+            ->firstOrFail();
+
+        $data = $request->validate([
+            'name' => 'required',
+            'phone' => 'required',
+            'address1' => 'required',
+            'address2' => 'nullable',
+            'city' => 'required',
+            'state' => 'required',
+            'pincode' => 'required',
+            'type' => 'required',
+        ]);
+
+        if ($request->boolean('is_default')) {
+            CustomerAddress::where('customer_id', $customer->customer_id)
+                ->update(['is_default' => false]);
+            $data['is_default'] = true;
+        }
+
+        $address->update($data);
+
+        return response()->json($address->fresh());
+    }
+
     // ✅ SET DEFAULT
     public function setDefault($id, Request $request)
     {
         // $customer = auth('customer')->user();
         $customer = $request->user();
 
+        $address = CustomerAddress::where('id', $id)
+            ->where('customer_id', $customer->customer_id)
+            ->firstOrFail();
+
         // remove old default
         CustomerAddress::where('customer_id', $customer->customer_id)
             ->update(['is_default' => false]);
 
         // set new
-           CustomerAddress::where('id', $id)
-            ->update(['is_default' => true]);
+        $address->update(['is_default' => true]);
 
         return response()->json(['message' => 'Updated']);
     }
 
     // ✅ DELETE
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        CustomerAddress::findOrFail($id)->delete();
+        $customer = $request->user();
+
+        CustomerAddress::where('id', $id)
+            ->where('customer_id', $customer->customer_id)
+            ->firstOrFail()
+            ->delete();
 
         return response()->json(['message' => 'Deleted']);
     }

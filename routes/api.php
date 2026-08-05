@@ -83,6 +83,7 @@ Route::middleware('auth:customer')->group(function () {
     Route::get('/addresses', [CustomerAddressController::class, 'index']);
     Route::post('/addresses', [CustomerAddressController::class, 'store']);
     Route::put('/addresses/{id}/default', [CustomerAddressController::class, 'setDefault']);
+    Route::match(['put', 'patch'], '/addresses/{id}', [CustomerAddressController::class, 'update']);
     Route::post('/razorpay/create-order', [PaymentController::class, 'createRazorpayOrder']);
     Route::post('/razorpay/verify', [PaymentController::class, 'verifyPayment']);
     Route::delete('/addresses/{id}', [CustomerAddressController::class, 'destroy']);
