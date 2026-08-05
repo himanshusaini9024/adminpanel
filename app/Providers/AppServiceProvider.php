@@ -15,11 +15,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        // Safety net for deploys where `composer dump-autoload` has not run
-        // and the "files" autoload entry for Helpers.php is missing.
-        if (!function_exists('media_url')) {
-            require_once app_path('Http/Helpers.php');
-        }
+        //
     }
 
     /**

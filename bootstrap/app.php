@@ -11,6 +11,15 @@
 |
 */
 
+/*
+| Global helpers (media_url, media_path, ...) are normally loaded by the
+| "files" autoload entry in composer.json. Load them here as well so a deploy
+| with a stale vendor/composer/autoload_files.php still has them available.
+*/
+if (!function_exists('media_url')) {
+    require_once __DIR__ . '/../app/Http/Helpers.php';
+}
+
 $app = new Illuminate\Foundation\Application(
     $_ENV['APP_BASE_PATH'] ?? dirname(__DIR__)
 );
