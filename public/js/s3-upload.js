@@ -49,7 +49,16 @@ function getProductImageFolder() {
         document.getElementById('inputTitle') ||
         document.querySelector('[name="title"]');
     const title = titleInput ? titleInput.value.trim() : '';
-    return 'ecommerce/product/' + slugifyName(title, 'product');
+    return 'ecommerce/product/' + slugifyName(title, 'product') + '/images';
+}
+
+/** @deprecated same folder as desktop — kept for older callers */
+function getProductMobileImageFolder() {
+    return getProductImageFolder();
+}
+
+function deviceNamePrefix(device) {
+    return device === 'mobile' ? 'mob' : 'desk';
 }
 
 function resolveFolderPath(folderBase) {
@@ -88,6 +97,7 @@ const S3FileManager = (function () {
         loading: false,
         acceptFilter: null, // null = all, 'image', 'video', 'document', etc.
         embedded: false,    // true when rendered inside a page container
+        namePrefix: '',     // 'desk' | 'mob' — applied to uploaded filenames
     };
 
     function ensureDom() {
@@ -175,9 +185,11 @@ const S3FileManager = (function () {
         state.multiple = !!(options && options.multiple);
         state.onSelect = options && options.onSelect ? options.onSelect : null;
         state.acceptFilter = options && options.accept ? options.accept : null;
+        state.namePrefix = (options && options.namePrefix) ? String(options.namePrefix).replace(/[^a-z0-9\-]/gi, '') : '';
         state.selected.clear();
         state.path = resolveFolderPath(options && options.path);
         updateUseButton();
+        updateHint();
         overlay.classList.add('open');
         load(state.path);
     }
@@ -187,6 +199,7 @@ const S3FileManager = (function () {
         state.multiple = true;
         state.onSelect = null;
         state.acceptFilter = null;
+        state.namePrefix = '';
         state.selected.clear();
         state.path = resolveFolderPath(options && options.path);
         // Hide "Use Selected" and close buttons in embedded mode
@@ -203,6 +216,18 @@ const S3FileManager = (function () {
         if (state.embedded) return; // embedded mode cannot be closed
         overlay.classList.remove('open');
         document.getElementById('s3fm-prompt').classList.remove('open');
+    }
+
+    function updateHint() {
+        var hint = document.getElementById('s3fm-hint');
+        if (!hint) return;
+        if (state.namePrefix === 'desk') {
+            hint.textContent = 'Same images folder — new uploads are saved as desk-filename.ext';
+        } else if (state.namePrefix === 'mob') {
+            hint.textContent = 'Same images folder — new uploads are saved as mob-filename.ext';
+        } else {
+            hint.textContent = 'Browse folders, upload files, then select items.';
+        }
     }
 
     function updateUseButton() {
@@ -487,6 +512,9 @@ const S3FileManager = (function () {
                     var formData = new FormData();
                     formData.append('file', files[i]);
                     formData.append('folder', state.path);
+                    if (state.namePrefix) {
+                        formData.append('prefix', state.namePrefix);
+                    }
                     formData.append('_token', getCsrfToken());
 
                     var res = await fetch('/admin/s3-upload', {
@@ -555,6 +583,7 @@ function initS3Upload(inputId, folderBase) {
         openS3FileManager({
             path: resolveFolderPath(folderBase || getProductImageFolder),
             multiple: true,
+            namePrefix: 'desk',
             onSelect: function (items) {
                 (items || []).forEach(function (item) {
                     if (typeof addImageField === 'function') {
@@ -584,6 +613,7 @@ function initS3SingleUpload(options) {
             path: resolveFolderPath(options.folderBase || 'ecommerce'),
             multiple: false,
             accept: options.accept || null,
+            namePrefix: options.namePrefix || '',
             onSelect: function (item) {
                 var storedPath = toStoragePath(item.path || item.url);
                 var previewUrl = toPublicUrl(item.url || item.path);
@@ -609,17 +639,26 @@ function initS3SingleUpload(options) {
     };
 }
 
-function changeImageWithS3(index, folderBase) {
+function changeImageWithS3(index, folderBase, device) {
+    device = device || 'desktop';
     openS3FileManager({
         path: resolveFolderPath(folderBase || getProductImageFolder),
         multiple: false,
+        namePrefix: deviceNamePrefix(device),
         onSelect: function (item) {
             var storedPath = toStoragePath(item.path || item.url);
             var previewUrl = toPublicUrl(item.url || item.path);
-            var preview = document.getElementById('img-preview-' + index);
-            var urlInput = document.getElementById('img-url-' + index);
-            if (preview) preview.src = previewUrl;
-            if (urlInput) urlInput.value = storedPath;
+            if (device === 'mobile') {
+                var preview = document.getElementById('img-preview-mobile-' + index);
+                var urlInput = document.getElementById('img-url-mobile-' + index);
+                if (preview) preview.src = previewUrl;
+                if (urlInput) urlInput.value = storedPath;
+            } else {
+                var previewD = document.getElementById('img-preview-' + index);
+                var urlInputD = document.getElementById('img-url-' + index);
+                if (previewD) previewD.src = previewUrl;
+                if (urlInputD) urlInputD.value = storedPath;
+            }
         },
     });
 }

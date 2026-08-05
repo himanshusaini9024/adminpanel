@@ -179,41 +179,8 @@
         </div>
 
         <hr>
-        <h6 class="mb-3">Dimensions <span class="text-danger">*</span></h6>
-        <div class="form-row">
-          <div class="form-group col-md-4">
-            <label>Chest (cm) <span class="text-danger">*</span></label>
-            <input type="number" step="0.1" name="chest" class="form-control" value="{{ old('chest') }}" required>
-            @error('chest') <span class="text-danger">{{ $message }}</span> @enderror
-          </div>
-          <div class="form-group col-md-4">
-            <label>Length (cm) <span class="text-danger">*</span></label>
-            <input type="number" step="0.1" name="length" class="form-control" value="{{ old('length') }}" required>
-            @error('length') <span class="text-danger">{{ $message }}</span> @enderror
-          </div>
-          <div class="form-group col-md-4">
-            <label>Shoulder (cm) <span class="text-danger">*</span></label>
-            <input type="number" step="0.1" name="shoulder" class="form-control" value="{{ old('shoulder') }}" required>
-            @error('shoulder') <span class="text-danger">{{ $message }}</span> @enderror
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group col-md-4">
-            <label>Sleeve Length (cm) <span class="text-danger">*</span></label>
-            <input type="number" step="0.1" name="sleeve_length" class="form-control" value="{{ old('sleeve_length') }}" required>
-            @error('sleeve_length') <span class="text-danger">{{ $message }}</span> @enderror
-          </div>
-          <div class="form-group col-md-4">
-            <label>Waist (cm) <span class="text-danger">*</span></label>
-            <input type="number" step="0.1" name="waist" class="form-control" value="{{ old('waist') }}" required>
-            @error('waist') <span class="text-danger">{{ $message }}</span> @enderror
-          </div>
-          <div class="form-group col-md-4">
-            <label>Hip (cm) <span class="text-danger">*</span></label>
-            <input type="number" step="0.1" name="hip" class="form-control" value="{{ old('hip') }}" required>
-            @error('hip') <span class="text-danger">{{ $message }}</span> @enderror
-          </div>
-        </div>
+        <h6 class="mb-3">Size Guide <small class="text-muted">(inch &amp; cm)</small></h6>
+        @include('backend.product.partials.size-guide', ['sizeGuide' => ['type' => 'size_guide', 'dimensions' => []]])
 
         <div class="form-group">
           <label for="status" class="col-form-label">Status <span class="text-danger">*</span></label>
@@ -251,6 +218,21 @@
     $(document).ready(function () {
 
         // Summernote
+        if (!document.getElementById('product-desc-fonts')) {
+            var fontLink = document.createElement('link');
+            fontLink.id = 'product-desc-fonts';
+            fontLink.rel = 'stylesheet';
+            fontLink.href = 'https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;500;600;700&display=swap';
+            document.head.appendChild(fontLink);
+            var futuraLink = document.createElement('link');
+            futuraLink.rel = 'stylesheet';
+            futuraLink.href = 'https://fonts.cdnfonts.com/css/futura';
+            document.head.appendChild(futuraLink);
+            var style = document.createElement('style');
+            style.textContent = '.note-editor .note-editable{font-family:"Josefin Sans",Futura,sans-serif;font-size:15px;line-height:1.7;}';
+            document.head.appendChild(style);
+        }
+
         $('#summary').summernote({
             placeholder: "Write short description.....",
             tabsize: 2,
@@ -260,7 +242,23 @@
         $('#description').summernote({
             placeholder: "Write detail description.....",
             tabsize: 2,
-            height: 150
+            height: 220,
+            fontNames: [
+                'Josefin Sans', 'Futura',
+                'Arial', 'Arial Black', 'Comic Sans MS', 'Courier New',
+                'Helvetica', 'Impact', 'Tahoma', 'Times New Roman', 'Verdana'
+            ],
+            fontNamesIgnoreCheck: ['Josefin Sans', 'Futura'],
+            toolbar: [
+                ['style', ['style']],
+                ['font', ['bold', 'italic', 'underline', 'clear']],
+                ['fontname', ['fontname']],
+                ['fontsize', ['fontsize']],
+                ['color', ['color']],
+                ['para', ['ul', 'ol', 'paragraph']],
+                ['insert', ['link']],
+                ['view', ['codeview', 'help']]
+            ]
         });
 
         // Category AJAX

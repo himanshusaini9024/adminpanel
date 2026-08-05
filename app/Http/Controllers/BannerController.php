@@ -41,6 +41,7 @@ class BannerController extends Controller
             'title' => 'required|string|max:50',
             'description' => 'nullable|string',
             'photo' => 'nullable|string|max:500',
+            'photo_mobile' => 'nullable|string|max:500',
             'status' => 'required|in:active,inactive',
         ]);
 
@@ -49,6 +50,9 @@ class BannerController extends Controller
 
         if (!empty($validatedData['photo'])) {
             $validatedData['photo'] = media_path($validatedData['photo']);
+        }
+        if (!empty($validatedData['photo_mobile'])) {
+            $validatedData['photo_mobile'] = media_path($validatedData['photo_mobile']);
         }
 
         $banner = Banner::create($validatedData);
@@ -102,11 +106,16 @@ class BannerController extends Controller
             'title' => 'required|string|max:50',
             'description' => 'nullable|string',
             'photo' => 'required',
+            'photo_mobile' => 'nullable',
             'status' => 'required|in:active,inactive',
         ]);
         $photos = is_array($request->photo) ? $request->photo : [$request->photo];
         $photos = array_values(array_filter(array_map(fn($p) => media_path($p), $photos)));
         $validatedData['photo'] = json_encode($photos);
+
+        $mobilePhotos = is_array($request->photo_mobile) ? $request->photo_mobile : ($request->filled('photo_mobile') ? [$request->photo_mobile] : []);
+        $mobilePhotos = array_values(array_filter(array_map(fn($p) => media_path($p), $mobilePhotos)));
+        $validatedData['photo_mobile'] = !empty($mobilePhotos) ? json_encode($mobilePhotos) : null;
         $status = $banner->update($validatedData);
 
         $message = $status

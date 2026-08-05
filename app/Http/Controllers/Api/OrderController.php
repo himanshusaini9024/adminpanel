@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Jobs\OrderPlacedJob;
+use App\Jobs\OrderStatusNotificationJob;
 
 class OrderController extends Controller
 {
@@ -86,11 +87,16 @@ class OrderController extends Controller
     public function markDelivered(Request $request, $orderNumber)
     {
         $order = Order::where('order_number', $orderNumber)->firstOrFail();
+        $wasDelivered = $order->status === 'delivered';
 
         $order->update([
             'status'       => 'delivered',
             'delivered_at' => $request->input('delivered_at', now()),
         ]);
+
+        if (!$wasDelivered) {
+            OrderStatusNotificationJob::dispatch($order->id, 'delivered');
+        }
 
         return response()->json(['success' => true, 'order' => $order]);
     }

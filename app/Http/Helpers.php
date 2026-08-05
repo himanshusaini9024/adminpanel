@@ -266,3 +266,102 @@ if (!function_exists('media_url')) {
         return $base . $normalized;
     }
 }
+
+if (!function_exists('format_product_description_html')) {
+    /**
+     * Normalize product description to storefront HTML:
+     *
+     * <p class="font-futura">
+     *   <span>Intro paragraph…</span><br>
+     *   <span>- First bullet.</span><br>
+     *   <span style="font-family: Futura;">- More bullets<br>- …</span><br>
+     *   <span data-sheets-root="1">- The model…</span>
+     * </p>
+     *
+     * Always extracts ALL text lines (never span-only), so re-saves do not drop content.
+     */
+    function format_product_description_html(?string $content): ?string
+    {
+        if ($content === null) {
+            return null;
+        }
+
+        $content = trim($content);
+        if ($content === '') {
+            return '';
+        }
+
+        $html = html_entity_decode($content, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        // Turn every visual break into a newline, then take ALL plain-text lines.
+        // Do not parse <span> only — Summernote often moves bullets into <p> on edit.
+        $html = preg_replace('/<\/p>\s*<p[^>]*>/i', "\n", $html);
+        $html = preg_replace('/<\/div>\s*<div[^>]*>/i', "\n", $html);
+        $html = preg_replace('/<\/li>\s*<li[^>]*>/i', "\n", $html);
+        $html = preg_replace('/<br\s*\/?>/i', "\n", $html);
+        $html = preg_replace('/<\/(p|div|li|h[1-6]|tr)>/i', "\n", $html);
+        $html = strip_tags($html);
+        $html = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $html = str_replace("\xC2\xA0", ' ', $html); // nbsp
+
+        $lines = [];
+        foreach (preg_split("/\r\n|\r|\n/", $html) as $line) {
+            $line = trim(preg_replace('/[ \t]+/', ' ', $line));
+            if ($line !== '') {
+                $lines[] = $line;
+            }
+        }
+
+        if (empty($lines)) {
+            return '';
+        }
+
+        $esc = static function (string $text): string {
+            return htmlspecialchars($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        };
+
+        $intro = [];
+        $bullets = [];
+        $model = null;
+
+        foreach ($lines as $line) {
+            $isModel = (bool) preg_match('/\bmodel\b/i', $line)
+                && (bool) preg_match('/(wearing|size|5[\'’]|ft)/i', $line);
+            $isBullet = (bool) preg_match('/^\s*[-–—•]/u', $line);
+
+            if ($isModel) {
+                $model = $line;
+            } elseif ($isBullet || !empty($bullets)) {
+                $bullets[] = $line;
+            } else {
+                $intro[] = $line;
+            }
+        }
+
+        $parts = [];
+
+        if (!empty($intro)) {
+            $parts[] = '<span>' . $esc(implode(' ', $intro)) . '</span>';
+        }
+
+        if (!empty($bullets)) {
+            $first = array_shift($bullets);
+            $parts[] = '<span>' . $esc($first) . '</span>';
+
+            if (!empty($bullets)) {
+                $joined = implode('<br>', array_map($esc, $bullets));
+                $parts[] = '<span style="font-family: Futura;">' . $joined . '</span>';
+            }
+        }
+
+        if ($model !== null) {
+            $parts[] = '<span data-sheets-root="1">' . $esc($model) . '</span>';
+        }
+
+        if (empty($parts)) {
+            return '';
+        }
+
+        return '<p class="font-futura">' . implode('<br>', $parts) . '</p>';
+    }
+}

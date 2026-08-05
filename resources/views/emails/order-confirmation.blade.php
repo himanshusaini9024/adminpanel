@@ -152,13 +152,13 @@
                   <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:16px;">
                     <tr>
                       <td width="72" style="vertical-align:top;">
-                        <img class="item-thumb" src="https://dhirago-images-761186487122-eu-north-1-an.s3.eu-north-1.amazonaws.com{{ $item->image }}" alt="{{ $item->name }}"
+                        <img class="item-thumb" src="{{ media_url(preg_replace('/\?.*$/', '', (string) $item->image)) }}" alt="{{ $item->name }}"
                           width="64" height="64"
                           style="display:block;width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid #eee;">
                       </td>
                       <td style="vertical-align:top;padding-left:14px;">
                         <div style="color:#111;font-size:13px;font-weight:bold;">
-                          {{ $item->name }} &times; {{ $item->quantity }}
+                          {{ $item->name ?: ($item->product->title ?? 'Product') }} &times; {{ $item->quantity }}
                         </div>
                         @if(!empty($item->size))
                           <div style="color:#888;font-size:13px;margin-top:2px;">

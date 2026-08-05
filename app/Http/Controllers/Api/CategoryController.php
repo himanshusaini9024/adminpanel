@@ -29,6 +29,7 @@ class CategoryController extends Controller
                 'products.title as name',
                 'products.slug',
                 'categories.photo as banner',
+                'categories.photo_mobile as banner_mobile',
                 'products.cat_id',
                 'products.sku',
                 'products.price as currentPrice',
@@ -63,11 +64,13 @@ class CategoryController extends Controller
         // ✅ FORMAT RESPONSE
         $formatted = [];
         $catbanner = null;
+        $catbannerMobile = null;
 
         foreach ($result as $item) {
             $images = json_decode($item->photo ?? '[]', true);
                    if (!$catbanner) {
         $catbanner = $item->banner;
+        $catbannerMobile = $item->banner_mobile ?? null;
     }
 
             if (!is_array($images)) {
@@ -89,7 +92,8 @@ class CategoryController extends Controller
 
         return response()->json([
             'category' => $formatted,
-            'catbanner' => $catbanner
+            'catbanner' => $catbanner,
+            'catbanner_mobile' => $catbannerMobile,
         ]);
     }
 }

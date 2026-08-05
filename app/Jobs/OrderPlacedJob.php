@@ -18,52 +18,61 @@ class OrderPlacedJob implements ShouldQueue
 
     public function __construct(public int $orderId) {}
 
-    public function handle(WhatsAppService $whatsapp)
+    public function handle(WhatsAppService $whatsapp): void
     {
-        $order = Order::with('items')->findOrFail($this->orderId);
-           Log::info('storeorder', [
-    'order' => $order->toArray(),
-]);
-        Log::info('WhatsApp order', [
-            'order' => $order,
-    'id' => $order->id,
-    'order_number' => $order->order_number,
-]);
+        $order = Order::with(['items.product'])->find($this->orderId);
+        if (!$order) {
+            Log::warning('OrderPlacedJob: order not found', ['id' => $this->orderId]);
+            return;
+        }
 
-        // Send mail
-        try {
-            Mail::send([], [], function ($message) use ($order) {
+        Log::info('OrderPlacedJob start', [
+            'id' => $order->id,
+            'order_number' => $order->order_number,
+            'email' => $order->email,
+        ]);
 
+        // Email
+        if (!empty($order->email)) {
+            try {
                 $html = view('emails.order-confirmation', [
                     'order' => $order,
                 ])->render();
 
-                $message->to($order->email)
-                    ->subject('Your Order Has Been Placed Successfully')
-                    ->html($html);
-            });
-        } catch (\Exception $e) {
+                Mail::html($html, function ($message) use ($order) {
+                    $message->to($order->email)
+                        ->subject('Your Order Has Been Placed Successfully');
+                });
 
-            Log::error('Mail Error', [
-                'message' => $e->getMessage()
-            ]);
+                Log::info('OrderPlacedJob: mail sent', [
+                    'order_id' => $order->id,
+                    'to' => $order->email,
+                ]);
+            } catch (\Throwable $e) {
+                Log::error('OrderPlacedJob: mail failed', [
+                    'order_id' => $order->id,
+                    'message' => $e->getMessage(),
+                ]);
+            }
+        } else {
+            Log::warning('OrderPlacedJob: no email on order', ['order_id' => $order->id]);
         }
 
         // WhatsApp
-        try {
-            $phone = '91' . ltrim($order->phone, '0');
-
-            $whatsapp->sendOrderConfirmation(
-                $phone,
-                $order->first_name,
-                $order->order_number,
-                $order->total_amount
-            );
-        } catch (\Exception $e) {
-
-            Log::error('WhatsApp Error', [
-                'message' => $e->getMessage()
-            ]);
+        if (!empty($order->phone)) {
+            try {
+                $whatsapp->sendOrderConfirmation(
+                    $order->phone,
+                    $order->first_name ?: 'Customer',
+                    $order->order_number,
+                    $order->total_amount
+                );
+            } catch (\Throwable $e) {
+                Log::error('OrderPlacedJob: WhatsApp failed', [
+                    'order_id' => $order->id,
+                    'message' => $e->getMessage(),
+                ]);
+            }
         }
     }
 }

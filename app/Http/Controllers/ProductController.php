@@ -49,12 +49,7 @@ class ProductController extends Controller
             'condition' => 'required|in:default,new,hot',
             'price' => 'required|numeric',
             'discount' => 'nullable|numeric',
-            'chest' => 'required|numeric|min:0',
-            'length' => 'required|numeric|min:0',
-            'shoulder' => 'required|numeric|min:0',
-            'sleeve_length' => 'required|numeric|min:0',
-            'waist' => 'required|numeric|min:0',
-            'hip' => 'required|numeric|min:0',
+            'size_guide_json' => 'nullable|string',
         ]);
 
         $slug = generateUniqueSlug($request->title, Product::class);
@@ -69,23 +64,15 @@ class ProductController extends Controller
             $validatedData['size'] = '';
         }
 
-        $validatedData['measurements'] = json_encode([
-            'chest' => $request->input('chest'),
-            'length' => $request->input('length'),
-            'shoulder' => $request->input('shoulder'),
-            'sleeve_length' => $request->input('sleeve_length'),
-            'waist' => $request->input('waist'),
-            'hip' => $request->input('hip'),
-        ]);
+        if (array_key_exists('description', $validatedData)) {
+            $validatedData['description'] = format_product_description_html($validatedData['description'] ?? '');
+        }
 
-        unset(
-            $validatedData['chest'],
-            $validatedData['length'],
-            $validatedData['shoulder'],
-            $validatedData['sleeve_length'],
-            $validatedData['waist'],
-            $validatedData['hip']
+        $validatedData['measurements'] = json_encode(
+            $this->buildSizeGuideFromRequest($request)
         );
+
+        unset($validatedData['size_guide_json']);
 
         $product = Product::create($validatedData);
 
@@ -110,6 +97,7 @@ class ProductController extends Controller
         $product->setAttribute('id', $original->id);
 
         $measurment = json_decode($original->measurements);
+        $sizeGuide = $this->normalizeSizeGuide($original->measurements);
         $brands = Brand::get();
         $categories = Category::where('is_parent', 1)->get();
         $items = Product::where('id', $id)->get();
@@ -118,6 +106,7 @@ class ProductController extends Controller
         return view('backend.product.edit', compact(
             'product',
             'measurment',
+            'sizeGuide',
             'brands',
             'categories',
             'items',
@@ -135,6 +124,7 @@ class ProductController extends Controller
         $brands = Brand::get();
         $product = Product::findOrFail($id);
         $measurment = json_decode($product->measurements);
+        $sizeGuide = $this->normalizeSizeGuide($product->measurements);
         $categories = Category::where('is_parent', 1)->get();
         $items = Product::where('id', $id)->get();
         $isCopy = false;
@@ -142,6 +132,7 @@ class ProductController extends Controller
         return view('backend.product.edit', compact(
             'product',
             'measurment',
+            'sizeGuide',
             'brands',
             'categories',
             'items',
@@ -235,12 +226,7 @@ class ProductController extends Controller
             'photo.*.url' => 'required_with:photo|string',
             'photo.*.alt' => 'nullable|string',
 
-            'chest'         => 'required|numeric|min:0',
-            'length'        => 'required|numeric|min:0',
-            'shoulder'      => 'required|numeric|min:0',
-            'sleeve_length' => 'required|numeric|min:0',
-            'waist'         => 'required|numeric|min:0',
-            'hip'           => 'required|numeric|min:0',
+            'size_guide_json' => 'nullable|string',
 
             'faqs'            => 'nullable|array',
             'faqs.*.question' => 'required_with:faqs|string',
@@ -263,6 +249,7 @@ class ProductController extends Controller
                 if (!empty($p['url'])) {
                     $clean[] = [
                         'url' => media_path($p['url']).'?v='.$request->date_added,
+                        'url_mobile' => !empty($p['url_mobile']) ? media_path($p['url_mobile']).'?v='.$request->date_added : null,
                         'alt' => $p['alt'] ?? null,
                         'type' => $p['type'] ?? null,
                         'sort_order' => $p['sort_order'] ?? null,
@@ -285,14 +272,7 @@ class ProductController extends Controller
             $faqs = !empty($filtered) ? json_encode($filtered) : null;
         }
 
-        $measurements = [
-            'chest'         => $request->input('chest'),
-            'length'        => $request->input('length'),
-            'shoulder'      => $request->input('shoulder'),
-            'sleeve_length' => $request->input('sleeve_length'),
-            'waist'         => $request->input('waist'),
-            'hip'           => $request->input('hip'),
-        ];
+        $measurements = $this->buildSizeGuideFromRequest($request);
 
         // Only persist columns that exist on products / are fillable
         return [
@@ -302,7 +282,7 @@ class ProductController extends Controller
             'condition'    => $request->input('condition'),
             'status'       => $request->input('status'),
             'is_featured'  => $request->has('is_featured') ? 1 : 0,
-            'description'  => $request->input('product_description.1.description'),
+            'description'  => format_product_description_html($request->input('product_description.1.description')),
             'summary'      => $request->input('summary'),
             'sku'          => $request->input('sku'),
             'brand_id'     => $request->input('brand_id'),
@@ -314,6 +294,123 @@ class ProductController extends Controller
             'photo'        => $photo,
             'measurements' => json_encode($measurements),
         ];
+    }
+
+    /**
+     * Build size guide payload from admin form (size_guide_json).
+     */
+    private function buildSizeGuideFromRequest(Request $request): array
+    {
+        $raw = $request->input('size_guide_json');
+        if (is_string($raw) && trim($raw) !== '') {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                return $this->sanitizeSizeGuide($decoded);
+            }
+        }
+
+        // Legacy flat cm fields (create form fallback)
+        $legacyKeys = ['chest', 'length', 'shoulder', 'sleeve_length', 'waist', 'hip'];
+        $hasLegacy = false;
+        foreach ($legacyKeys as $key) {
+            if ($request->filled($key)) {
+                $hasLegacy = true;
+                break;
+            }
+        }
+        if ($hasLegacy) {
+            return $this->legacyFlatToSizeGuide($request->only($legacyKeys));
+        }
+
+        return ['type' => 'size_guide', 'dimensions' => []];
+    }
+
+    private function sanitizeSizeGuide(array $data): array
+    {
+        $dimensions = [];
+        foreach ($data['dimensions'] ?? [] as $dim) {
+            $name = trim((string) ($dim['name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+            $sizes = [];
+            foreach (($dim['sizes'] ?? []) as $sizeKey => $vals) {
+                $sizeKey = strtoupper(trim((string) $sizeKey));
+                if ($sizeKey === '') {
+                    continue;
+                }
+                $inch = isset($vals['inch']) && $vals['inch'] !== '' && $vals['inch'] !== null
+                    ? round((float) $vals['inch'], 1) : null;
+                $cm = isset($vals['cm']) && $vals['cm'] !== '' && $vals['cm'] !== null
+                    ? round((float) $vals['cm'], 1) : null;
+
+                if ($inch === null && $cm !== null) {
+                    $inch = round($cm / 2.54, 1);
+                } elseif ($cm === null && $inch !== null) {
+                    $cm = round($inch * 2.54, 1);
+                }
+
+                if ($inch === null && $cm === null) {
+                    continue;
+                }
+
+                $sizes[$sizeKey] = ['inch' => $inch, 'cm' => $cm];
+            }
+            $dimensions[] = ['name' => $name, 'sizes' => $sizes];
+        }
+
+        return ['type' => 'size_guide', 'dimensions' => $dimensions];
+    }
+
+    /**
+     * Normalize DB measurements (new size_guide or legacy flat cm) for the admin UI.
+     */
+    private function normalizeSizeGuide($raw): array
+    {
+        if (is_string($raw)) {
+            $raw = json_decode($raw, true);
+        } elseif (is_object($raw)) {
+            $raw = json_decode(json_encode($raw), true);
+        }
+
+        if (!is_array($raw) || empty($raw)) {
+            return ['type' => 'size_guide', 'dimensions' => []];
+        }
+
+        if (($raw['type'] ?? null) === 'size_guide') {
+            return $this->sanitizeSizeGuide($raw);
+        }
+
+        return $this->legacyFlatToSizeGuide($raw);
+    }
+
+    private function legacyFlatToSizeGuide(array $flat): array
+    {
+        $labels = [
+            'chest' => 'Chest',
+            'length' => 'Length',
+            'shoulder' => 'Shoulder',
+            'sleeve_length' => 'Sleeve Length',
+            'waist' => 'Waist',
+            'hip' => 'Hip',
+        ];
+
+        $dimensions = [];
+        foreach ($labels as $key => $label) {
+            if (!isset($flat[$key]) || $flat[$key] === '' || $flat[$key] === null) {
+                continue;
+            }
+            $cm = round((float) $flat[$key], 1);
+            $inch = round($cm / 2.54, 1);
+            $dimensions[] = [
+                'name' => $label,
+                'sizes' => [
+                    'M' => ['inch' => $inch, 'cm' => $cm],
+                ],
+            ];
+        }
+
+        return ['type' => 'size_guide', 'dimensions' => $dimensions];
     }
 
     private function uniqueCopySku(?string $sku): string

@@ -40,17 +40,33 @@
         </div>
 
          <div class="form-group">
-                <label for="inputPhoto" class="col-form-label">Photo <span class="text-danger">*</span></label>
+                <label for="inputPhoto" class="col-form-label">Desktop Photo <span class="text-danger">*</span></label>
                 <div class="input-group">
                     <span class="input-group-btn">
                         <a id="upload_widget" class="btn btn-primary">
-                            <i class="fa fa-cloud-upload"></i> Upload
+                            <i class="fa fa-desktop"></i> Choose Desktop
                         </a>
                     </span>
                     <input id="thumbnail" class="form-control" type="text" name="photo" value="{{old('photo')}}" readonly>
                 </div>
                 <div id="holder" style="margin-top:15px;max-height:100px;"></div>
                 @error('photo')
+                <span class="text-danger">{{$message}}</span>
+                @enderror
+            </div>
+
+         <div class="form-group">
+                <label for="inputPhotoMobile" class="col-form-label">Mobile Photo</label>
+                <div class="input-group">
+                    <span class="input-group-btn">
+                        <a id="upload_widget_mobile" class="btn btn-info">
+                            <i class="fa fa-mobile"></i> Choose Mobile
+                        </a>
+                    </span>
+                    <input id="thumbnail_mobile" class="form-control" type="text" name="photo_mobile" value="{{old('photo_mobile')}}" readonly>
+                </div>
+                <div id="holder_mobile" style="margin-top:15px;max-height:100px;"></div>
+                @error('photo_mobile')
                 <span class="text-danger">{{$message}}</span>
                 @enderror
             </div>
@@ -94,11 +110,27 @@
         buttonId: 'upload_widget',
         inputId: 'thumbnail',
         holderId: 'holder',
+        namePrefix: 'desk',
         folderBase: function () {
             const titleInput = document.getElementById('inputTitle') || document.querySelector('[name="title"]');
             const title = titleInput ? titleInput.value.trim() : 'category';
             const slug = (title || 'category').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'category';
-            return 'ecommerce/categories/' + slug;
+            return 'ecommerce/categories/' + slug + '/images';
+        },
+        fallback: 'category',
+        multiple: false
+    });
+
+    initS3SingleUpload({
+        buttonId: 'upload_widget_mobile',
+        inputId: 'thumbnail_mobile',
+        holderId: 'holder_mobile',
+        namePrefix: 'mob',
+        folderBase: function () {
+            const titleInput = document.getElementById('inputTitle') || document.querySelector('[name="title"]');
+            const title = titleInput ? titleInput.value.trim() : 'category';
+            const slug = (title || 'category').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'category';
+            return 'ecommerce/categories/' + slug + '/images';
         },
         fallback: 'category',
         multiple: false

@@ -41,6 +41,7 @@ class CategoryController extends Controller
             'title' => 'required|string',
             'summary' => 'nullable|string',
             'photo' => 'nullable|string',
+            'photo_mobile' => 'nullable|string',
             'status' => 'required|in:active,inactive',
             'is_parent' => 'sometimes|in:1',
             'parent_id' => 'nullable|exists:categories,id',
@@ -48,6 +49,9 @@ class CategoryController extends Controller
 
         if (!empty($validatedData['photo'])) {
             $validatedData['photo'] = media_path($validatedData['photo']);
+        }
+        if (!empty($validatedData['photo_mobile'])) {
+            $validatedData['photo_mobile'] = media_path($validatedData['photo_mobile']);
         }
 
         $slug = generateUniqueSlug($request->title, Category::class);
@@ -108,6 +112,7 @@ class CategoryController extends Controller
             'title' => 'required|string',
             'summary' => 'nullable|string',
             'photo' => 'required',
+            'photo_mobile' => 'nullable|string',
             'status' => 'required|in:active,inactive',
             'is_parent' => 'sometimes|in:1',
             'parent_id' => 'nullable|exists:categories,id',
@@ -120,6 +125,12 @@ class CategoryController extends Controller
             if (!empty($urls)) {
                 $validatedData['photo'] = media_path(end($urls));
             }
+        }
+
+        if ($request->filled('photo_mobile') && is_string($request->photo_mobile)) {
+            $validatedData['photo_mobile'] = media_path($request->photo_mobile);
+        } else {
+            $validatedData['photo_mobile'] = $category->photo_mobile;
         }
   
             

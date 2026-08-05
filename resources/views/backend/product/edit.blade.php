@@ -281,7 +281,7 @@
    
     <button class="tab-btn" data-tab="price">Price</button>
     <button class="tab-btn" data-tab="image">Image</button>
-    <button class="tab-btn" data-tab="dimension">Dimension</button>
+    <button class="tab-btn" data-tab="dimension">Size Guide</button>
   
     <button class="tab-btn" data-tab="reviews">Reviews</button>
     <button class="tab-btn" data-tab="faq">FAQ</button>
@@ -476,7 +476,7 @@
                     <div class="form-col-full">
                         <div class="form-group">
                             <label>Schema / GTM JSON</label>
-                            <textarea name="product_description[1][schema_gtm]" class="form-control" rows="6"
+                            <textarea name="product_description[1][schema_gtm]" class="form-control" rows="6" 
                                       placeholder='[{"@context":"http://schema.org","@type":"VideoObject",...}]'>{{ old('schema_gtm', $product->schema_gtm ?? '') }}</textarea>
                         </div>
                     </div>
@@ -487,7 +487,11 @@
                             <label>Product Description </label>
                              <textarea name="product_description[1][description]" id="description"
                                       class="form-control" rows="8">{{ old('description', $product->description ?? '') }}</textarea>
-                                      
+                            <small style="color:var(--muted);display:block;margin-top:6px;">
+                                Saved as <code>&lt;p class="font-futura"&gt;</code> with each block in <code>&lt;span&gt;</code>,
+                                bullets in Futura, model line with <code>data-sheets-root</code>.
+                                Tip: write intro, then lines starting with <code>-</code>, then the model line.
+                            </small>
                 @error('description')
                 <span class="text-danger">{{$message}}</span>
                 @enderror
@@ -664,7 +668,8 @@
                         <th style="padding:10px 8px;text-align:left;font-weight:700;color:var(--muted);width:32px;">
                             <input type="checkbox" id="selectAllImages" title="Select all" style="width:15px;height:15px;">
                         </th>
-                        <th style="padding:10px 8px;text-align:left;font-weight:700;color:var(--muted);">Image:</th>
+                        <th style="padding:10px 8px;text-align:left;font-weight:700;color:var(--muted);">Desktop Image:</th>
+                        <th style="padding:10px 8px;text-align:left;font-weight:700;color:var(--muted);">Mobile Image:</th>
                         <th style="padding:10px 8px;text-align:left;font-weight:700;color:var(--muted);">Type:</th>
                         <th style="padding:10px 8px;text-align:left;font-weight:700;color:var(--muted);">Alt:</th>
                         <th style="padding:10px 8px;text-align:left;font-weight:700;color:var(--muted);">Sort Order:</th>
@@ -689,12 +694,27 @@
                                          src="{{ media_url($img->url) }}"
                                          alt="{{ $img->alt ?? '' }}"
                                          style="height:90px;width:90px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer;"
-                                         onclick="changeImage({{ $index }})">
+                                         onclick="changeImage({{ $index }}, 'desktop')">
                                     <input type="hidden" name="photo[{{ $index }}][url]"
                                            id="img-url-{{ $index }}" value="{{ $img->url }}">
-                                    <a href="#" onclick="changeImage({{ $index }});return false;"
+                                    <a href="#" onclick="changeImage({{ $index }}, 'desktop');return false;"
                                        style="font-size:.75rem;color:var(--primary);text-decoration:underline;">
-                                        *Change Image
+                                        *Desktop
+                                    </a>
+                                </div>
+                            </td>
+                            <td style="padding:12px 8px;vertical-align:middle;">
+                                <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;">
+                                    <img id="img-preview-mobile-{{ $index }}"
+                                         src="{{ !empty($img->url_mobile) ? media_url($img->url_mobile) : asset('backend/img/thumbnail-default.jpg') }}"
+                                         alt="{{ $img->alt ?? '' }} mobile"
+                                         style="height:90px;width:90px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer;"
+                                         onclick="changeImage({{ $index }}, 'mobile')">
+                                    <input type="hidden" name="photo[{{ $index }}][url_mobile]"
+                                           id="img-url-mobile-{{ $index }}" value="{{ $img->url_mobile ?? '' }}">
+                                    <a href="#" onclick="changeImage({{ $index }}, 'mobile');return false;"
+                                       style="font-size:.75rem;color:#0ea5e9;text-decoration:underline;">
+                                        *Mobile
                                     </a>
                                 </div>
                             </td>
@@ -766,60 +786,8 @@
         ══════════════════════════════════ --}}
         <div id="tab-dimension" class="tab-panel">
             <div class="form-section">
-                <div class="section-title">Product Dimensions <span class="req">*</span></div>
-                <div class="form-row">
-                    <div class="form-col">
-                        <div class="form-group">
-                            <label>Chest (cm) <span class="req">*</span></label>
-                            <input type="number" name="chest" class="form-control" step="0.1" required
-                       value="{{ old('chest', $measurment->chest ?? '') }}">
-                            @error('chest') <div class="invalid-feedback" style="display:block;">{{ $message }}</div> @enderror
-                        </div>
-                    </div>
-                    <div class="form-col">
-                        <div class="form-group">
-                            <label>Length (cm) <span class="req">*</span></label>
-                <input type="number" name="length" class="form-control" step="0.1" required
-                       value="{{ old('length', $measurment->length ?? '') }}">
-                            @error('length') <div class="invalid-feedback" style="display:block;">{{ $message }}</div> @enderror
-                        </div>
-                    </div>
-                    <div class="form-col">
-                        <div class="form-group">
-                           <label>Shoulder (cm) <span class="req">*</span></label>
-                <input type="number" name="shoulder" class="form-control" step="0.1" required
-                       value="{{ old('shoulder', $measurment->shoulder ?? '') }}">
-                            @error('shoulder') <div class="invalid-feedback" style="display:block;">{{ $message }}</div> @enderror
-                        </div>
-                    </div>
-                    <div class="form-col">
-                        <div class="form-group">
-                            <label>Sleeve Length (cm) <span class="req">*</span></label>
-                <input type="number" name="sleeve_length" class="form-control" step="0.1" required
-                       value="{{ old('sleeve_length', $measurment->sleeve_length ?? '') }}">
-                            @error('sleeve_length') <div class="invalid-feedback" style="display:block;">{{ $message }}</div> @enderror
-                        </div>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-col">
-                        <div class="form-group">
-                            <label>Waist (cm) <span class="req">*</span></label>
-                <input type="number" name="waist" class="form-control" step="0.1" required
-                       value="{{ old('waist', $measurment->waist ?? '') }}">
-                            @error('waist') <div class="invalid-feedback" style="display:block;">{{ $message }}</div> @enderror
-                        </div>
-                    </div>
-                    <div class="form-col">
-                        <div class="form-group">
-                                <label>Hip (cm) <span class="req">*</span></label>
-                <input type="number" name="hip" class="form-control" step="0.1" required
-                       value="{{ old('hip', $measurment->hip ?? '') }}">
-                            @error('hip') <div class="invalid-feedback" style="display:block;">{{ $message }}</div> @enderror
-                        </div>
-                    </div>
-                   
-                </div>
+                <div class="section-title">Size Guide <span style="font-weight:400;font-size:.85rem;color:var(--muted);">(inch &amp; cm)</span></div>
+                @include('backend.product.partials.size-guide', ['sizeGuide' => $sizeGuide ?? ['type' => 'size_guide', 'dimensions' => []]])
             </div>
         </div>{{-- /tab-dimension --}}
 
@@ -948,13 +916,13 @@ function removeImageRow(btn) {
 
 var _mlTargetIndex   = null;
 
-function changeImage(index) {
-    const urlInput = document.getElementById('img-url-' + index);
+function changeImage(index, device) {
+    device = device || 'desktop';
+    const urlInput = document.getElementById(device === 'mobile' ? ('img-url-mobile-' + index) : ('img-url-' + index));
     const current = urlInput ? urlInput.value : '';
     const existingFolder = typeof folderFromImagePath === 'function' ? folderFromImagePath(current) : '';
-    const productFolder = typeof getProductImageFolder === 'function' ? getProductImageFolder() : 'ecommerce/product';
-    // Open the folder where this image already lives; fallback to product folder
-    changeImageWithS3(index, existingFolder || productFolder);
+    const folder = existingFolder || (typeof getProductImageFolder === 'function' ? getProductImageFolder() : 'ecommerce/product/images');
+    changeImageWithS3(index, folder, device);
 }
 
 /* ── Add NEW image row (called by initS3Upload on upload success) ── */
@@ -963,6 +931,7 @@ function addImageField(url, path) {
     const index = tbody.querySelectorAll('tr.image-row').length;
     const storedPath = typeof toStoragePath === 'function' ? toStoragePath(path || url) : (path || url);
     const previewUrl = typeof toPublicUrl === 'function' ? toPublicUrl(url || path) : (url || path);
+    const placeholder = '{{ asset('backend/img/thumbnail-default.jpg') }}';
 
     const tr = document.createElement('tr');
     tr.className = 'image-row';
@@ -978,10 +947,20 @@ function addImageField(url, path) {
             <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;">
                 <img id="img-preview-${index}" src="${previewUrl}" alt="preview"
                      style="height:90px;width:90px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer;"
-                     onclick="changeImage(${index})">
+                     onclick="changeImage(${index}, 'desktop')">
                 <input type="hidden" name="photo[${index}][url]" id="img-url-${index}" value="${storedPath}">
-                <a href="#" onclick="changeImage(${index});return false;"
-                   style="font-size:.75rem;color:#2563eb;text-decoration:underline;">*Change Image</a>
+                <a href="#" onclick="changeImage(${index}, 'desktop');return false;"
+                   style="font-size:.75rem;color:#2563eb;text-decoration:underline;">*Desktop</a>
+            </div>
+        </td>
+        <td style="padding:12px 8px;vertical-align:middle;">
+            <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;">
+                <img id="img-preview-mobile-${index}" src="${placeholder}" alt="mobile preview"
+                     style="height:90px;width:90px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer;"
+                     onclick="changeImage(${index}, 'mobile')">
+                <input type="hidden" name="photo[${index}][url_mobile]" id="img-url-mobile-${index}" value="">
+                <a href="#" onclick="changeImage(${index}, 'mobile');return false;"
+                   style="font-size:.75rem;color:#0ea5e9;text-decoration:underline;">*Mobile</a>
             </div>
         </td>
         <td style="padding:12px 8px;vertical-align:middle;">
@@ -1025,12 +1004,48 @@ function addImageField(url, path) {
             tabsize: 2,
             height: 150
         });
-    });
-    $(document).ready(function() {
+
+        // Load brand fonts for description editor
+        if (!document.getElementById('product-desc-fonts')) {
+            var fontLink = document.createElement('link');
+            fontLink.id = 'product-desc-fonts';
+            fontLink.rel = 'stylesheet';
+            fontLink.href = 'https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;500;600;700&display=swap';
+            document.head.appendChild(fontLink);
+
+            var futuraLink = document.createElement('link');
+            futuraLink.rel = 'stylesheet';
+            futuraLink.href = 'https://fonts.cdnfonts.com/css/futura';
+            document.head.appendChild(futuraLink);
+
+            var style = document.createElement('style');
+            style.textContent =
+                '.note-editor .note-editable{font-family:Futura,"Futura PT","Josefin Sans",sans-serif;font-size:15px;line-height:1.7;}' +
+                '.note-editable [style*="Josefin"], .note-editable .Josefin-Sans{font-family:"Josefin Sans",sans-serif!important;}' +
+                '.note-editable [style*="Futura"]{font-family:Futura,"Futura PT",sans-serif!important;}';
+            document.head.appendChild(style);
+        }
+
         $('#description').summernote({
-            placeholder: "Write detail Description.....",
+            placeholder: "Write intro, then - bullet points, then model line.....",
             tabsize: 2,
-            height: 150
+            height: 280,
+            fontNames: [
+                'Futura', 'Josefin Sans',
+                'Arial', 'Arial Black', 'Comic Sans MS', 'Courier New',
+                'Helvetica', 'Impact', 'Tahoma', 'Times New Roman', 'Verdana'
+            ],
+            fontNamesIgnoreCheck: ['Josefin Sans', 'Futura'],
+            toolbar: [
+                ['style', ['style']],
+                ['font', ['bold', 'italic', 'underline', 'clear']],
+                ['fontname', ['fontname']],
+                ['fontsize', ['fontsize']],
+                ['color', ['color']],
+                ['para', ['ul', 'ol', 'paragraph']],
+                ['insert', ['link']],
+                ['view', ['codeview', 'help']]
+            ]
         });
     });
 
@@ -1115,8 +1130,7 @@ if (child_cat_id) { $('#cat_id').trigger('change'); }
 
 /* ─── Summernote rich editors ────────────────────────────────────── */
 $(document).ready(function () {
-    $('#summary').summernote({ placeholder: 'Write short description...', tabsize: 2, height: 150 });
-    $('#product_description').summernote({ placeholder: 'Write detailed description...', tabsize: 2, height: 200 });
+    // summary + description initialized above with font options
 });
 
 

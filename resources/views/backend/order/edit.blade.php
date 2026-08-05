@@ -12,12 +12,10 @@
       <div class="form-group">
         <label for="status">Status :</label>
         <select name="status" id="" class="form-control">
-          <option value="new" {{($order->status=='delivered' || $order->status=="process" || $order->status=="cancel") ? 'disabled' : ''}}  {{(($order->status=='new')? 'selected' : '')}}>New</option>
-          <option value="process" {{($order->status=='delivered'|| $order->status=="cancel") ? 'disabled' : ''}}  {{(($order->status=='process')? 'selected' : '')}}>process</option>
-          
-<option value="shipped" {{($order->status=='delivered' ||  $order->status=="cancel") ? 'disabled' : ''}}  {{(($order->status=='shipped')? 'selected' : '')}}>shipped</option>
-
-          
+          <option value="new" {{($order->status=='delivered' || $order->status=="process" || $order->status=="shipped" || $order->status=="out_for_delivery" || $order->status=="cancel") ? 'disabled' : ''}}  {{(($order->status=='new')? 'selected' : '')}}>New</option>
+          <option value="process" {{($order->status=='delivered'|| $order->status=="cancel" || $order->status=="shipped" || $order->status=="out_for_delivery") ? 'disabled' : ''}}  {{(($order->status=='process')? 'selected' : '')}}>Process</option>
+          <option value="shipped" {{($order->status=='delivered' || $order->status=="cancel" || $order->status=="out_for_delivery") ? 'disabled' : ''}}  {{(($order->status=='shipped')? 'selected' : '')}}>Shipped / Booked</option>
+          <option value="out_for_delivery" {{($order->status=='delivered' || $order->status=="cancel") ? 'disabled' : ''}}  {{(($order->status=='out_for_delivery')? 'selected' : '')}}>Out for Delivery</option>
           <option value="delivered" {{($order->status=="cancel") ? 'disabled' : ''}}  {{(($order->status=='delivered')? 'selected' : '')}}>Delivered</option>
           <option value="cancel" {{($order->status=='delivered') ? 'disabled' : ''}}  {{(($order->status=='cancel')? 'selected' : '')}}>Cancel</option>
         </select>

@@ -152,6 +152,7 @@ class S3UploadController extends Controller
             $request->validate([
                 'file'   => 'required|file|max:102400', // 100 MB
                 'folder' => 'nullable|string|max:300',
+                'prefix' => 'nullable|string|max:20',
             ]);
 
             $folder = $this->sanitizePath($request->input('folder', $this->root));
@@ -161,6 +162,14 @@ class S3UploadController extends Controller
             $extension = strtolower($file->getClientOriginalExtension() ?: 'bin');
             $basename  = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
             $safeName  = Str::slug($basename) ?: 'file';
+
+            // desk- / mob- prefix when uploading desktop vs mobile image into same folder
+            $prefix = strtolower(trim((string) $request->input('prefix', '')));
+            $prefix = preg_replace('/[^a-z0-9\-]+/', '', $prefix) ?: '';
+            if ($prefix !== '' && !str_starts_with($safeName, $prefix . '-')) {
+                $safeName = $prefix . '-' . $safeName;
+            }
+
             $filename  = $safeName . '.' . $extension;
 
             $path = $folder . '/' . $filename;

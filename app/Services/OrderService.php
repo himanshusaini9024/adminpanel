@@ -77,9 +77,15 @@ class OrderService
 
                 Log::info('Shiprocket Response', ['response' => $shiprocketResponse]);
 
+                // Only store Shiprocket IDs here. Do NOT mark shipped / send
+                // shipment-booked mail — that happens when AWB is assigned via
+                // Shiprocket dashboard webhook.
                 if (isset($shiprocketResponse['shipment_id'])) {
                     $order->shipment_id = $shiprocketResponse['shipment_id'];
-                    $order->awb_code = $shiprocketResponse['awb_code'] ?? null;
+                    if (!empty($shiprocketResponse['awb_code'])) {
+                        $order->awb_code = $shiprocketResponse['awb_code'];
+                    }
+                    $order->shipping_status = $shiprocketResponse['status'] ?? 'NEW';
                     $order->save();
                 }
             } else {

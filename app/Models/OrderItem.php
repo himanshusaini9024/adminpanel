@@ -13,6 +13,7 @@ class OrderItem extends Model
         'price',
         'order_number',
         'sku',
+        'name',
         'quantity',
         'size',
         'color',

@@ -61,7 +61,8 @@ public function index()
             'colors' => $colors,
             'description' => html_entity_decode($product->description, ENT_QUOTES, 'UTF-8'),
             'images' => $images,
-            'measurements' => $product->measurements,
+            'measurements' => $this->normalizeMeasurements($product->measurements),
+            'size_guide' => $this->normalizeMeasurements($product->measurements),
 
             'punctuation' => [
                 'countOpinions' => $count,
@@ -112,5 +113,56 @@ public function index()
             'punctuation' => round($avg, 1),
             'votes' => $votes
         ];
+    }
+
+    /**
+     * Normalize measurements to size_guide shape for the storefront.
+     */
+    private function normalizeMeasurements($raw): array
+    {
+        if (is_string($raw)) {
+            $raw = json_decode($raw, true);
+        } elseif (is_object($raw)) {
+            $raw = json_decode(json_encode($raw), true);
+        }
+
+        if (!is_array($raw) || empty($raw)) {
+            return ['type' => 'size_guide', 'dimensions' => []];
+        }
+
+        if (($raw['type'] ?? null) === 'size_guide') {
+            return [
+                'type' => 'size_guide',
+                'dimensions' => array_values($raw['dimensions'] ?? []),
+            ];
+        }
+
+        // Legacy flat cm keys → size guide rows (single M column)
+        $labels = [
+            'chest' => 'Chest',
+            'length' => 'Length',
+            'shoulder' => 'Shoulder',
+            'sleeve_length' => 'Sleeve Length',
+            'waist' => 'Waist',
+            'hip' => 'Hip',
+        ];
+        $dimensions = [];
+        foreach ($labels as $key => $label) {
+            if (!isset($raw[$key]) || $raw[$key] === '' || $raw[$key] === null) {
+                continue;
+            }
+            $cm = round((float) $raw[$key], 1);
+            $dimensions[] = [
+                'name' => $label,
+                'sizes' => [
+                    'M' => [
+                        'inch' => round($cm / 2.54, 1),
+                        'cm' => $cm,
+                    ],
+                ],
+            ];
+        }
+
+        return ['type' => 'size_guide', 'dimensions' => $dimensions];
     }
 }

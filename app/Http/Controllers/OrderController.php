@@ -12,6 +12,7 @@ use Notification;
 use Helper;
 use Illuminate\Support\Str;
 use App\Notifications\StatusNotification;
+use App\Jobs\OrderStatusNotificationJob;
 
 class OrderController extends Controller
 {
@@ -183,11 +184,12 @@ class OrderController extends Controller
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
-            'status' => 'required|in:new,process,delivered,cancel'
+            'status' => 'required|in:new,process,shipped,out_for_delivery,delivered,cancel'
         ]);
         
         try {
             $order = Order::with('cart.product')->findOrFail($id);
+            $previousStatus = $order->status;
             
             // Update stock when order is delivered
             if ($validated['status'] == 'delivered' && $order->status != 'delivered') {
@@ -201,10 +203,24 @@ class OrderController extends Controller
                         $product->save();
                     }
                 }
+                $order->delivered_at = $order->delivered_at ?: now();
             }
             
             $order->status = $validated['status'];
             $order->save();
+
+            // Notify customer on shipping milestones (only when status actually changes)
+            if ($previousStatus !== $validated['status']) {
+                $event = match ($validated['status']) {
+                    'shipped' => 'shipment_booked',
+                    'out_for_delivery' => 'out_for_delivery',
+                    'delivered' => 'delivered',
+                    default => null,
+                };
+                if ($event) {
+                    OrderStatusNotificationJob::dispatch($order->id, $event);
+                }
+            }
             
             return redirect()->route('order.index')
                 ->with('success', 'Successfully updated order');
