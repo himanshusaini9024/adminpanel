@@ -55,7 +55,7 @@ class OrderController extends Controller
                 'order'   => $order,
             ]);
         } catch (\Exception $e) {
-            Log::error('Order Error', [
+            Log::error('Order controller Error', [
                 'message' => $e->getMessage(),
                 'line'    => $e->getLine(),
                 'file'    => $e->getFile(),

@@ -24,6 +24,7 @@ class CategoryController extends Controller
             ->where('categories.slug', $slug)
             ->whereNotNull('products.slug')
             ->where('products.status' , $status)
+            ->where('categories.status' , $status)
             ->select(
                 'products.id',
                 'products.title as name',

@@ -57,7 +57,7 @@ class OrderService
                     'product_id'   => $item['id'],
                     'name'   => $item['name'],
                     'sku'          => $item['sku'],
-                    'image'        => $item['thumb']['url'] ?? null,
+                    'image'        => media_path($item['thumb']['url'] ?? null) ?: null,
                     'price'        => $item['price'],
                     'quantity'     => $item['quantity'],
                     'size'         => $item['size'] ?? null,

@@ -49,10 +49,10 @@ class BannerController extends Controller
         $validatedData['slug'] = $slug;
 
         if (!empty($validatedData['photo'])) {
-            $validatedData['photo'] = media_path($validatedData['photo']);
+            $validatedData['photo'] = media_path_keep_version($validatedData['photo']);
         }
         if (!empty($validatedData['photo_mobile'])) {
-            $validatedData['photo_mobile'] = media_path($validatedData['photo_mobile']);
+            $validatedData['photo_mobile'] = media_path_keep_version($validatedData['photo_mobile']);
         }
 
         $banner = Banner::create($validatedData);
@@ -110,11 +110,11 @@ class BannerController extends Controller
             'status' => 'required|in:active,inactive',
         ]);
         $photos = is_array($request->photo) ? $request->photo : [$request->photo];
-        $photos = array_values(array_filter(array_map(fn($p) => media_path($p), $photos)));
+        $photos = array_values(array_filter(array_map(fn($p) => media_path_keep_version($p), $photos)));
         $validatedData['photo'] = json_encode($photos);
 
         $mobilePhotos = is_array($request->photo_mobile) ? $request->photo_mobile : ($request->filled('photo_mobile') ? [$request->photo_mobile] : []);
-        $mobilePhotos = array_values(array_filter(array_map(fn($p) => media_path($p), $mobilePhotos)));
+        $mobilePhotos = array_values(array_filter(array_map(fn($p) => media_path_keep_version($p), $mobilePhotos)));
         $validatedData['photo_mobile'] = !empty($mobilePhotos) ? json_encode($mobilePhotos) : null;
         $status = $banner->update($validatedData);
 

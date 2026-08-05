@@ -248,8 +248,8 @@ class ProductController extends Controller
             foreach ($request->photo as $p) {
                 if (!empty($p['url'])) {
                     $clean[] = [
-                        'url' => media_path($p['url']).'?v='.$request->date_added,
-                        'url_mobile' => !empty($p['url_mobile']) ? media_path($p['url_mobile']).'?v='.$request->date_added : null,
+                        'url' => media_path_versioned($p['url'], $request->date_added),
+                        'url_mobile' => !empty($p['url_mobile']) ? media_path_versioned($p['url_mobile'], $request->date_added) : null,
                         'alt' => $p['alt'] ?? null,
                         'type' => $p['type'] ?? null,
                         'sort_order' => $p['sort_order'] ?? null,

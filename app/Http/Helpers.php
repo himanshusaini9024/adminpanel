@@ -211,11 +211,20 @@ if (!function_exists('generateUniqueSlug')) {
 
 if (!function_exists('media_path')) {
     /**
-     * Strip known media base URLs so only the object path is stored.
+     * Strip known media base URLs and any query/fragment so only the object
+     * path is stored. Dropping the query is what keeps repeated saves from
+     * stacking `?v=` cache-busters onto the stored value.
      */
     function media_path(?string $url): string
     {
         if ($url === null || $url === '') {
+            return '';
+        }
+
+        $url = strtok($url, '#');
+        $url = strtok($url, '?');
+
+        if ($url === false || $url === '') {
             return '';
         }
 
@@ -237,6 +246,49 @@ if (!function_exists('media_path')) {
         }
 
         return str_starts_with($url, '/') ? $url : '/' . ltrim($url, '/');
+    }
+}
+
+if (!function_exists('media_path_versioned')) {
+    /**
+     * Canonical media path with exactly one `?v=` cache-buster.
+     */
+    function media_path_versioned(?string $url, $version = null): string
+    {
+        $path = media_path($url);
+        if ($path === '') {
+            return '';
+        }
+
+        $version = trim((string) ($version ?? ''));
+        if ($version === '') {
+            return $path;
+        }
+
+        return $path . '?v=' . rawurlencode($version);
+    }
+}
+
+if (!function_exists('media_path_keep_version')) {
+    /**
+     * Canonical media path that preserves the first `?v=` already present on
+     * the incoming URL (S3 browse sends one), without ever stacking more.
+     */
+    function media_path_keep_version(?string $url): string
+    {
+        if ($url === null || $url === '') {
+            return '';
+        }
+
+        $version = null;
+        $queryStart = strpos($url, '?');
+        if ($queryStart !== false) {
+            $firstQuery = explode('?', substr($url, $queryStart + 1), 2)[0];
+            parse_str($firstQuery, $params);
+            $version = $params['v'] ?? null;
+        }
+
+        return media_path_versioned($url, $version);
     }
 }
 

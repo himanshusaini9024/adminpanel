@@ -48,10 +48,10 @@ class CategoryController extends Controller
         ]);
 
         if (!empty($validatedData['photo'])) {
-            $validatedData['photo'] = media_path($validatedData['photo']);
+            $validatedData['photo'] = media_path_keep_version($validatedData['photo']);
         }
         if (!empty($validatedData['photo_mobile'])) {
-            $validatedData['photo_mobile'] = media_path($validatedData['photo_mobile']);
+            $validatedData['photo_mobile'] = media_path_keep_version($validatedData['photo_mobile']);
         }
 
         $slug = generateUniqueSlug($request->title, Category::class);
@@ -119,16 +119,16 @@ class CategoryController extends Controller
         ]);
 
         if ($request->filled('photo') && is_string($request->photo)) {
-            $validatedData['photo'] = media_path($request->photo);
+            $validatedData['photo'] = media_path_keep_version($request->photo);
         } elseif ($request->has('photo') && is_array($request->photo)) {
             $urls = array_values(array_filter($request->photo, fn ($p) => is_string($p) && $p !== ''));
             if (!empty($urls)) {
-                $validatedData['photo'] = media_path(end($urls));
+                $validatedData['photo'] = media_path_keep_version(end($urls));
             }
         }
 
         if ($request->filled('photo_mobile') && is_string($request->photo_mobile)) {
-            $validatedData['photo_mobile'] = media_path($request->photo_mobile);
+            $validatedData['photo_mobile'] = media_path_keep_version($request->photo_mobile);
         } else {
             $validatedData['photo_mobile'] = $category->photo_mobile;
         }
