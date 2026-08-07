@@ -45,7 +45,7 @@ class OrderService
                 'post_code'           => $data['pincode'] ?? null,
             ]);
 
-            $order->order_number = 100 + $order->id;
+            $order->order_number = env('ORDER_SERIES') + $order->id;
             $order->save();
 
             $shiprocketItems = [];
