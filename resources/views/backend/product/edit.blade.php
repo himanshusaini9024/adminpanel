@@ -394,6 +394,15 @@
                             </select>
                         </div>
                     </div>
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label>Sort Order</label>
+                            <input type="number" min="0" step="1" name="sort_order" class="form-control"
+                                   placeholder="Lower shows first (e.g. 1, 2, 3)"
+                                   value="{{ old('sort_order', $product->sort_order ?? '') }}">
+                            <small class="text-muted">Controls collection/list order. Lower numbers appear first.</small>
+                        </div>
+                    </div>
                 </div>
             </div>
 

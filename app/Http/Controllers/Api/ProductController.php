@@ -27,6 +27,18 @@ public function index()
 
         // ✅ Decode JSON fields
         $images = json_decode($product->photo, true) ?? [];
+        if (!is_array($images)) {
+            $images = [];
+        }
+        usort($images, function ($a, $b) {
+            $ao = is_array($a) ? ($a['sort_order'] ?? null) : null;
+            $bo = is_array($b) ? ($b['sort_order'] ?? null) : null;
+            if ($ao === null && $bo === null) return 0;
+            if ($ao === null) return 1;
+            if ($bo === null) return -1;
+            return (int) $ao <=> (int) $bo;
+        });
+        $images = array_values($images);
         $sizes  = $product->size;
         $colors = $product->color;
 

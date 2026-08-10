@@ -197,6 +197,11 @@
           <button type="reset" class="btn btn-warning">Reset</button>
           <button class="btn btn-success" type="submit">Submit</button>
         </div>
+          <div class="form-group">
+            <label for="sort_order">Sort Order</label>
+            <input type="number" min="0" step="1" name="sort_order" id="sort_order" class="form-control" placeholder="Lower shows first">
+          </div>
+
 
       </form>
     </div>

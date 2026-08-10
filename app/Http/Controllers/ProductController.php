@@ -45,6 +45,7 @@ class ProductController extends Controller
             'brand_id' => 'nullable|exists:brands,id',
             'child_cat_id' => 'nullable|exists:categories,id',
             'is_featured' => 'sometimes|in:1',
+            'sort_order' => 'nullable|integer|min:0',
             'status' => 'required|in:active,inactive',
             'condition' => 'required|in:default,new,hot',
             'price' => 'required|numeric',
@@ -55,6 +56,7 @@ class ProductController extends Controller
         $slug = generateUniqueSlug($request->title, Product::class);
         $validatedData['slug'] = $slug;
         $validatedData['is_featured'] = $request->input('is_featured', 0);
+        $validatedData['sort_order'] = $request->filled('sort_order') ? (int) $request->input('sort_order') : null;
 
         if ($request->has('size')) {
             $validatedData['size'] = is_array($request->size)
@@ -221,6 +223,7 @@ class ProductController extends Controller
             'discount'      => 'nullable|numeric|min:0|max:100',
             'special_price' => 'nullable|numeric|min:0',
             'stock'         => 'required|numeric|min:0',
+            'sort_order'    => 'nullable|integer|min:0',
 
             'photo'       => 'nullable|array',
             'photo.*.url' => 'required_with:photo|string',
@@ -258,7 +261,15 @@ class ProductController extends Controller
                 }
             }
             if (!empty($clean)) {
-                $photo = json_encode($clean);
+                usort($clean, function ($a, $b) {
+                    $ao = $a['sort_order'] ?? null;
+                    $bo = $b['sort_order'] ?? null;
+                    if ($ao === null && $bo === null) return 0;
+                    if ($ao === null) return 1;
+                    if ($bo === null) return -1;
+                    return (int) $ao <=> (int) $bo;
+                });
+                $photo = json_encode(array_values($clean));
             }
         }
 
@@ -282,6 +293,7 @@ class ProductController extends Controller
             'condition'    => $request->input('condition'),
             'status'       => $request->input('status'),
             'is_featured'  => $request->has('is_featured') ? 1 : 0,
+            'sort_order'   => $request->filled('sort_order') ? (int) $request->input('sort_order') : null,
             'description'  => format_product_description_html($request->input('product_description.1.description')),
             'summary'      => $request->input('summary'),
             'sku'          => $request->input('sku'),

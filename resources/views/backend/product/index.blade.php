@@ -16,12 +16,13 @@
       <div class="table-responsive">
         @if(count($products)>0)
         <table class="table table-bordered" id="product-dataTable" width="100%" cellspacing="0">
-          <thead>
+                    <thead>
             <tr>
               <th>S.N.</th>
               <th>Title</th>
               <th>Category</th>
               <th>Is Featured</th>
+              <th>Sort Order</th>
               <th>Price</th>
               <th>Discount</th>
               <th>Size</th>
@@ -33,12 +34,13 @@
               <th>Action</th>
             </tr>
           </thead>
-          <tfoot>
+                    <tfoot>
             <tr>
               <th>S.N.</th>
               <th>Title</th>
               <th>Category</th>
               <th>Is Featured</th>
+              <th>Sort Order</th>
               <th>Price</th>
               <th>Discount</th>
               <th>Size</th>
@@ -67,6 +69,7 @@
                       </sub>
                     </td>
                     <td>{{(($product->is_featured==1)? 'Yes': 'No')}}</td>
+                    <td>{{ $product->sort_order ?? '—' }}</td>
                     <td>Rs. {{$product->price}} /-</td>
                     <td>  {{$product->discount}}% OFF</td>
                     <td>{{$product->size}}</td>

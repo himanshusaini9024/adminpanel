@@ -37,7 +37,8 @@ class CategoryController extends Controller
                 'products.status',
                 'products.size',
                 'products.color',
-                'products.photo'
+                'products.photo',
+                'products.sort_order'
             );
 
         // ✅ FILTER: Size
@@ -56,7 +57,10 @@ class CategoryController extends Controller
         } elseif ($sort === 'high') {
             $products->orderBy('products.price', 'desc');
         } else {
-            $products->orderBy('products.id', 'desc'); // default
+            // Manual catalog order from admin (nulls last), then newest
+            $products->orderByRaw('products.sort_order IS NULL')
+                ->orderBy('products.sort_order', 'asc')
+                ->orderBy('products.id', 'desc');
         }
 
         // ✅ GET DATA
@@ -77,6 +81,16 @@ class CategoryController extends Controller
             if (!is_array($images)) {
                 $images = [];
             }
+
+            usort($images, function ($a, $b) {
+                $ao = is_array($a) ? ($a['sort_order'] ?? null) : null;
+                $bo = is_array($b) ? ($b['sort_order'] ?? null) : null;
+                if ($ao === null && $bo === null) return 0;
+                if ($ao === null) return 1;
+                if ($bo === null) return -1;
+                return (int) $ao <=> (int) $bo;
+            });
+
             $formatted[] = [
                 'id' => $item->id,
                 'name' => $item->name,
@@ -87,7 +101,8 @@ class CategoryController extends Controller
                 'status' => $item->status,
                 'size' => $item->size,
                 'color' => $item->color,
-                'image' => $images ?? [],
+                'sort_order' => $item->sort_order,
+                'image' => array_values($images),
             ];
         }
 
