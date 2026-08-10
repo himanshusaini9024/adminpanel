@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\ImageOptimizeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -142,9 +143,10 @@ class S3UploadController extends Controller
 
     /**
      * Upload any file. Same-name files are overwritten (replaced).
-     * URL includes ?v=timestamp for cache busting.
+     * JPG/PNG/WebP images are resized (max 1600px) and stored as WebP q80;
+     * the original is discarded. URL includes ?v=timestamp for cache busting.
      */
-    public function upload(Request $request)
+    public function upload(Request $request, ImageOptimizeService $optimizer)
     {
         try {
             $this->assertS3Configured();
@@ -154,6 +156,10 @@ class S3UploadController extends Controller
                 'folder' => 'nullable|string|max:300',
                 'prefix' => 'nullable|string|max:20',
             ]);
+
+            // Large originals (15–20 MB) need headroom while decoding
+            @ini_set('memory_limit', '512M');
+            @set_time_limit(120);
 
             $folder = $this->sanitizePath($request->input('folder', $this->root));
             $disk   = Storage::disk('s3');
@@ -170,13 +176,42 @@ class S3UploadController extends Controller
                 $safeName = $prefix . '-' . $safeName;
             }
 
-            $filename  = $safeName . '.' . $extension;
+            $contents = null;
+            $mime     = $file->getMimeType() ?: 'application/octet-stream';
+            $filename = $safeName . '.' . $extension;
+            $optimized = false;
+
+            if ($optimizer->shouldOptimize($extension)) {
+                try {
+                    $result = $optimizer->optimizeToWebp($file, $safeName);
+                    if ($result !== null) {
+                        $contents  = $result['contents'];
+                        $mime      = $result['mime'];
+                        $extension = $result['extension'];
+                        $filename  = $result['filename'];
+                        $optimized = true;
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('Image optimize failed, uploading original', [
+                        'file' => $file->getClientOriginalName(),
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            if ($contents === null) {
+                $contents = file_get_contents($file->getRealPath());
+            }
 
             $path = $folder . '/' . $filename;
 
-            $disk->put($path, file_get_contents($file->getRealPath()), [
-                'ContentType' => $file->getMimeType(),
+            $disk->put($path, $contents, [
+                'ContentType' => $mime,
+                'CacheControl' => 'public, max-age=31536000, immutable',
             ]);
+
+            // Original temp upload is discarded with the request; only WebP (or passthrough) lives on R2
+            unset($contents);
 
             $version = time();
             try {
@@ -189,12 +224,14 @@ class S3UploadController extends Controller
             $type = $this->fileType($extension);
 
             return response()->json([
-                'success' => true,
-                'url'     => $url,
-                'path'    => '/' . ltrim($path, '/'),
-                'name'    => $filename,
-                'type'    => $type,
-                'ext'     => $extension,
+                'success'   => true,
+                'url'       => $url,
+                'path'      => '/' . ltrim($path, '/'),
+                'name'      => $filename,
+                'type'      => $type,
+                'ext'       => $extension,
+                'optimized' => $optimized,
+                'mime'      => $mime,
             ]);
         } catch (\Throwable $e) {
             Log::error('S3 upload failed: ' . $e->getMessage());
