@@ -143,7 +143,7 @@ class S3UploadController extends Controller
 
     /**
      * Upload any file. Same-name files are overwritten (replaced).
-     * JPG/PNG/WebP images are resized (max 1600px) and stored as WebP q80;
+     * JPG/PNG/WebP images are converted to high-quality WebP (q95, max 3200px);
      * the original is discarded. URL includes ?v=timestamp for cache busting.
      */
     public function upload(Request $request, ImageOptimizeService $optimizer)

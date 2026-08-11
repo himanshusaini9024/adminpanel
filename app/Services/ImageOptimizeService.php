@@ -7,14 +7,18 @@ use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\ImageManager;
 
 /**
- * Optimize large JPG/PNG (and WebP) uploads for Cloudflare R2 / CDN delivery.
+ * Convert JPG/PNG uploads to high-quality WebP for Cloudflare R2.
  *
- * Flow: original → max 1600px → WebP q80 → discard original.
+ * Only downscales very large originals (above MAX_DIMENSION). WebP quality
+ * is kept high so product photos stay sharp.
  */
 class ImageOptimizeService
 {
-    public const MAX_DIMENSION = 1600;
-    public const WEBP_QUALITY = 80;
+    /** Only shrink if longer side exceeds this (px). */
+    public const MAX_DIMENSION = 3200;
+
+    /** Near-lossless look — still typically much smaller than original JPG/PNG. */
+    public const WEBP_QUALITY = 95;
 
     /** Raster formats we convert to WebP. SVG / GIF kept as-is. */
     private array $convertible = ['jpg', 'jpeg', 'png', 'webp'];
@@ -38,8 +42,10 @@ class ImageOptimizeService
         $manager = new ImageManager(new Driver());
         $image = $manager->read($file->getRealPath());
 
-        // Shrink only if larger than max on either side; keep aspect ratio
-        $image->scaleDown(self::MAX_DIMENSION, self::MAX_DIMENSION);
+        // Only shrink oversized images — do not upscale or force a small size
+        if ($image->width() > self::MAX_DIMENSION || $image->height() > self::MAX_DIMENSION) {
+            $image->scaleDown(self::MAX_DIMENSION, self::MAX_DIMENSION);
+        }
 
         $encoded = $image->toWebp(self::WEBP_QUALITY);
         $filename = $safeBasename . '.webp';
