@@ -25,7 +25,9 @@ return [
     'localhost',
     'localhost:3000',
     '192.168.137.116:3000',
-    'staging.dhirago.com'   // ✅ your local IP frontend
+    'staging.dhirago.com',
+    'www.dhirago.com',
+    'dhirago.com'   // ✅ your local IP frontend
 ]))),
     /*
     |--------------------------------------------------------------------------

@@ -146,9 +146,9 @@ class ProductController extends Controller
     {
         $product = Product::findOrFail($id);
         $this->validateFullProductForm($request);
-
+        
         $data = $this->buildFullProductPayload($request, $product->photo);
-   
+
         $product->update($data);
 
         return redirect()->route('product.index')
@@ -284,6 +284,7 @@ class ProductController extends Controller
         }
 
         $measurements = $this->buildSizeGuideFromRequest($request);
+        $data['slug'] = generateUniqueSlug($request->input('product_description.1.name'), Product::class);
 
         // Only persist columns that exist on products / are fillable
         return [
@@ -304,6 +305,7 @@ class ProductController extends Controller
             'discount'     => $request->input('discount', 0),
             'stock'        => $request->input('stock'),
             'photo'        => $photo,
+            'slug'        => $data['slug'],
             'measurements' => json_encode($measurements),
         ];
     }
