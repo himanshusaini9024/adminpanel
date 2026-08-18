@@ -321,7 +321,7 @@
                         <div class="form-group">
                             <label>Display Set Name</label>
                             <input type="text" name="product_description[1][displaysetname]" class="form-control"
-                                   placeholder="Display set name" value="{{ old('displaysetname', $product->title) }}">
+                                   placeholder="Display set name" value="{{ old('displaysetname', $product->slug) }}">
                         </div>
                     </div>
                 </div>

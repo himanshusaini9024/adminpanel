@@ -251,9 +251,9 @@ class ProductController extends Controller
             foreach ($request->photo as $p) {
                 if (!empty($p['url'])) {
                     $clean[] = [
-                        'url' => media_path_versioned($p['url'], $request->date_added),
+                        'url' => media_path_versioned($p['url'], strtotime($request->date_added)),
                         'url_mobile' => !empty($p['url_mobile']) ? media_path_versioned($p['url_mobile'], $request->date_added) : null,
-                        'alt' => $p['alt'] ?? null,
+                        'alt' => $p['alt'] ?? null,         
                         'type' => $p['type'] ?? null,
                         'sort_order' => $p['sort_order'] ?? null,
                         'new_size' => !empty($p['new_size']),
@@ -284,8 +284,10 @@ class ProductController extends Controller
         }
 
         $measurements = $this->buildSizeGuideFromRequest($request);
-        $data['slug'] = generateUniqueSlug($request->input('product_description.1.name'), Product::class);
-
+        // echo "<pre>";
+        // print_r($photo);die;
+        // $data['slug'] = generateUniqueSlug($request->input('product_description.1.displaysetname'), Product::class);
+        $data['slug'] = $request->input('product_description.1.displaysetname');
         // Only persist columns that exist on products / are fillable
         return [
             'title'        => $request->input('product_description.1.name'),

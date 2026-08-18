@@ -55,7 +55,7 @@
           <!-- Banner -->
           <tr>
             <td style="padding:0;">
-              <img src="https://dhirago-images-761186487122-eu-north-1-an.s3.eu-north-1.amazonaws.com/ecommerce/logo/unnamed.jpg" alt="DHIRAGO"
+              <img src="https://images.dhirago.com/ecommerce/email/email.webp" alt="DHIRAGO"
                 width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;">
             </td>
           </tr>
@@ -64,8 +64,8 @@
           <tr>
             <td class="mobile-px" style="background:#ffffff;padding:36px 40px 40px;border-bottom:1px solid #f0f0f0;">
 
-              <img src="https://dhirago-images-761186487122-eu-north-1-an.s3.eu-north-1.amazonaws.com/ecommerce/logo/3.svg" alt="DHIRAGO"
-                width="90" style="display:block;border:0;">
+              <!-- <img src="https://dhirago-images-761186487122-eu-north-1-an.s3.eu-north-1.amazonaws.com/ecommerce/logo/3.svg" alt="DHIRAGO"
+                width="90" style="display:block;border:0;"> -->
 
 
               <h2 class="hero-heading" style="color:#111;margin:12px 0;font-size:22px;line-height:34px;font-weight:500;">
@@ -256,7 +256,7 @@
           <!-- Dark Footer -->
           <tr>
             <td>
-              <img src="https://dhirago-images-761186487122-eu-north-1-an.s3.eu-north-1.amazonaws.com/ecommerce/logo/unnamed.jpg" alt="DHIRAGO"
+              <img src="https://images.dhirago.com/ecommerce/email/email.webp" alt="DHIRAGO"
                 width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;">
 
               <p style="font-size:13px;color:#8fa197;margin:0;text-align:center;padding:12px 20px;">
