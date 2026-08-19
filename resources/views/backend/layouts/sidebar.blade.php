@@ -34,6 +34,22 @@
     </li>
 
     <!-- Divider -->
+       <hr class="sidebar-divider">
+
+    <div class="sidebar-heading">
+        Leads
+    </div>
+       <li class="nav-item">
+        <a class="nav-link" href="{{route('customer.index')}}">
+            <i class="fas fa-user-friends"></i>
+            <span>Customers</span></a>
+    </li>
+       <li class="nav-item">
+        <a class="nav-link" href="{{route('order.index')}}">
+            <i class="fas fa-hammer fa-chart-area"></i>
+            <span>Orders</span>
+        </a>
+    </li>
     <hr class="sidebar-divider">
 
     <div class="sidebar-heading">
@@ -121,12 +137,7 @@
     </li>
 
     <!--Orders -->
-    <li class="nav-item">
-        <a class="nav-link" href="{{route('order.index')}}">
-            <i class="fas fa-hammer fa-chart-area"></i>
-            <span>Orders</span>
-        </a>
-    </li>
+ 
 
     <li class="nav-item">
     <a class="nav-link" href="{{ url('admin/returns') }}">
@@ -220,11 +231,7 @@
             <span>Users</span></a>
     </li>
      <!-- Customers -->
-     <li class="nav-item">
-        <a class="nav-link" href="{{route('customer.index')}}">
-            <i class="fas fa-user-friends"></i>
-            <span>Customers</span></a>
-    </li>
+   
      <!-- General settings -->
      <li class="nav-item">
         <a class="nav-link" href="{{route('settings')}}">
