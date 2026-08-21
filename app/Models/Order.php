@@ -42,6 +42,21 @@ class Order extends Model
         'delivered_at'           => 'datetime',
     ];
 
+    protected $appends = ['can_update_address'];
+
+    public function getCanUpdateAddressAttribute(): bool
+    {
+        if (!in_array($this->status, ['new', 'process'], true)) {
+            return false;
+        }
+
+        if (!$this->created_at) {
+            return false;
+        }
+
+        return $this->created_at->gt(now()->subHours(24));
+    }
+
     public function cart_info()
     {
         return $this->hasMany(Cart::class, 'order_id', 'id');

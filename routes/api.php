@@ -41,6 +41,7 @@ Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/firebase-login', [AuthController::class, 'firebaseLogin']);
 Route::any('/order-track/webhook', [WebhookController::class, 'handle']);
+Route::post('/orders/track', [OrderController::class, 'track']);
 
 
 Route::get('/webhook/whatsapp', function (Request $request) {
@@ -90,6 +91,7 @@ Route::middleware('auth:customer')->group(function () {
     Route::post('/orders', [OrderController::class, 'store']);
     Route::get('/orders/latest', [OrderController::class, 'latest']);
     Route::get('/orders', [OrderController::class, 'index']);
+    Route::put('/orders/{orderNumber}/address', [OrderController::class, 'updateAddress']);
     Route::post('/returns/create', [ReturnController::class, 'create']);
 Route::post('/webhooks/orders/{orderNumber}/delivered', [OrderController::class, 'markDelivered']);
 
