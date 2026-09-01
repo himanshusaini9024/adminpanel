@@ -3,10 +3,13 @@
 
 @section('main-content')
 @php
-    $waPhone = preg_replace('/\D+/', '', (string) $customer->phone);
-    $waPhone = ltrim($waPhone, '0');
-    if (strlen($waPhone) === 10) { $waPhone = '91' . $waPhone; }
-    $defaultMsg = "Hi {$customer->full_name},\n\nWe noticed you left some items in your cart. Complete your order now and enjoy exclusive offers!\n " ;
+$waPhone = preg_replace('/\D+/', '', (string) $customer->phone);
+$waPhone = ltrim($waPhone, '0');
+if (strlen($waPhone) === 10) { $waPhone = '91' . $waPhone; }
+$defaultMsg = "Hi {$customer->full_name},\n\n"
+. "You have items waiting in your cart. Complete your order before they're gone.\n\n"
+. "Shop now: https://dhirago.com/";
+
 @endphp
 
 <div class="row">
@@ -101,16 +104,16 @@
             </div>
             <div class="card-body">
                 @forelse($customer->addresses as $addr)
-                    <div class="border rounded p-3 mb-2">
-                        <strong>{{ $addr->name }}</strong>
-                        @if($addr->is_default)<span class="badge badge-primary">Default</span>@endif
-                        <div class="small text-muted">{{ $addr->type }}</div>
-                        <div>{{ $addr->address1 }} {{ $addr->address2 }}</div>
-                        <div>{{ $addr->city }}, {{ $addr->state }} {{ $addr->pincode }}</div>
-                        <div>{{ $addr->phone }}</div>
-                    </div>
+                <div class="border rounded p-3 mb-2">
+                    <strong>{{ $addr->name }}</strong>
+                    @if($addr->is_default)<span class="badge badge-primary">Default</span>@endif
+                    <div class="small text-muted">{{ $addr->type }}</div>
+                    <div>{{ $addr->address1 }} {{ $addr->address2 }}</div>
+                    <div>{{ $addr->city }}, {{ $addr->state }} {{ $addr->pincode }}</div>
+                    <div>{{ $addr->phone }}</div>
+                </div>
                 @empty
-                    <p class="text-muted mb-0">No saved addresses.</p>
+                <p class="text-muted mb-0">No saved addresses.</p>
                 @endforelse
             </div>
         </div>
@@ -122,55 +125,55 @@
             <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-primary">Customer Cart</h6>
                 @if(count($cartItems))
-                    <span class="badge badge-info">{{ count($cartItems) }} item(s)</span>
+                <span class="badge badge-info">{{ count($cartItems) }} item(s)</span>
                 @endif
             </div>
             <div class="card-body">
                 @if(count($cartItems))
-                    <div class="table-responsive">
-                        <table class="table table-sm table-bordered mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Image</th>
-                                    <th>Product</th>
-                                    <th>Qty</th>
-                                    <th>Price</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @php $cartTotal = 0; @endphp
-                                @foreach($cartItems as $item)
-                                    @php
-                                        $line = ($item['price'] ?? 0) * ($item['quantity'] ?? 1);
-                                        $cartTotal += $line;
-                                        $img = $item['image'] ?? null;
-                                        $imgUrl = $img ? media_url(is_string($img) ? $img : '') : asset('backend/img/thumbnail-default.jpg');
-                                    @endphp
-                                    <tr>
-                                        <td style="width:70px;">
-                                            <img src="{{ $imgUrl }}" alt="" style="max-width:60px;max-height:60px;object-fit:cover;">
-                                        </td>
-                                        <td>
-                                            <strong>{{ $item['name'] }}</strong>
-                                            @if(!empty($item['sku']))<div class="small text-muted">SKU: {{ $item['sku'] }}</div>@endif
-                                            @if(!empty($item['size']))<div class="small">Size: {{ $item['size'] }}</div>@endif
-                                            @if(!empty($item['color']))<div class="small">Color: {{ $item['color'] }}</div>@endif
-                                        </td>
-                                        <td>{{ $item['quantity'] }}</td>
-                                        <td>₹{{ number_format($line, 2) }}</td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                            <tfoot>
-                                <tr>
-                                    <th colspan="3" class="text-right">Cart Total</th>
-                                    <th>₹{{ number_format($cartTotal, 2) }}</th>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered mb-0">
+                        <thead>
+                            <tr>
+                                <th>Image</th>
+                                <th>Product</th>
+                                <th>Qty</th>
+                                <th>Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @php $cartTotal = 0; @endphp
+                            @foreach($cartItems as $item)
+                            @php
+                            $line = ($item['price'] ?? 0) * ($item['quantity'] ?? 1);
+                            $cartTotal += $line;
+                            $img = $item['image'] ?? null;
+                            $imgUrl = $img ? media_url(is_string($img) ? $img : '') : asset('backend/img/thumbnail-default.jpg');
+                            @endphp
+                            <tr>
+                                <td style="width:70px;">
+                                    <img src="{{ $imgUrl }}" alt="" style="max-width:60px;max-height:60px;object-fit:cover;">
+                                </td>
+                                <td>
+                                    <strong>{{ $item['name'] }}</strong>
+                                    @if(!empty($item['sku']))<div class="small text-muted">SKU: {{ $item['sku'] }}</div>@endif
+                                    @if(!empty($item['size']))<div class="small">Size: {{ $item['size'] }}</div>@endif
+                                    @if(!empty($item['color']))<div class="small">Color: {{ $item['color'] }}</div>@endif
+                                </td>
+                                <td>{{ $item['quantity'] }}</td>
+                                <td>₹{{ number_format($line, 2) }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="3" class="text-right">Cart Total</th>
+                                <th>₹{{ number_format($cartTotal, 2) }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
                 @else
-                    <p class="text-muted mb-0">No products in this customer's cart.</p>
+                <p class="text-muted mb-0">No products in this customer's cart.</p>
                 @endif
             </div>
         </div>
@@ -213,16 +216,16 @@
                             <i class="fas fa-paper-plane"></i> Send Message
                         </button>
                         @if($waPhone)
-                            <a id="wa-open-link"
-                               class="btn btn-success"
-                               style="background:#25D366;border-color:#25D366;"
-                               target="_blank"
-                               rel="noopener"
-                               href="https://wa.me/{{ $waPhone }}?text={{ rawurlencode($defaultMsg) }}">
-                                <i class="fab fa-whatsapp"></i> Open WhatsApp
-                            </a>
+                        <a id="wa-open-link"
+                            class="btn btn-success"
+                            style="background:#25D366;border-color:#25D366;"
+                            target="_blank"
+                            rel="noopener"
+                            href="https://wa.me/{{ $waPhone }}?text={{ rawurlencode($defaultMsg) }}">
+                            <i class="fab fa-whatsapp"></i> Open WhatsApp
+                        </a>
                         @else
-                            <button type="button" class="btn btn-secondary" disabled>No phone for WhatsApp</button>
+                        <button type="button" class="btn btn-secondary" disabled>No phone for WhatsApp</button>
                         @endif
                     </div>
                 </form>
@@ -236,32 +239,32 @@
             </div>
             <div class="card-body">
                 @if($orders->count())
-                    <div class="table-responsive">
-                        <table class="table table-sm table-bordered mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Order #</th>
-                                    <th>Amount</th>
-                                    <th>Status</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($orders as $order)
-                                    <tr>
-                                        <td>{{ $order->order_number }}</td>
-                                        <td>₹{{ number_format($order->total_amount, 2) }}</td>
-                                        <td><span class="badge badge-secondary">{{ $order->status }}</span></td>
-                                        <td>
-                                            <a href="{{ route('order.show', $order->id) }}" class="btn btn-sm btn-link">View</a>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered mb-0">
+                        <thead>
+                            <tr>
+                                <th>Order #</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($orders as $order)
+                            <tr>
+                                <td>{{ $order->order_number }}</td>
+                                <td>₹{{ number_format($order->total_amount, 2) }}</td>
+                                <td><span class="badge badge-secondary">{{ $order->status }}</span></td>
+                                <td>
+                                    <a href="{{ route('order.show', $order->id) }}" class="btn btn-sm btn-link">View</a>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
                 @else
-                    <p class="text-muted mb-0">No orders yet.</p>
+                <p class="text-muted mb-0">No orders yet.</p>
                 @endif
             </div>
         </div>
@@ -271,25 +274,26 @@
 
 @push('scripts')
 <script>
-(function () {
-    var channel = document.getElementById('msg-channel');
-    var subjectWrap = document.getElementById('subject-wrap');
-    var body = document.getElementById('msg-body');
-    var waLink = document.getElementById('wa-open-link');
-    var waPhone = @json($waPhone ?: '');
+    (function() {
+        var channel = document.getElementById('msg-channel');
+        var subjectWrap = document.getElementById('subject-wrap');
+        var body = document.getElementById('msg-body');
+        var waLink = document.getElementById('wa-open-link');
+        var waPhone = @json($waPhone ? : '');
 
-    function syncSubject() {
-        if (!channel || !subjectWrap) return;
-        subjectWrap.style.display = (channel.value === 'whatsapp') ? 'none' : '';
-    }
-    function syncWa() {
-        if (!waLink || !waPhone || !body) return;
-        waLink.href = 'https://wa.me/' + waPhone + '?text=' + encodeURIComponent(body.value || '');
-    }
-    if (channel) channel.addEventListener('change', syncSubject);
-    if (body) body.addEventListener('input', syncWa);
-    syncSubject();
-    syncWa();
-})();
+        function syncSubject() {
+            if (!channel || !subjectWrap) return;
+            subjectWrap.style.display = (channel.value === 'whatsapp') ? 'none' : '';
+        }
+
+        function syncWa() {
+            if (!waLink || !waPhone || !body) return;
+            waLink.href = 'https://wa.me/' + waPhone + '?text=' + encodeURIComponent(body.value || '');
+        }
+        if (channel) channel.addEventListener('change', syncSubject);
+        if (body) body.addEventListener('input', syncWa);
+        syncSubject();
+        syncWa();
+    })();
 </script>
 @endpush
