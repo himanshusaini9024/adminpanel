@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\CustomerAddressController;
 use App\Http\Controllers\Api\WebhookController;
 use App\Http\Controllers\Api\ReturnController;
 use App\Http\Controllers\Api\NewsletterController;
+use App\Http\Controllers\Api\WhatsAppWebhookController;
 
 /*
 |--------------------------------------------------------------------------
@@ -44,33 +45,8 @@ Route::any('/order-track/webhook', [WebhookController::class, 'handle']);
 Route::post('/orders/track', [OrderController::class, 'track']);
 
 
-Route::get('/webhook/whatsapp', function (Request $request) {
-
-    $verify_token = "EAAcM9YoBTosBRq5tAbmvxRGzsCmT3Ofx7Kicg0fU8UHpZCSCY1ygVnZCUhgJMlktByBJiT2hjEoitgV7FoU21ANZBDPZCT2WhOds793shcut9fiOquRi8Y0kCtsnZBS7yhXiZB6kCIctTFZBmm4nHp2B95SJoYWGgEk8ClQ8c5LJFxyRRN369y05oOMVzHcpAZDZD";
-
-    $mode = $request->get('hub_mode');
-    $token = $request->get('hub_verify_token');
-    $challenge = $request->get('hub_challenge');
-
-    if ($mode === 'subscribe' && $token === $verify_token) {
-
-        Log::info('WhatsApp Webhook Verified');
-
-        return response($challenge, 200);
-    }
-
-    return response('Verification failed', 403);
-});
-
-
-Route::post('/webhook/whatsapp', function (Request $request) {
-
-    Log::info('WhatsApp Webhook Payload', $request->all());
-
-    return response()->json([
-        'status' => 'success'
-    ], 200);
-});
+Route::get('/webhook/whatsapp', [WhatsAppWebhookController::class, 'verify']);
+Route::post('/webhook/whatsapp', [WhatsAppWebhookController::class, 'handle']);
 Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe']);
 
 Route::middleware('auth:customer')->group(function () {

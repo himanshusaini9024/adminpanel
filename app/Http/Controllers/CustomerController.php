@@ -85,7 +85,7 @@ class CustomerController extends Controller
     public function sendMessage(Request $request, $id, WhatsAppService $whatsapp)
     {
         $customer = Customer::findOrFail($id);
-
+  
         $validated = $request->validate([
             'channel' => 'required|in:email,whatsapp,both',
             'subject' => 'required_if:channel,email,both|nullable|string|max:200',

@@ -126,14 +126,21 @@ class WhatsAppService
      * Send an approved WhatsApp template (works anytime — needed for offers/reminders).
      *
      * Default template expectation (create in Meta Business Manager):
-     *   Name: cart_reminder  (or set WHATSAPP_REMINDER_TEMPLATE)
+     *   Name: dhirago_customer_offer  (or set WHATSAPP_REMINDER_TEMPLATE)
      *   Language: en
-     *   Body: Hi {{1}}, {{2}}
+     *   Header: Image (variable)
+     *   Body: Hey {{1}}! {{2}} Thanks for joining us. - Dhirago
      *
      * @param  array<int, string>  $bodyParams  Values for {{1}}, {{2}}, ...
+     * @param  string|null  $headerImageUrl  Public HTTPS image URL when template has image header
      */
-    public function sendTemplateMessage(?string $phone, string $templateName, array $bodyParams = [], string $language = 'en')
-    {
+    public function sendTemplateMessage(
+        ?string $phone,
+        string $templateName,
+        array $bodyParams = [],
+        string $language = 'en',
+        ?string $headerImageUrl = null
+    ) {
         $phone = $this->normalizePhone($phone);
 
         if ($phone === '') {
@@ -158,13 +165,31 @@ class WhatsAppService
             'language' => ['code' => $language],
         ];
 
-        if (!empty($parameters)) {
-            $template['components'] = [
-                [
-                    'type' => 'body',
-                    'parameters' => $parameters,
+        $components = [];
+
+        if ($headerImageUrl) {
+            $components[] = [
+                'type' => 'header',
+                'parameters' => [
+                    [
+                        'type' => 'image',
+                        'image' => [
+                            'link' => $headerImageUrl,
+                        ],
+                    ],
                 ],
             ];
+        }
+
+        if (!empty($parameters)) {
+            $components[] = [
+                'type' => 'body',
+                'parameters' => $parameters,
+            ];
+        }
+
+        if (!empty($components)) {
+            $template['components'] = $components;
         }
 
         $response = Http::withToken($this->token())
@@ -196,26 +221,41 @@ class WhatsAppService
     {
         $template = trim((string) env('WHATSAPP_REMINDER_TEMPLATE', ''));
         $language = trim((string) env('WHATSAPP_REMINDER_TEMPLATE_LANG', 'en')) ?: 'en';
+        $headerImage = trim((string) env('WHATSAPP_REMINDER_TEMPLATE_IMAGE', ''));
 
         // Collapse whitespace for template vars
         $shortMessage = trim(preg_replace('/\s+/', ' ', $message) ?? $message);
 
         if ($template !== '') {
+            if ($headerImage === '') {
+                return [
+                    'ok' => false,
+                    'mode' => 'template',
+                    'response' => null,
+                    'message' => 'WhatsApp template requires a header image. Set WHATSAPP_REMINDER_TEMPLATE_IMAGE in .env to a public HTTPS image URL.',
+                ];
+            }
+
             $response = $this->sendTemplateMessage(
                 $phone,
                 $template,
                 [$customerName ?: 'Customer', $shortMessage],
-                $language
+                $language,
+                $headerImage
             );
 
             $ok = $response->successful() && empty(data_get($response->json(), 'error'));
+            $wamid = data_get($response->json(), 'messages.0.id');
+            $msgStatus = data_get($response->json(), 'messages.0.message_status', 'accepted');
 
             return [
                 'ok' => $ok,
                 'mode' => 'template',
                 'response' => $response,
                 'message' => $ok
-                    ? 'WhatsApp template "' . $template . '" queued to ' . $this->normalizePhone($phone)
+                    ? ('WhatsApp queued (' . $msgStatus . ') to ' . $this->normalizePhone($phone)
+                        . ($wamid ? ' [id: ' . $wamid . ']' : '')
+                        . '. If customer does not see it: check WhatsApp Updates tab; ensure Meta app is Live or phone is added as test recipient.')
                     : ('WhatsApp template failed: ' . (data_get($response->json(), 'error.message') ?: $response->body())),
             ];
         }
