@@ -24,7 +24,7 @@
                 <table cellpadding="0" cellspacing="0" style="margin:28px 0 0;">
                 <tr>
                   <td align="center" style="border-radius:8px;background:#1a1a1a;">
-                    <a href="https://dhirago.com/"
+                    <a href="https://staging.dhirago.com/collections/shirts"
                       style="display:inline-block;padding:14px 32px;color:#ffffff;font-size:14px;font-weight:bold;text-decoration:none;border-radius:8px;">
                       SHOP NOW
                     </a>
