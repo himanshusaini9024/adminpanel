@@ -12,11 +12,12 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Customer;
 use Illuminate\Support\Facades\Log;
+use App\Services\Fast2SMSService;
 
 class AuthController extends Controller
 {
     //
-    public function sendOtp(Request $request)
+    public function sendOtp(Request $request, Fast2SMSService $sms)
     {
         $request->validate([
             'mobile' => 'required|digits:10'
@@ -70,38 +71,58 @@ class AuthController extends Controller
             ]
         ];
 
-        $curl = curl_init();
+        // $curl = curl_init();
 
-        curl_setopt_array($curl, [
-            CURLOPT_URL => 'https://graph.facebook.com/v22.0/1167074889813778/messages',
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($data),
-            CURLOPT_HTTPHEADER => [
-                'Authorization: Bearer ' . env('WHATSAPP_TOKEN'),
-                'Content-Type: application/json'
-            ],
+        // curl_setopt_array($curl, [
+        //     CURLOPT_URL => 'https://graph.facebook.com/v22.0/1167074889813778/messages',
+        //     CURLOPT_RETURNTRANSFER => true,
+        //     CURLOPT_POST => true,
+        //     CURLOPT_POSTFIELDS => json_encode($data),
+        //     CURLOPT_HTTPHEADER => [
+        //         'Authorization: Bearer ' . env('WHATSAPP_TOKEN'),
+        //         'Content-Type: application/json'
+        //     ],
+        // ]);
+
+        // $response = curl_exec($curl);
+
+        // Log::info('WhatsApp API Response', [
+        //     'response' => json_decode($response, true)
+        // ]);
+
+        // if (curl_errno($curl)) {
+
+        //     Log::error('WhatsApp CURL Error', [
+        //         'error' => curl_error($curl)
+        //     ]);
+
+        //     return response()->json([
+        //         'message' => 'WhatsApp failed',
+        //         'error' => curl_error($curl)
+        //     ], 500);
+        // }
+
+        // curl_close($curl);
+        $responseotp = $sms->sendOtp(
+            $request->mobile,
+            (string) $otp
+        );
+
+        $smsBody = $responseotp->json();
+        $smsOk = $responseotp->successful() && data_get($smsBody, 'return') === true;
+
+        Log::info('Fast2SMS Response', [
+            'status' => $responseotp->status(),
+            'successful' => $smsOk,
+            'body' => $smsBody,
         ]);
 
-        $response = curl_exec($curl);
-
-        Log::info('WhatsApp API Response', [
-            'response' => json_decode($response, true)
-        ]);
-
-        if (curl_errno($curl)) {
-
-            Log::error('WhatsApp CURL Error', [
-                'error' => curl_error($curl)
-            ]);
-
+        if (!$smsOk) {
             return response()->json([
-                'message' => 'WhatsApp failed',
-                'error' => curl_error($curl)
-            ], 500);
+                'message' => 'SMS OTP failed: ' . (data_get($smsBody, 'message.0') ?: 'DLT template mismatch or invalid config'),
+                'otp' => app()->environment('local') ? $otp : null,
+            ], 502);
         }
-
-        curl_close($curl);
 
         return response()->json([
             'message' => 'OTP sent successfully',
