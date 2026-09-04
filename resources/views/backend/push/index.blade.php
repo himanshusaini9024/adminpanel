@@ -27,21 +27,21 @@
                         <div class="form-group">
                             <label>Title <span class="text-danger">*</span></label>
                             <input type="text" name="title" id="push-title" class="form-control"
-                                   value="{{ old('title', 'Aprons') }}"
+                                   value="{{ old('title', 'Dhirago') }}"
                                    maxlength="120" required>
                             @error('title')<span class="text-danger">{{ $message }}</span>@enderror
                         </div>
 
                         <div class="form-group">
                             <label>Message <span class="text-danger">*</span></label>
-                            <textarea name="body" id="push-body" class="form-control" rows="3" maxlength="500" required>{{ old('body', 'At Rs. 121!') }}</textarea>
+                            <textarea name="body" id="push-body" class="form-control" rows="3" maxlength="500" required>{{ old('body', 'Checkout Our Mens wear Premium Collection') }}</textarea>
                             @error('body')<span class="text-danger">{{ $message }}</span>@enderror
                         </div>
 
                         <div class="form-group">
                             <label>Large image URL (banner)</label>
                             <input type="url" name="image" id="push-image" class="form-control"
-                                   value="{{ old('image') }}"
+                                   value="{{ old('image','https://images.dhirago.com/ecommerce/Product/Jet-black-hand-stitched-seam-shirt/dsc03783.webp?v=1787011200') }}"
                                    placeholder="https://images.dhirago.com/ecommerce/.../product.webp">
                             @error('image')<span class="text-danger">{{ $message }}</span>@enderror
                             <small class="text-muted">Full HTTPS image URL — shown as big banner (like Meesho).</small>
