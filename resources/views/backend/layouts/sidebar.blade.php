@@ -45,6 +45,11 @@
             <span>Customers</span></a>
     </li>
        <li class="nav-item">
+        <a class="nav-link" href="{{route('push.index')}}">
+            <i class="fas fa-bell"></i>
+            <span>Push Notification</span></a>
+    </li>
+       <li class="nav-item">
         <a class="nav-link" href="{{route('order.index')}}">
             <i class="fas fa-hammer fa-chart-area"></i>
             <span>Orders</span>

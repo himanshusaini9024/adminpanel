@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Order;
 use App\Services\WhatsAppService;
+use App\Services\WebPushService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 /**
- * Notify customer by email + WhatsApp when order shipping status changes.
+ * Notify customer by email + WhatsApp + Web Push when order shipping status changes.
  *
  * Events: shipment_booked | out_for_delivery | delivered
  */
@@ -26,7 +27,7 @@ class OrderStatusNotificationJob implements ShouldQueue
         public string $event
     ) {}
 
-    public function handle(WhatsAppService $whatsapp): void
+    public function handle(WhatsAppService $whatsapp, WebPushService $webPush): void
     {
         $order = Order::with(['items.product'])->find($this->orderId);
         if (!$order) {
@@ -48,6 +49,7 @@ class OrderStatusNotificationJob implements ShouldQueue
 
         $this->sendMail($order, $config);
         $this->sendWhatsApp($order, $config, $whatsapp);
+        $this->sendWebPush($order, $config, $webPush);
     }
 
     /**
@@ -204,5 +206,51 @@ class OrderStatusNotificationJob implements ShouldQueue
             'delivered' => "Hi {$name}, your Dhirago order #{$orderNo} has been delivered. Thank you for shopping with us!",
             default => "Hi {$name}, your Dhirago order #{$orderNo} status has been updated.",
         };
+    }
+
+    private function sendWebPush(Order $order, array $config, WebPushService $webPush): void
+    {
+        if (empty($order->customer_id)) {
+            Log::info('OrderStatusNotificationJob: no customer_id, skip web push', [
+                'order_id' => $order->id,
+                'event' => $this->event,
+            ]);
+            return;
+        }
+
+        try {
+            $body = match ($this->event) {
+                'shipment_booked' => 'Your order #' . $order->order_number . ' has been shipped.',
+                'out_for_delivery' => 'Your order #' . $order->order_number . ' is out for delivery.',
+                'delivered' => 'Your order #' . $order->order_number . ' has been delivered.',
+                default => $config['subject'],
+            };
+
+            $summary = $webPush->sendToCustomer(
+                (int) $order->customer_id,
+                [
+                    'title' => 'Dhirago',
+                    'body' => $body,
+                    'url' => env('ORDER_TRACK_URL', 'https://dhirago.com/return/track-order'),
+                    'data' => [
+                        'order_number' => (string) $order->order_number,
+                        'event' => $this->event,
+                    ],
+                ]
+            );
+
+            Log::info('OrderStatusNotificationJob: web push', [
+                'order_id' => $order->id,
+                'event' => $this->event,
+                'sent' => $summary['sent'],
+                'failed' => $summary['failed'],
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('OrderStatusNotificationJob: web push failed', [
+                'order_id' => $order->id,
+                'event' => $this->event,
+                'message' => $e->getMessage(),
+            ]);
+        }
     }
 }

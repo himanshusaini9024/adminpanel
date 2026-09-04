@@ -240,6 +240,11 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin']], function 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('all.notification');
     Route::get('/notification/{id}', [NotificationController::class, 'show'])->name('admin.notification');
     Route::delete('/notification/{id}', [NotificationController::class, 'delete'])->name('notification.delete');
+
+    // Custom browser Web Push
+    Route::get('/push', [App\Http\Controllers\PushNotificationController::class, 'index'])->name('push.index');
+    Route::post('/push/send', [App\Http\Controllers\PushNotificationController::class, 'send'])->name('push.send');
+    Route::post('customer/{id}/push', [App\Http\Controllers\CustomerController::class, 'sendPush'])->name('customer.push');
     // AWS S3 file manager
     Route::get('/s3-browse', [S3UploadController::class, 'browse'])->name('s3.browse');
     Route::post('/s3-upload', [S3UploadController::class, 'upload'])->name('s3.upload');

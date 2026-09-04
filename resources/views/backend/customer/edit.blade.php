@@ -232,6 +232,37 @@ $defaultMsg = "Hi {$customer->full_name},\n\n"
             </div>
         </div>
 
+        {{-- Send browser push --}}
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Send Browser Push</h6>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ route('customer.push', $customer->customer_id) }}">
+                    @csrf
+                    <div class="form-group">
+                        <label>Title <span class="text-danger">*</span></label>
+                        <input type="text" name="title" class="form-control" value="{{ old('title', 'Dhirago') }}" maxlength="120" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Message <span class="text-danger">*</span></label>
+                        <textarea name="body" class="form-control" rows="3" maxlength="500" required>{{ old('body', 'We have a special update for you.') }}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Large image URL (optional)</label>
+                        <input type="url" name="image" class="form-control" value="{{ old('image') }}" placeholder="https://images.dhirago.com/...">
+                    </div>
+                    <div class="form-group">
+                        <label>Click URL (optional)</label>
+                        <input type="url" name="url" class="form-control" value="{{ old('url', env('STOREFRONT_URL', 'https://dhirago.com')) }}">
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-bell"></i> Send Push
+                    </button>
+                </form>
+            </div>
+        </div>
+
         {{-- Recent orders --}}
         <div class="card shadow mb-4">
             <div class="card-header py-3">

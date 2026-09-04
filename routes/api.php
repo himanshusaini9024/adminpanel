@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\WebhookController;
 use App\Http\Controllers\Api\ReturnController;
 use App\Http\Controllers\Api\NewsletterController;
 use App\Http\Controllers\Api\WhatsAppWebhookController;
+use App\Http\Controllers\Api\PushTokenController;
 
 /*
 |--------------------------------------------------------------------------
@@ -49,6 +50,9 @@ Route::get('/webhook/whatsapp', [WhatsAppWebhookController::class, 'verify']);
 Route::post('/webhook/whatsapp', [WhatsAppWebhookController::class, 'handle']);
 Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe']);
 
+// Web Push subscription (works for guests + logged-in customers)
+Route::post('/push-tokens', [PushTokenController::class, 'store']);
+
 Route::middleware('auth:customer')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [UserController::class, 'getProfile']);
@@ -69,6 +73,5 @@ Route::middleware('auth:customer')->group(function () {
     Route::get('/orders', [OrderController::class, 'index']);
     Route::put('/orders/{orderNumber}/address', [OrderController::class, 'updateAddress']);
     Route::post('/returns/create', [ReturnController::class, 'create']);
-Route::post('/webhooks/orders/{orderNumber}/delivered', [OrderController::class, 'markDelivered']);
-
+    Route::post('/webhooks/orders/{orderNumber}/delivered', [OrderController::class, 'markDelivered']);
 });

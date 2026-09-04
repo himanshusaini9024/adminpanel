@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Order;
 use App\Services\WhatsAppService;
+use App\Services\WebPushService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -18,7 +19,7 @@ class OrderPlacedJob implements ShouldQueue
 
     public function __construct(public int $orderId) {}
 
-    public function handle(WhatsAppService $whatsapp): void
+    public function handle(WhatsAppService $whatsapp, WebPushService $webPush): void
     {
         $order = Order::with(['items.product'])->find($this->orderId);
         if (!$order) {
@@ -69,6 +70,33 @@ class OrderPlacedJob implements ShouldQueue
                 );
             } catch (\Throwable $e) {
                 Log::error('OrderPlacedJob: WhatsApp failed', [
+                    'order_id' => $order->id,
+                    'message' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Browser Web Push
+        if (!empty($order->customer_id)) {
+            try {
+                $summary = $webPush->sendToCustomer(
+                    (int) $order->customer_id,
+                    [
+                        'title' => 'Order placed',
+                        'body' => 'Your Dhirago order #' . $order->order_number . ' has been placed successfully.',
+                        'url' => rtrim(env('STOREFRONT_URL', 'https://dhirago.com'), '/') . '/account',
+                        'data' => ['order_number' => (string) $order->order_number],
+                    ]
+                );
+
+                Log::info('OrderPlacedJob: web push', [
+                    'order_id' => $order->id,
+                    'customer_id' => $order->customer_id,
+                    'sent' => $summary['sent'],
+                    'failed' => $summary['failed'],
+                ]);
+            } catch (\Throwable $e) {
+                Log::error('OrderPlacedJob: web push failed', [
                     'order_id' => $order->id,
                     'message' => $e->getMessage(),
                 ]);

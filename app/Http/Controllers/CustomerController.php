@@ -141,6 +141,36 @@ class CustomerController extends Controller
             ->with('success', implode(' | ', $results));
     }
 
+    /**
+     * Send a custom browser push notification to one customer.
+     */
+    public function sendPush(Request $request, $id, \App\Services\WebPushService $webPush)
+    {
+        $customer = Customer::findOrFail($id);
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:120',
+            'body' => 'required|string|max:500',
+            'url' => 'nullable|url|max:500',
+            'image' => 'nullable|url|max:1000',
+            'icon' => 'nullable|url|max:1000',
+        ]);
+
+        $summary = $webPush->sendToCustomer((int) $customer->customer_id, [
+            'title' => $validated['title'],
+            'body' => $validated['body'],
+            'url' => $validated['url'] ?: env('STOREFRONT_URL', 'https://dhirago.com'),
+            'image' => $validated['image'] ?? null,
+            'icon' => $validated['icon'] ?? ($validated['image'] ?? null),
+        ]);
+
+        $msg = "Push sent: {$summary['sent']} delivered, {$summary['failed']} failed.";
+
+        return redirect()
+            ->route('customer.edit', $customer->customer_id)
+            ->with($summary['sent'] > 0 ? 'success' : 'error', $msg);
+    }
+
     public function destroy($id)
     {
         $customer = Customer::findOrFail($id);
