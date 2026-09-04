@@ -34,7 +34,12 @@ class WebPushService
                     'privateKey' => $private,
                 ],
             ],
-            [],
+            [
+                // Keep push queued up to 4 weeks if device was offline
+                'TTL' => 2419200,
+                // Prefer prompt delivery when phone wakes / browser is available
+                'urgency' => 'high',
+            ],
             null,
             null,
             null,
@@ -62,7 +67,7 @@ class WebPushService
     ): array {
         try {
             $site = rtrim((string) config('services.webpush.storefront_url', 'https://dhirago.com'), '/');
-            $defaultIcon = $site . '/images/logo/logo.gif';
+            $defaultIcon = 'https://images.dhirago.com/ecommerce/logo/logo.jpg';
 
             $payload = array_filter([
                 'title' => $options['title'] ?? 'Dhirago',
@@ -71,6 +76,7 @@ class WebPushService
                 'badge' => $defaultIcon,
                 'image' => $options['image'] ?? null,
                 'url' => $options['url'] ?? $site,
+                'tag' => $options['tag'] ?? 'dhirago-push',
                 'data' => $options['data'] ?? [],
             ], static fn ($v) => $v !== null && $v !== '');
 
