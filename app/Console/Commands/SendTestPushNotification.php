@@ -25,7 +25,7 @@ class SendTestPushNotification extends Command
         $options = [
             'title' => (string) $this->option('title'),
             'body' => (string) $this->option('body'),
-            'url' => $this->option('url') ?: env('STOREFRONT_URL', 'https://dhirago.com'),
+            'url' => $this->option('url') ?: config('services.webpush.storefront_url', 'https://dhirago.com'),
             'image' => $this->option('image') ?: null,
             'icon' => $this->option('icon') ?: ($this->option('image') ?: null),
         ];

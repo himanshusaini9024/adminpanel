@@ -84,7 +84,7 @@ class OrderPlacedJob implements ShouldQueue
                     [
                         'title' => 'Order placed',
                         'body' => 'Your Dhirago order #' . $order->order_number . ' has been placed successfully.',
-                        'url' => rtrim(env('STOREFRONT_URL', 'https://dhirago.com'), '/') . '/account',
+                        'url' => rtrim(config('services.webpush.storefront_url', 'https://dhirago.com'), '/') . '/account',
                         'data' => ['order_number' => (string) $order->order_number],
                     ]
                 );

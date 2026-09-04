@@ -58,7 +58,7 @@
                         <div class="form-group">
                             <label>Click URL (optional)</label>
                             <input type="url" name="url" class="form-control"
-                                   value="{{ old('url', env('STOREFRONT_URL', 'https://dhirago.com')) }}"
+                                   value="{{ old('url', config('services.webpush.storefront_url', 'https://dhirago.com')) }}"
                                    placeholder="https://dhirago.com/product/...">
                             @error('url')<span class="text-danger">{{ $message }}</span>@enderror
                         </div>
@@ -79,17 +79,24 @@
                             <label>Customer</label>
                             <select name="customer_id" class="form-control">
                                 <option value="">Select customer</option>
-                                @foreach($customers as $customer)
+                                @forelse($customers as $customer)
                                     @php
                                         $name = trim(($customer->first_name ?? '') . ' ' . ($customer->last_name ?? '')) ?: 'Customer';
+                                        $hasPush = isset($subscribedIds[$customer->customer_id]);
                                     @endphp
                                     <option value="{{ $customer->customer_id }}"
                                         {{ (string) old('customer_id') === (string) $customer->customer_id ? 'selected' : '' }}>
                                         #{{ $customer->customer_id }} — {{ $name }}
                                         @if($customer->phone) ({{ $customer->phone }}) @endif
+                                        {{ $hasPush ? '✓ push' : '· no push yet' }}
                                     </option>
-                                @endforeach
+                                @empty
+                                    <option value="" disabled>No customers found</option>
+                                @endforelse
                             </select>
+                            <small class="text-muted d-block mt-1">
+                                Customers marked <strong>✓ push</strong> have allowed browser notifications while logged in.
+                            </small>
                             @error('customer_id')<span class="text-danger">{{ $message }}</span>@enderror
                         </div>
 

@@ -45,4 +45,16 @@ return [
         'redirect' => 'http://localhost:8000/login/facebook/callback',
      ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Native Web Push (VAPID)
+    |--------------------------------------------------------------------------
+    */
+    'webpush' => [
+        'public_key' => env('VAPID_PUBLIC_KEY'),
+        'private_key' => env('VAPID_PRIVATE_KEY'),
+        'subject' => env('VAPID_SUBJECT', 'mailto:contact@dhirago.com'),
+        'storefront_url' => env('STOREFRONT_URL', 'https://dhirago.com'),
+    ],
+
 ];

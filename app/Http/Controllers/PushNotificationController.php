@@ -16,19 +16,22 @@ class PushNotificationController extends Controller
             ->whereNotNull('auth')
             ->count();
 
+        $subscribedIds = PushToken::query()
+            ->where('is_active', true)
+            ->whereNotNull('customer_id')
+            ->whereNotNull('p256dh')
+            ->whereNotNull('auth')
+            ->pluck('customer_id')
+            ->unique()
+            ->flip();
+
+        // Show all customers so admin can pick anyone (mark who has push)
         $customers = Customer::query()
-            ->whereIn('customer_id', function ($q) {
-                $q->select('customer_id')
-                    ->from('push_tokens')
-                    ->where('is_active', true)
-                    ->whereNotNull('customer_id')
-                    ->whereNotNull('p256dh');
-            })
             ->orderByDesc('customer_id')
-            ->limit(200)
+            ->limit(500)
             ->get(['customer_id', 'first_name', 'last_name', 'phone', 'email']);
 
-        return view('backend.push.index', compact('activeCount', 'customers'));
+        return view('backend.push.index', compact('activeCount', 'customers', 'subscribedIds'));
     }
 
     public function send(Request $request, WebPushService $webPush)
@@ -47,10 +50,25 @@ class PushNotificationController extends Controller
             ? (int) $validated['customer_id']
             : null;
 
+        if ($customerId) {
+            $hasPush = PushToken::where('customer_id', $customerId)
+                ->where('is_active', true)
+                ->whereNotNull('p256dh')
+                ->whereNotNull('auth')
+                ->exists();
+
+            if (!$hasPush) {
+                return redirect()
+                    ->route('push.index')
+                    ->withInput()
+                    ->with('error', 'This customer has no active browser push subscription yet. Ask them to open the website and Allow notifications while logged in.');
+            }
+        }
+
         $summary = $webPush->sendToCustomer($customerId, [
             'title' => $validated['title'],
             'body' => $validated['body'],
-            'url' => $validated['url'] ?: env('STOREFRONT_URL', 'https://dhirago.com'),
+            'url' => $validated['url'] ?: config('services.webpush.storefront_url', 'https://dhirago.com'),
             'image' => $validated['image'] ?? null,
             'icon' => $validated['icon'] ?? ($validated['image'] ?? null),
         ]);

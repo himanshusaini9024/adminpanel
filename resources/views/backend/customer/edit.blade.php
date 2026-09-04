@@ -254,7 +254,7 @@ $defaultMsg = "Hi {$customer->full_name},\n\n"
                     </div>
                     <div class="form-group">
                         <label>Click URL (optional)</label>
-                        <input type="url" name="url" class="form-control" value="{{ old('url', env('STOREFRONT_URL', 'https://dhirago.com')) }}">
+                        <input type="url" name="url" class="form-control" value="{{ old('url', config('services.webpush.storefront_url', 'https://dhirago.com')) }}">
                     </div>
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-bell"></i> Send Push

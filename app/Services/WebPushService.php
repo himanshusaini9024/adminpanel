@@ -14,13 +14,13 @@ class WebPushService
 {
     protected function client(): WebPush
     {
-        $public = (string) env('VAPID_PUBLIC_KEY', '');
-        $private = (string) env('VAPID_PRIVATE_KEY', '');
-        $subject = (string) env('VAPID_SUBJECT', 'mailto:contact@dhirago.com');
+        $public = (string) config('services.webpush.public_key', '');
+        $private = (string) config('services.webpush.private_key', '');
+        $subject = (string) config('services.webpush.subject', 'mailto:contact@dhirago.com');
 
         if ($public === '' || $private === '') {
             throw new \RuntimeException(
-                'Missing VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY in .env'
+                'Missing VAPID keys. Set VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY in .env (loaded via config/services.php).'
             );
         }
 
@@ -61,7 +61,7 @@ class WebPushService
         array $options
     ): array {
         try {
-            $site = rtrim((string) env('STOREFRONT_URL', 'https://dhirago.com'), '/');
+            $site = rtrim((string) config('services.webpush.storefront_url', 'https://dhirago.com'), '/');
             $defaultIcon = $site . '/images/logo/logo.gif';
 
             $payload = array_filter([

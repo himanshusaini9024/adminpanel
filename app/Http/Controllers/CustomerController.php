@@ -159,7 +159,7 @@ class CustomerController extends Controller
         $summary = $webPush->sendToCustomer((int) $customer->customer_id, [
             'title' => $validated['title'],
             'body' => $validated['body'],
-            'url' => $validated['url'] ?: env('STOREFRONT_URL', 'https://dhirago.com'),
+            'url' => $validated['url'] ?: config('services.webpush.storefront_url', 'https://dhirago.com'),
             'image' => $validated['image'] ?? null,
             'icon' => $validated['icon'] ?? ($validated['image'] ?? null),
         ]);
