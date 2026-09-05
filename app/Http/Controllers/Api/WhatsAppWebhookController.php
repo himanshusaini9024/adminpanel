@@ -11,7 +11,7 @@ class WhatsAppWebhookController extends Controller
     public function verify(Request $request)
     {
         // Meta dashboard verify token (falls back to WHATSAPP_TOKEN for legacy setups)
-        $verifyToken = (string) env('WHATSAPP_WEBHOOK_VERIFY_TOKEN', env('WHATSAPP_TOKEN', ''));
+        $verifyToken = (string) config('services.whatsapp.webhook_verify_token', '');
 
         $mode = $request->get('hub_mode');
         $token = $request->get('hub_verify_token');

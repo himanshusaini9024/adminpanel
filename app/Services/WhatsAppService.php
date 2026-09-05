@@ -22,22 +22,51 @@ class WhatsAppService
         return $digits;
     }
 
+    public function isConfigured(): bool
+    {
+        return $this->token() !== '' && $this->phoneId() !== '';
+    }
+
+    public function configError(): ?string
+    {
+        if ($this->token() === '') {
+            return 'WhatsApp is not configured: set WHATSAPP_TOKEN in .env';
+        }
+        if ($this->phoneId() === '') {
+            return 'WhatsApp is not configured: set WHATSAPP_PHONE_ID in .env';
+        }
+
+        return null;
+    }
+
+    protected function phoneId(): string
+    {
+        return trim((string) config('services.whatsapp.phone_id', ''));
+    }
+
     protected function apiUrl(): string
     {
-        return 'https://graph.facebook.com/v22.0/' . env('WHATSAPP_PHONE_ID') . '/messages';
+        $version = trim((string) config('services.whatsapp.api_version', 'v22.0')) ?: 'v22.0';
+
+        return 'https://graph.facebook.com/' . $version . '/' . $this->phoneId() . '/messages';
     }
 
     protected function token(): string
     {
-        return (string) env('WHATSAPP_TOKEN');
+        return trim((string) config('services.whatsapp.token', ''));
     }
 
     public function sendOrderConfirmation($phone, $name, $orderNumber, $amount)
     {
         try {
+            if ($error = $this->configError()) {
+                throw new \RuntimeException($error);
+            }
+
             $phone = $this->normalizePhone($phone);
 
             $response = Http::withToken($this->token())
+                ->timeout(30)
                 ->post($this->apiUrl(), [
                     'messaging_product' => 'whatsapp',
                     'to' => $phone,
@@ -84,6 +113,10 @@ class WhatsAppService
      */
     public function sendTextMessage(?string $phone, string $text)
     {
+        if ($error = $this->configError()) {
+            throw new \RuntimeException($error);
+        }
+
         $phone = $this->normalizePhone($phone);
 
         if ($phone === '' || trim($text) === '') {
@@ -95,6 +128,7 @@ class WhatsAppService
 
         try {
             $response = Http::withToken($this->token())
+                ->timeout(30)
                 ->post($this->apiUrl(), [
                     'messaging_product' => 'whatsapp',
                     'to' => $phone,
@@ -141,6 +175,10 @@ class WhatsAppService
         string $language = 'en',
         ?string $headerImageUrl = null
     ) {
+        if ($error = $this->configError()) {
+            throw new \RuntimeException($error);
+        }
+
         $phone = $this->normalizePhone($phone);
 
         if ($phone === '') {
@@ -149,8 +187,8 @@ class WhatsAppService
 
         $parameters = [];
         foreach ($bodyParams as $value) {
-            // Template variables cannot be empty and have limited length
-            $text = trim((string) $value);
+            // Template variables cannot be empty and have limited length / no newlines
+            $text = trim(preg_replace('/\s+/', ' ', (string) $value) ?? (string) $value);
             if ($text === '') {
                 $text = '-';
             }
@@ -193,6 +231,7 @@ class WhatsAppService
         }
 
         $response = Http::withToken($this->token())
+            ->timeout(30)
             ->post($this->apiUrl(), [
                 'messaging_product' => 'whatsapp',
                 'to' => $phone,
@@ -205,23 +244,58 @@ class WhatsAppService
             'status' => $response->status(),
             'body' => $response->json(),
             'to' => $phone,
+            'header_image' => $headerImageUrl,
         ]);
 
         return $response;
     }
 
     /**
+     * Prefer JPEG/PNG public URLs — Meta often accepts WebP then fails delivery.
+     */
+    public function resolveHeaderImage(?string $override = null): string
+    {
+        $url = trim((string) ($override ?: config('services.whatsapp.reminder_template_image', '')));
+
+        if ($url === '') {
+            return '';
+        }
+
+        // Soft-upgrade known WebP marketing banner to JPEG logo when still on default webp path
+        if (str_ends_with(strtolower(parse_url($url, PHP_URL_PATH) ?: ''), '.webp')) {
+            Log::warning('WhatsApp header image is WebP; Meta delivery is more reliable with JPEG/PNG', [
+                'url' => $url,
+            ]);
+        }
+
+        return $url;
+    }
+
+    /**
      * Admin reminder / offer:
-     * 1) If WHATSAPP_REMINDER_TEMPLATE is set → send template (reliable).
+     * 1) If reminder template is set → send template (reliable).
      * 2) Else fall back to free-form text (24h window only).
      *
      * @return array{ok:bool,mode:string,response:\Illuminate\Http\Client\Response|null,message:string}
      */
-    public function sendCustomerOutreach(?string $phone, string $customerName, string $message): array
-    {
-        $template = trim((string) env('WHATSAPP_REMINDER_TEMPLATE', ''));
-        $language = trim((string) env('WHATSAPP_REMINDER_TEMPLATE_LANG', 'en')) ?: 'en';
-        $headerImage = trim((string) env('WHATSAPP_REMINDER_TEMPLATE_IMAGE', ''));
+    public function sendCustomerOutreach(
+        ?string $phone,
+        string $customerName,
+        string $message,
+        ?string $headerImageOverride = null
+    ): array {
+        if ($error = $this->configError()) {
+            return [
+                'ok' => false,
+                'mode' => 'config',
+                'response' => null,
+                'message' => $error,
+            ];
+        }
+
+        $template = trim((string) config('services.whatsapp.reminder_template', ''));
+        $language = trim((string) config('services.whatsapp.reminder_template_lang', 'en')) ?: 'en';
+        $headerImage = $this->resolveHeaderImage($headerImageOverride);
 
         // Collapse whitespace for template vars
         $shortMessage = trim(preg_replace('/\s+/', ' ', $message) ?? $message);
@@ -232,7 +306,7 @@ class WhatsAppService
                     'ok' => false,
                     'mode' => 'template',
                     'response' => null,
-                    'message' => 'WhatsApp template requires a header image. Set WHATSAPP_REMINDER_TEMPLATE_IMAGE in .env to a public HTTPS image URL.',
+                    'message' => 'WhatsApp template requires a header image. Set WHATSAPP_REMINDER_TEMPLATE_IMAGE in .env to a public HTTPS JPEG/PNG URL.',
                 ];
             }
 
@@ -255,7 +329,7 @@ class WhatsAppService
                 'message' => $ok
                     ? ('WhatsApp queued (' . $msgStatus . ') to ' . $this->normalizePhone($phone)
                         . ($wamid ? ' [id: ' . $wamid . ']' : '')
-                        . '. If customer does not see it: check WhatsApp Updates tab; ensure Meta app is Live or phone is added as test recipient.')
+                        . '. If not received: check Updates tab; use JPEG/PNG header image; ensure app is Live or number is a test recipient.')
                     : ('WhatsApp template failed: ' . (data_get($response->json(), 'error.message') ?: $response->body())),
             ];
         }

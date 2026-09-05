@@ -57,4 +57,27 @@ return [
         'storefront_url' => env('STOREFRONT_URL', 'https://dhirago.com'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | WhatsApp Cloud API
+    |--------------------------------------------------------------------------
+    */
+    'whatsapp' => [
+        'token' => env('WHATSAPP_TOKEN'),
+        'phone_id' => env('WHATSAPP_PHONE_ID'),
+        'webhook_verify_token' => env('WHATSAPP_WEBHOOK_VERIFY_TOKEN', env('WHATSAPP_TOKEN')),
+        'api_version' => env('WHATSAPP_API_VERSION', 'v22.0'),
+        'reminder_template' => env('WHATSAPP_REMINDER_TEMPLATE', 'dhirago_customer_offer'),
+        'reminder_template_lang' => env('WHATSAPP_REMINDER_TEMPLATE_LANG', 'en'),
+        // Meta header images: prefer public JPEG/PNG (WebP often fails delivery)
+        'reminder_template_image' => env(
+            'WHATSAPP_REMINDER_TEMPLATE_IMAGE',
+            'https://images.dhirago.com/ecommerce/logo/logo.jpg'
+        ),
+        'shipment_booked_template' => env('WHATSAPP_SHIPMENT_BOOKED_TEMPLATE', 'order_shipped'),
+        'out_for_delivery_template' => env('WHATSAPP_OUT_FOR_DELIVERY_TEMPLATE', 'out_for_delivery'),
+        'delivered_template' => env('WHATSAPP_DELIVERED_TEMPLATE', 'order_delivered'),
+        'status_template_lang' => env('WHATSAPP_STATUS_TEMPLATE_LANG', 'en'),
+    ],
+
 ];

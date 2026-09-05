@@ -121,24 +121,34 @@ class CustomerController extends Controller
         }
 
         // WhatsApp
+        $whatsAppFailed = false;
         if (in_array($channel, ['whatsapp', 'both'], true)) {
             if (empty($customer->phone)) {
                 $results[] = 'WhatsApp skipped: customer has no phone.';
+                $whatsAppFailed = true;
             } else {
                 try {
                     $name = trim(($customer->first_name ?? '') . ' ' . ($customer->last_name ?? '')) ?: 'Customer';
                     $result = $whatsapp->sendCustomerOutreach($customer->phone, $name, $body);
                     $results[] = $result['message'];
+                    if (empty($result['ok'])) {
+                        $whatsAppFailed = true;
+                    }
                 } catch (\Throwable $e) {
                     Log::error('Customer WhatsApp failed', ['error' => $e->getMessage(), 'customer_id' => $id]);
                     $results[] = 'WhatsApp failed: ' . $e->getMessage();
+                    $whatsAppFailed = true;
                 }
             }
         }
 
+        $flashKey = $whatsAppFailed && in_array($channel, ['whatsapp', 'both'], true)
+            ? 'error'
+            : 'success';
+
         return redirect()
             ->route('customer.edit', $customer->customer_id)
-            ->with('success', implode(' | ', $results));
+            ->with($flashKey, implode(' | ', $results));
     }
 
     /**

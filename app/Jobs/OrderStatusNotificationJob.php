@@ -72,21 +72,21 @@ class OrderStatusNotificationJob implements ShouldQueue
             'shipment_booked' => [
                 'subject' => "Your order #{$orderNo} has been shipped",
                 'view' => 'emails.order-shipment-booked',
-                'wa_template' => env('WHATSAPP_SHIPMENT_BOOKED_TEMPLATE', 'order_shipped'),
+                'wa_template' => config('services.whatsapp.shipment_booked_template', 'order_shipped'),
                 // Meta: {{1}} name, {{2}} order, {{3}} AWB, {{4}} track URL
                 'wa_params' => [$name, $orderLabel, $awb, $trackUrl],
             ],
             'out_for_delivery' => [
                 'subject' => "Your order #{$orderNo} is out for delivery",
                 'view' => 'emails.order-out-for-delivery',
-                'wa_template' => env('WHATSAPP_OUT_FOR_DELIVERY_TEMPLATE', 'out_for_delivery'),
+                'wa_template' => config('services.whatsapp.out_for_delivery_template', 'out_for_delivery'),
                 // Meta: {{1}} name, {{2}} order
                 'wa_params' => [$name, $orderLabel],
             ],
             'delivered' => [
                 'subject' => "Your order #{$orderNo} has been delivered",
                 'view' => 'emails.order-delivered',
-                'wa_template' => env('WHATSAPP_DELIVERED_TEMPLATE', 'order_delivered'),
+                'wa_template' => config('services.whatsapp.delivered_template', 'order_delivered'),
                 // Meta: {{1}} name, {{2}} order
                 'wa_params' => [$name, $orderLabel],
             ],
@@ -140,7 +140,7 @@ class OrderStatusNotificationJob implements ShouldQueue
         }
 
         try {
-            $lang = env('WHATSAPP_STATUS_TEMPLATE_LANG', 'en');
+            $lang = config('services.whatsapp.status_template_lang', 'en');
             $response = $whatsapp->sendTemplateMessage(
                 $order->phone,
                 $config['wa_template'],

@@ -245,6 +245,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin']], function 
     Route::get('/push', [App\Http\Controllers\PushNotificationController::class, 'index'])->name('push.index');
     Route::post('/push/send', [App\Http\Controllers\PushNotificationController::class, 'send'])->name('push.send');
     Route::post('customer/{id}/push', [App\Http\Controllers\CustomerController::class, 'sendPush'])->name('customer.push');
+
+    // WhatsApp bulk / single outreach
+    Route::get('/whatsapp', [App\Http\Controllers\WhatsAppNotificationController::class, 'index'])->name('whatsapp.index');
+    Route::post('/whatsapp/send', [App\Http\Controllers\WhatsAppNotificationController::class, 'send'])->name('whatsapp.send');
     // AWS S3 file manager
     Route::get('/s3-browse', [S3UploadController::class, 'browse'])->name('s3.browse');
     Route::post('/s3-upload', [S3UploadController::class, 'upload'])->name('s3.upload');

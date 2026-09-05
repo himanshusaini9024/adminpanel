@@ -8,7 +8,7 @@ $waPhone = ltrim($waPhone, '0');
 if (strlen($waPhone) === 10) { $waPhone = '91' . $waPhone; }
 $defaultMsg = "Hi {$customer->full_name},\n\n"
 . "You have items waiting in your cart. Complete your order before they're gone.\n\n"
-. "Shop now: https://dhirago.com/";
+. "Shop now: https://www.dhirago.com/";
 
 @endphp
 
@@ -203,13 +203,7 @@ $defaultMsg = "Hi {$customer->full_name},\n\n"
                         <label>Message <span class="text-danger">*</span></label>
                         <textarea name="message" id="msg-body" class="form-control" rows="6" required>{{ old('message', $defaultMsg) }}</textarea>
                         @error('message')<span class="text-danger">{{ $message }}</span>@enderror
-                        <small class="text-muted d-block mt-1">
-                            Free WhatsApp text only delivers if the customer messaged your business number in the last 24 hours.
-                            Meta can return success even when the phone never gets it. For reliable offers/reminders, use an approved
-                            template (e.g. <code>dhirago_customer_offer</code> with image header + body <code>Hey {{1}}! {{2}}</code>)
-                            and set <code>WHATSAPP_REMINDER_TEMPLATE</code> and <code>WHATSAPP_REMINDER_TEMPLATE_IMAGE</code> in .env.
-                            Or use <strong>Open WhatsApp</strong> to send manually.
-                        </small>
+                     
                     </div>
                     <div class="d-flex flex-wrap" style="gap:8px;">
                         <button type="submit" class="btn btn-success">

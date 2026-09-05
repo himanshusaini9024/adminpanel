@@ -50,6 +50,11 @@
             <span>Push Notification</span></a>
     </li>
        <li class="nav-item">
+        <a class="nav-link" href="{{route('whatsapp.index')}}">
+            <i class="fab fa-whatsapp"></i>
+            <span>WhatsApp Notification</span></a>
+    </li>
+       <li class="nav-item">
         <a class="nav-link" href="{{route('order.index')}}">
             <i class="fas fa-hammer fa-chart-area"></i>
             <span>Orders</span>
