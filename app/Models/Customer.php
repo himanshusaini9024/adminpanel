@@ -35,6 +35,7 @@ class Customer extends Authenticatable
         'cart',
         'wishlist',
         'wallet_amount',
+        'date',
     ];
 
     protected $hidden = [
@@ -43,6 +44,7 @@ class Customer extends Authenticatable
 
     protected $casts = [
         'password' => 'hashed',
+        'date' => 'datetime',
     ];
 
     // ✅ IMPORTANT: Address relation

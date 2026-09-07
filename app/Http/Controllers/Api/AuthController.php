@@ -165,13 +165,16 @@ class AuthController extends Controller
         }
         // $user->tokens()->delete();
         // $token = $user->createToken('auth_token')->plainTextToken;
+        $user->date = now('Asia/Kolkata');
+        $user->save();
+
         Auth::guard('customer')->login($user);
         // delete OTP after use
         DB::table('otps')->where('mobile', $request->mobile)->delete();
 
         return response()->json([
             // 'token' => $token,
-            'user' => $user
+            'user' => $user->fresh()
         ]);
     }
 
@@ -210,6 +213,9 @@ class AuthController extends Controller
                 'message' => 'Invalid email or password'
             ], 401);
         }
+        $user->date = now('Asia/Kolkata');
+        $user->save();
+
         Auth::guard('customer')->login($user);
 
         // $user->tokens()->delete();
