@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\CheckoutController;
 use Illuminate\Support\Facades\Auth;
 
 use App\Http\Controllers\Api\CustomerAddressController;
@@ -65,6 +66,7 @@ Route::middleware('auth:customer')->group(function () {
     Route::post('/addresses', [CustomerAddressController::class, 'store']);
     Route::put('/addresses/{id}/default', [CustomerAddressController::class, 'setDefault']);
     Route::match(['put', 'patch'], '/addresses/{id}', [CustomerAddressController::class, 'update']);
+    Route::post('/checkout/quote', [CheckoutController::class, 'quote']);
     Route::post('/razorpay/create-order', [PaymentController::class, 'createRazorpayOrder']);
     Route::post('/razorpay/verify', [PaymentController::class, 'verifyPayment']);
     Route::delete('/addresses/{id}', [CustomerAddressController::class, 'destroy']);
