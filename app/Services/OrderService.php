@@ -6,14 +6,19 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class OrderService
 {
     protected ShiprocketService $shiprocket;
+    protected FirstOrderDiscountService $firstOrderDiscount;
 
-    public function __construct(ShiprocketService $shiprocket)
-    {
+    public function __construct(
+        ShiprocketService $shiprocket,
+        FirstOrderDiscountService $firstOrderDiscount
+    ) {
         $this->shiprocket = $shiprocket;
+        $this->firstOrderDiscount = $firstOrderDiscount;
     }
 
     public function createOrder(array $data): Order
@@ -23,12 +28,31 @@ class OrderService
         try {
             Log::info('Order Data', $data);
 
+            $items = $data['items'] ?? [];
+            $customerId = Auth::guard('customer')->id() ?: (isset($data['customer_id']) ? (int) $data['customer_id'] : null);
+            $orderType = $data['order_type'] ?? 'normal';
+            $skipFirstOrder = ($orderType === 'exchange')
+                || !empty($data['parent_order_id'])
+                || !empty($data['skip_first_order_discount']);
+
+            $computedSubtotal = $this->firstOrderDiscount->subtotalFromItems($items);
+            if ($computedSubtotal <= 0) {
+                $computedSubtotal = round((float) ($data['sub_total'] ?? 0), 2);
+            }
+
+            $pricing = $this->firstOrderDiscount->applyForOrder(
+                $computedSubtotal,
+                $customerId,
+                $skipFirstOrder
+            );
+
             $order = Order::create([
-                'customer_id'         => $data['customer_id'] ?? null,
+                'customer_id'         => $customerId,
                 'razorpay_payment_id' => $data['payment_id'] ?? null,
                 'razorpay_order_id'   => $data['razorpay_order_id'] ?? null,
-                'sub_total'           => $data['sub_total'] ?? 0,
-                'total_amount'        => $data['total_amount'] ?? 0,
+                'sub_total'           => $pricing['sub_total'],
+                'total_amount'        => $pricing['total'],
+                'coupon'              => $pricing['applied'] ? $pricing['discount'] : ($data['coupon'] ?? null),
                 'quantity'            => $data['quantity'] ?? 0,
                 'city'                => $data['city'] ?? null,
                 'payment_method'      => $data['payment_method'] ?? null,
@@ -38,11 +62,13 @@ class OrderService
                 'last_name'           => $data['last_name'] ?? null,
                 'phone'               => $data['phone'] ?? null,
                 'address1'            => $data['address1'] ?? null,
-                'address2'           => $data['address2'] ?? null,
+                'address2'            => $data['address2'] ?? null,
                 'state'               => $data['state'] ?? null,
                 'country'             => 'IND',
                 'email'               => $data['email'] ?? null,
                 'post_code'           => $data['pincode'] ?? null,
+                'order_type'          => $orderType,
+                'parent_order_id'     => $data['parent_order_id'] ?? null,
             ]);
 
             $order->order_number = env('ORDER_SERIES') + $order->id;
@@ -50,12 +76,12 @@ class OrderService
 
             $shiprocketItems = [];
 
-            foreach ($data['items'] as $item) {
+            foreach ($items as $item) {
                 OrderItem::create([
                     'order_id'     => $order->id,
                     'order_number' => $order->order_number,
                     'product_id'   => $item['id'],
-                    'name'   => $item['name'],
+                    'name'         => $item['name'],
                     'sku'          => $item['sku'],
                     'image'        => media_path($item['thumb']['url'] ?? null) ?: null,
                     'price'        => $item['price'],
@@ -66,7 +92,7 @@ class OrderService
 
                 $shiprocketItems[] = [
                     'name'          => $item['name'],
-                    'sku'           => $item['sku'] . '-' . $item['size'],
+                    'sku'           => $item['sku'] . '-' . ($item['size'] ?? ''),
                     'units'         => $item['quantity'],
                     'selling_price' => $item['price'],
                 ];

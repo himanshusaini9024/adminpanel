@@ -296,6 +296,9 @@ class ReturnController extends Controller
                 'address2'          => $return->order->address2,
 
                 'items'             => $items,
+                'order_type'        => 'exchange',
+                'parent_order_id'   => $return->order->id,
+                'skip_first_order_discount' => true,
             ];
 
             // OrderService manages its own transaction internally.
