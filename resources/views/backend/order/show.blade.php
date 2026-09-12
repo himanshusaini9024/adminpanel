@@ -4,7 +4,8 @@
 
 @section('main-content')
 <div class="card">
-<h5 class="card-header">Order       <a href="{{route('order.pdf',$order->id)}}" class=" btn btn-sm btn-primary shadow-sm float-right"><i class="fas fa-download fa-sm text-white-50"></i> Generate PDF</a>
+<h5 class="card-header">Order    
+     <!-- <a href="{{route('order.pdf',$order->id)}}" class=" btn btn-sm btn-primary shadow-sm float-right"><i class="fas fa-download fa-sm text-white-50"></i> Generate PDF</a> -->
   </h5>
   <div class="card-body">
     @if($order)
@@ -28,7 +29,7 @@
             <td>{{$order->first_name}} {{$order->last_name}}</td>
             <td>{{$order->email}}</td>
             <td>{{$order->quantity}}</td>
-            <td>${{number_format($order->total_amount,2)}}</td>
+            <td>₹{{number_format($order->total_amount,2)}}</td>
             <td>
                 @if($order->status=='new')
                   <span class="badge badge-primary">{{$order->status}}</span>
@@ -87,7 +88,7 @@
                     </tr>
                     <tr>
                         <td>Payment Method</td>
-                        <td> : @if($order->payment_method=='cod') Cash on Delivery @else Paypal @endif</td>
+                        <td> : @if($order->payment_method=='cod') Cash on Delivery @else online @endif</td>
                     </tr>
                     <tr>
                         <td>Payment Status</td>
@@ -115,7 +116,15 @@
                     </tr>
                     <tr>
                         <td>Address</td>
-                        <td> : {{$order->address1}}, {{$order->address2}}</td>
+                        <td> : {{ collect([$order->address1, $order->address2, $order->city, $order->state])->filter()->implode(', ') }}</td>
+                    </tr>
+                    <tr>
+                        <td>City</td>
+                        <td> : {{ $order->city ?: '—' }}</td>
+                    </tr>
+                    <tr>
+                        <td>State</td>
+                        <td> : {{ $order->state ?: '—' }}</td>
                     </tr>
                     <tr>
                         <td>Country</td>
@@ -129,6 +138,80 @@
             </div>
           </div>
         </div>
+
+        {{-- Ordered products --}}
+        <div class="row mt-4">
+          <div class="col-12">
+            <div class="order-items-info">
+              <h4 class="text-center pb-3">ORDERED PRODUCTS</h4>
+              @php
+                $lineItems = $order->items;
+                if ($lineItems->isEmpty() && $order->cart_info) {
+                  $lineItems = $order->cart_info;
+                }
+              @endphp
+              @if($lineItems->isNotEmpty())
+              <div class="table-responsive">
+                <table class="table table-bordered table-hover mb-0">
+                  <thead class="thead-light">
+                    <tr>
+                      <th style="width:80px;">Image</th>
+                      <th>Product</th>
+                      <th>Size</th>
+                      <th>Color</th>
+                      <th>SKU</th>
+                      <th class="text-right">Price</th>
+                      <th class="text-center">Qty</th>
+                      <th class="text-right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @foreach($lineItems as $item)
+                      @php
+                        $name = $item->name
+                          ?? optional($item->product)->title
+                          ?? optional($item->product)->name
+                          ?? 'Product';
+                        $image = $item->image
+                          ?? optional($item->product)->photo
+                          ?? null;
+                        if (is_string($image) && str_starts_with(trim($image), '[')) {
+                          $decoded = json_decode($image, true);
+                          $image = is_array($decoded) ? ($decoded[0] ?? null) : $image;
+                        }
+                        $imgUrl = $image
+                          ? (function_exists('media_url') ? media_url($image) : $image)
+                          : asset('backend/img/thumbnail-default.jpg');
+                        $size = $item->size ?? '—';
+                        $color = $item->color ?? '—';
+                        $sku = $item->sku ?? '—';
+                        $price = (float) ($item->price ?? 0);
+                        $qty = (int) ($item->quantity ?? $item->qty ?? 1);
+                        $lineTotal = $price * $qty;
+                      @endphp
+                      <tr>
+                        <td>
+                          <img src="{{ $imgUrl }}" alt="{{ $name }}"
+                               style="width:64px;height:64px;object-fit:cover;border-radius:4px;background:#eee;">
+                        </td>
+                        <td>{{ $name }}</td>
+                        <td>{{ $size ?: '—' }}</td>
+                        <td>{{ $color ?: '—' }}</td>
+                        <td><code>{{ $sku ?: '—' }}</code></td>
+                        <td class="text-right">₹{{ number_format($price, 2) }}</td>
+                        <td class="text-center">{{ $qty }}</td>
+                        <td class="text-right">₹{{ number_format($lineTotal, 2) }}</td>
+                      </tr>
+                    @endforeach
+                  </tbody>
+                </table>
+              </div>
+              @else
+                <p class="text-muted text-center mb-0">No products found for this order.</p>
+              @endif
+            </div>
+          </div>
+        </div>
       </div>
     </section>
     @endif
@@ -139,11 +222,11 @@
 
 @push('styles')
 <style>
-    .order-info,.shipping-info{
+    .order-info,.shipping-info,.order-items-info{
         background:#ECECEC;
         padding:20px;
     }
-    .order-info h4,.shipping-info h4{
+    .order-info h4,.shipping-info h4,.order-items-info h4{
         text-decoration: underline;
     }
 

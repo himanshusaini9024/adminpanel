@@ -23,8 +23,11 @@ class OrderController extends Controller
      */
     public function index()
     {
-        $orders=Order::orderBy('id','DESC')->paginate(10);
-        return view('backend.order.index')->with('orders',$orders);
+        $orders = Order::query()
+            ->orderByDesc('id')
+            ->paginate(10);
+
+        return view('backend.order.index')->with('orders', $orders);
     }
 
     /**
@@ -158,7 +161,8 @@ class OrderController extends Controller
      */
     public function show($id)
     {
-        $order = Order::with(['cart_info.product', 'user', 'shipping'])->findOrFail($id);
+        $order = Order::with(['items', 'cart_info.product', 'user', 'shipping'])->findOrFail($id);
+
         return view('backend.order.show')->with('order', $order);
     }
 

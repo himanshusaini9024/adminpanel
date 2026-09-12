@@ -112,10 +112,11 @@
   <script>
       
       $('#order-dataTable').DataTable( {
+            "order": [[0, "desc"]],
             "columnDefs":[
                 {
                     "orderable":false,
-                    "targets":[8]
+                    "targets":[9]
                 }
             ]
         } );
