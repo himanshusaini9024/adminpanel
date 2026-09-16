@@ -106,6 +106,15 @@
         <div class="form-group">
           <label for="price" class="col-form-label">Price(NRS) <span class="text-danger">*</span></label>
           <input id="price" type="number" name="price" placeholder="Enter price" value="{{old('price')}}" class="form-control">
+
+          <div class="form-group">
+            <label>Discount (%)</label>
+            <input id="discount" type="number" name="discount" placeholder="Default 15" value="{{old('discount', 15)}}" class="form-control" min="0" max="100">
+          </div>
+          <div class="form-group">
+            <label>Special Price</label>
+            <input id="special_price" type="number" name="special_price" step="0.01" placeholder="Auto 15% off MRP if empty" value="{{old('special_price')}}" class="form-control">
+          </div>
           @error('price')
           <span class="text-danger">{{$message}}</span>
           @enderror

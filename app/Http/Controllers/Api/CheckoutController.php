@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Auth;
 class CheckoutController extends Controller
 {
     /**
-     * Preview checkout totals including automatic first-order 10% off.
+     * Preview checkout totals including optional first-order 10% off.
      */
     public function quote(Request $request, FirstOrderDiscountService $discount)
     {
@@ -41,6 +41,7 @@ class CheckoutController extends Controller
             'sub_total' => $quote['sub_total'],
             'discount' => $quote['discount'],
             'total' => $quote['total'],
+            'enabled' => $quote['enabled'],
             'message' => $quote['eligible']
                 ? '10% off applied on your first order'
                 : null,

@@ -607,7 +607,7 @@
                 <div class="form-row">
                     <div class="form-col">
                         <div class="form-group">
-                            <label>Price (NRS) <span class="req">*</span></label>
+                            <label>MRP / Price <span class="req">*</span></label>
                             <input type="number" name="price" class="form-control {{ $errors->has('price') ? 'is-invalid' : '' }}"
                                    placeholder="Enter price" value="{{ old('price', $product->price) }}" min="0">
                             @error('price') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -615,7 +615,7 @@
                     </div>
                     <div class="form-col">
                         <div class="form-group">
-                            <label>Discount (%)</label>
+                            <label>Discount (%) <small class="text-muted">default 15</small></label>
                             <input type="number" name="discount" class="form-control"
                                    placeholder="0–100" min="0" max="100"
                                    value="{{ old('discount', $product->discount ?? 0) }}">
@@ -623,9 +623,10 @@
                     </div>
                     <div class="form-col">
                         <div class="form-group">
-                            <label>Special Price</label>
+                            <label>Special Price <small class="text-muted">selling price</small></label>
                             <input type="number" name="special_price" class="form-control"
-                                   placeholder="Sale price"
+                                   step="0.01"
+                                   placeholder="Auto = 15% off MRP if empty"
                                    value="{{ old('special_price', $product->special_price ?? '') }}">
                         </div>
                     </div>
@@ -1176,6 +1177,44 @@ document.getElementById('addFaqBtn').addEventListener('click', function () {
     container.appendChild(div);
     faqIndex++;
 });
+
+
+/* ─── Sync MRP / discount / special_price ─────────────────────────── */
+(function syncProductPricing() {
+    const price = document.querySelector('[name="price"]');
+    const discount = document.querySelector('[name="discount"]');
+    const special = document.querySelector('[name="special_price"]');
+    if (!price || !discount || !special) return;
+
+    let lock = false;
+    const num = (el) => parseFloat(el.value) || 0;
+
+    const fromDiscount = () => {
+        if (lock) return;
+        lock = true;
+        const mrp = num(price);
+        let d = num(discount);
+        if (d <= 0) d = 15;
+        if (!discount.value) discount.value = d;
+        special.value = mrp > 0 ? (mrp * (1 - d / 100)).toFixed(2) : '';
+        lock = false;
+    };
+
+    const fromSpecial = () => {
+        if (lock) return;
+        lock = true;
+        const mrp = num(price);
+        const sp = num(special);
+        if (mrp > 0 && sp > 0 && sp <= mrp) {
+            discount.value = (((mrp - sp) / mrp) * 100).toFixed(2);
+        }
+        lock = false;
+    };
+
+    price.addEventListener('input', fromDiscount);
+    discount.addEventListener('input', fromDiscount);
+    special.addEventListener('input', fromSpecial);
+})();
 
 /* ─── Form validation ────────────────────────────────────────────── */
 function validateProductForm() {

@@ -25,6 +25,7 @@ class PaymentController extends Controller
             ? $discount->subtotalFromItems($data['items'])
             : round((float) ($data['amount'] ?? 0), 2);
 
+        // Respects FIRST_ORDER_DISCOUNT_ENABLED — no discount when disabled.
         $quote = $discount->quote($subTotal, $customerId);
         $payable = $quote['total'];
 

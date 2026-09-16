@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\Brand;
@@ -76,7 +78,20 @@ class ProductController extends Controller
 
         unset($validatedData['size_guide_json']);
 
+        $pricing = Product::normalizePricing(
+            $validatedData['price'] ?? 0,
+            $validatedData['discount'] ?? null,
+            $validatedData['special_price'] ?? null
+        );
+        $validatedData['price'] = $pricing['price'];
+        $validatedData['special_price'] = $pricing['special_price'];
+        $validatedData['discount'] = $pricing['discount'];
+
         $product = Product::create($validatedData);
+
+        if ($product) {
+            $this->revalidateStorefrontProduct($product->slug);
+        }
 
         return redirect()->route('product.index')->with(
             $product ? 'success' : 'error',
@@ -146,10 +161,12 @@ class ProductController extends Controller
     {
         $product = Product::findOrFail($id);
         $this->validateFullProductForm($request);
+     
         
         $data = $this->buildFullProductPayload($request, $product->photo);
 
         $product->update($data);
+        $this->revalidateStorefrontProduct($product->slug);
 
         return redirect()->route('product.index')
             ->with('success', 'Product updated successfully.');
@@ -158,7 +175,11 @@ class ProductController extends Controller
     public function destroy($id)
     {
         $product = Product::findOrFail($id);
+        $slug = $product->slug;
         $status = $product->delete();
+        if ($status) {
+            $this->revalidateStorefrontProduct($slug);
+        }
 
         return redirect()->route('product.index')->with(
             $status ? 'success' : 'error',
@@ -180,6 +201,7 @@ class ProductController extends Controller
         }
 
         $product = Product::create($data);
+        $this->revalidateStorefrontProduct($product->slug);
 
         return redirect()->route('product.index')
             ->with('success', 'Product copied and created successfully.');
@@ -251,7 +273,7 @@ class ProductController extends Controller
             foreach ($request->photo as $p) {
                 if (!empty($p['url'])) {
                     $clean[] = [
-                        'url' => media_path_versioned($p['url'], strtotime($request->date_added)),
+                        'url' => media_path_versioned($p['url'], strtotime(now())),
                         'url_mobile' => !empty($p['url_mobile']) ? media_path_versioned($p['url_mobile'], $request->date_added) : null,
                         'alt' => $p['alt'] ?? null,         
                         'type' => $p['type'] ?? null,
@@ -288,6 +310,13 @@ class ProductController extends Controller
         // print_r($photo);die;
         // $data['slug'] = generateUniqueSlug($request->input('product_description.1.displaysetname'), Product::class);
         $data['slug'] = $request->input('product_description.1.displaysetname');
+
+        $pricing = Product::normalizePricing(
+            $request->input('price'),
+            $request->input('discount'),
+            $request->input('special_price')
+        );
+
         // Only persist columns that exist on products / are fillable
         return [
             'title'        => $request->input('product_description.1.name'),
@@ -303,8 +332,9 @@ class ProductController extends Controller
             'brand_id'     => $request->input('brand_id'),
             'size'         => $size,
             'color'        => $request->input('color'),
-            'price'        => $request->input('price'),
-            'discount'     => $request->input('discount', 0),
+            'price'         => $pricing['price'],
+            'special_price' => $pricing['special_price'],
+            'discount'      => $pricing['discount'],
             'stock'        => $request->input('stock'),
             'photo'        => $photo,
             'slug'        => $data['slug'],
@@ -444,5 +474,35 @@ class ProductController extends Controller
         }
 
         return $candidate;
+    }
+
+    /**
+     * Bust Next.js ISR cache so price/content changes show immediately.
+     */
+    private function revalidateStorefrontProduct(?string $slug = null): void
+    {
+        $storefront = rtrim((string) env('STOREFRONT_URL', ''), '/');
+        $secret = (string) env('REVALIDATE_SECRET', '');
+
+        if ($storefront === '' || $secret === '') {
+            return;
+        }
+
+        try {
+            Http::timeout(5)->asJson()->post($storefront . '/api/revalidate', [
+                'secret' => $secret,
+                'slug' => $slug,
+                'tags' => array_values(array_filter([
+                    'products',
+                    'categories',
+                    $slug ? ('product-' . $slug) : null,
+                ])),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Storefront revalidate failed', [
+                'slug' => $slug,
+                'message' => $e->getMessage(),
+            ]);
+        }
     }
 }

@@ -33,7 +33,9 @@ class CategoryController extends Controller
                 'categories.photo_mobile as banner_mobile',
                 'products.cat_id',
                 'products.sku',
-                'products.price as currentPrice',
+                'products.price',
+                'products.special_price',
+                'products.discount',
                 'products.status',
                 'products.size',
                 'products.color',
@@ -91,13 +93,23 @@ class CategoryController extends Controller
                 return (int) $ao <=> (int) $bo;
             });
 
+            $pricing = \App\Models\Product::normalizePricing(
+                $item->price,
+                $item->discount,
+                $item->special_price
+            );
+
             $formatted[] = [
                 'id' => $item->id,
                 'name' => $item->name,
                 'sku' => $item->sku,
                 'slug' => $item->slug,
                 'cat_id' => $item->cat_id,
-                'currentPrice' => $item->currentPrice,
+                'price' => (float) $pricing['price'],
+                'mrp' => (float) $pricing['price'],
+                'special_price' => (float) $pricing['special_price'],
+                'discount' => (float) $pricing['discount'],
+                'currentPrice' => (float) $pricing['special_price'],
                 'status' => $item->status,
                 'size' => $item->size,
                 'color' => $item->color,
@@ -110,6 +122,6 @@ class CategoryController extends Controller
             'category' => $formatted,
             'catbanner' => $catbanner,
             'catbanner_mobile' => $catbannerMobile,
-        ]);
+        ])->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
     }
 }

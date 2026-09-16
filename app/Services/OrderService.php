@@ -40,6 +40,7 @@ class OrderService
                 $computedSubtotal = round((float) ($data['sub_total'] ?? 0), 2);
             }
 
+            // When feature is disabled, applyForOrder returns full subtotal (no discount).
             $pricing = $this->firstOrderDiscount->applyForOrder(
                 $computedSubtotal,
                 $customerId,
@@ -103,9 +104,6 @@ class OrderService
 
                 Log::info('Shiprocket Response', ['response' => $shiprocketResponse]);
 
-                // Only store Shiprocket IDs here. Do NOT mark shipped / send
-                // shipment-booked mail — that happens when AWB is assigned via
-                // Shiprocket dashboard webhook.
                 if (isset($shiprocketResponse['shipment_id'])) {
                     $order->shipment_id = $shiprocketResponse['shipment_id'];
                     if (!empty($shiprocketResponse['awb_code'])) {

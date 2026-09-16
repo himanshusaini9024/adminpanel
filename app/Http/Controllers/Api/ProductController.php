@@ -57,17 +57,25 @@ public function index()
             ];
         }
 
+        $pricing = \App\Models\Product::normalizePricing(
+            $product->price,
+            $product->discount,
+            $product->special_price
+        );
+
         return response()->json([
             'id' => (string) $product->id,
             'name' => $product->title,
             'sku' => $product->sku,
             'slug' => $product->slug,
-            'price' => (float) $product->price,
-            'discount' => (int) $product->discount,
+            'price' => (float) $pricing['price'],
+            'mrp' => (float) $pricing['price'],
+            'special_price' => (float) $pricing['special_price'],
+            'discount' => (float) $pricing['discount'],
             'quantityAvailable' => (int) $product->stock,
             'category' => $product->cat_info->title ?? '',
 
-            'currentPrice' => $this->calculatePrice($product),
+            'currentPrice' => (float) $pricing['special_price'],
 
             'sizes' => $sizes,
             'colors' => $colors,
@@ -90,18 +98,18 @@ public function index()
                     'punctuation' => (int) $review->rate,
                 ];
             })->values()
-        ]);
+        ])->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
     }
 
   private function calculatePrice($product)
 {
-    if ($product->discount > 0) {
-        return round(
-            $product->price - ($product->price * $product->discount / 100),
-            2
-        );
-    }
-    return (float) $product->price;
+    $pricing = \App\Models\Product::normalizePricing(
+        $product->price,
+        $product->discount,
+        $product->special_price
+    );
+
+    return (float) $pricing['special_price'];
 }
 
     private function getRating($product)

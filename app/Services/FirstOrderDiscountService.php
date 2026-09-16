@@ -13,10 +13,22 @@ class FirstOrderDiscountService
     public const LABEL = 'First order 10% off';
 
     /**
-     * Eligible when the customer has never placed a normal (non-exchange) order.
+     * Toggle via .env: FIRST_ORDER_DISCOUNT_ENABLED=true
+     */
+    public function isEnabled(): bool
+    {
+        return filter_var(env('FIRST_ORDER_DISCOUNT_ENABLED', false), FILTER_VALIDATE_BOOLEAN);
+    }
+
+    /**
+     * Eligible when enabled and the customer has never placed a normal order.
      */
     public function isEligible(?int $customerId = null): bool
     {
+        if (!$this->isEnabled()) {
+            return false;
+        }
+
         $customerId = $customerId ?? Auth::guard('customer')->id();
 
         if (!$customerId) {
@@ -35,19 +47,17 @@ class FirstOrderDiscountService
             ->exists();
     }
 
-    /**
-     * Lock the customer row then re-check eligibility (reduces double-discount races).
-     */
     public function isEligibleLocked(int $customerId): bool
     {
+        if (!$this->isEnabled()) {
+            return false;
+        }
+
         Customer::where('customer_id', $customerId)->lockForUpdate()->first();
 
         return !$this->hasPriorNormalOrder($customerId);
     }
 
-    /**
-     * @param  array<int, array{price?: mixed, quantity?: mixed}>  $items
-     */
     public function subtotalFromItems(array $items): float
     {
         $subtotal = 0.0;
@@ -61,16 +71,6 @@ class FirstOrderDiscountService
         return round($subtotal, 2);
     }
 
-    /**
-     * @return array{
-     *   eligible: bool,
-     *   percent: int,
-     *   label: string|null,
-     *   sub_total: float,
-     *   discount: float,
-     *   total: float
-     * }
-     */
     public function quote(float $subTotal, ?int $customerId = null, bool $apply = true): array
     {
         $subTotal = round(max(0, $subTotal), 2);
@@ -88,14 +88,10 @@ class FirstOrderDiscountService
             'sub_total' => $subTotal,
             'discount'  => $discount,
             'total'     => round(max(0, $subTotal - $discount), 2),
+            'enabled'   => $this->isEnabled(),
         ];
     }
 
-    /**
-     * Apply discount inside an order-create transaction.
-     *
-     * @return array{sub_total: float, discount: float, total: float, applied: bool}
-     */
     public function applyForOrder(
         float $subTotal,
         ?int $customerId,
