@@ -15,7 +15,7 @@ class CustomerController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Customer::query()->orderByDesc('customer_id');
+        $query = Customer::query()->with('addresses')->orderByDesc('customer_id');
 
         if ($search = trim((string) $request->get('q'))) {
             $query->where(function ($q) use ($search) {
@@ -34,7 +34,7 @@ class CustomerController extends Controller
         }
 
         $customers = $query->paginate(15)->withQueryString();
-
+        
         return view('backend.customer.index', compact('customers'));
     }
 

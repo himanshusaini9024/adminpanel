@@ -67,7 +67,7 @@
                                 <option value="">Select customer</option>
                                 @foreach($customers as $customer)
                                     @php
-                                        $name = trim(($customer->first_name ?? '') . ' ' . ($customer->last_name ?? '')) ?: 'Customer';
+                                        $name = trim(($customer->first_name ?? '') . ' ' . ($customer->last_name ?? '')) ?: 'There!';
                                     @endphp
                                     <option value="{{ $customer->customer_id }}"
                                         {{ (string) old('customer_id') === (string) $customer->customer_id ? 'selected' : '' }}

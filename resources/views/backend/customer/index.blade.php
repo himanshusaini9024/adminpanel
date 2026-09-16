@@ -39,42 +39,64 @@
                 </thead>
                 <tbody>
                     @foreach($customers as $customer)
-                        @php $cartCount = count($customer->cart_items); @endphp
-                        <tr>
-                            <td>{{ $customer->customer_id }}</td>
-                            <td>{{ $customer->full_name }}</td>
-                            <td>{{ $customer->email ?: '—' }}</td>
-                            <td>{{ $customer->phone ?: '—' }}</td>
-                            <td>{{ $customer->city ?: '—' }}</td>
-                            <td>
-                                @if($cartCount > 0)
-                                    <span class="badge badge-info">{{ $cartCount }} item(s)</span>
-                                @else
-                                    <span class="text-muted">Empty</span>
-                                @endif
-                            </td>
-                            <td>
-                                @if(($customer->status ?? '') === 'active' || ($customer->status ?? '') === '1')
-                                    <span class="badge badge-success">{{ $customer->status ?: 'active' }}</span>
-                                @else
-                                    <span class="badge badge-warning">{{ $customer->status ?: '—' }}</span>
-                                @endif
-                            </td>
-                            <td>
-                                <a href="{{ route('customer.edit', $customer->customer_id) }}"
-                                   class="btn btn-primary btn-sm"
-                                   style="height:30px;width:30px;border-radius:50%;padding:4px;"
-                                   title="Edit / View">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                            </td>
-                        </tr>
+                    @php
+                    $address = $customer->addresses->first();
+
+                    // Customer name
+                    $name = trim(
+                    ($customer->first_name ?? '') . ' ' .
+                    ($customer->last_name ?? '')
+                    );
+
+                    // Fall back to address name
+                    if (!$name && $address) {
+                    $name = $address->name;
+                    }
+
+                    // Phone fallback
+                    $phone = $customer->phone
+                    ?: ($address->phone ?? null);
+
+                    // City fallback
+                    $city = $customer->city
+                    ?: ($address->city ?? null);
+                    $cartCount = count($customer->cart_items);
+                    @endphp
+                    <tr>
+                        <td>{{ $customer->customer_id }}</td>
+                        <td> {{ $name ?: '—' }}</td>
+                        <td>{{ $customer->email ?: '—' }}</td>
+                        <td> {{ $phone ?: '—' }}</td>
+                        <td> {{ $city ?: '—' }}</td>
+                        <td>
+                            @if($cartCount > 0)
+                            <span class="badge badge-info">{{ $cartCount }} item(s)</span>
+                            @else
+                            <span class="text-muted">Empty</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if(($customer->status ?? '') === 'active' || ($customer->status ?? '') === '1')
+                            <span class="badge badge-success">{{ $customer->status ?: 'active' }}</span>
+                            @else
+                            <span class="badge badge-warning">{{ $customer->status ?: '—' }}</span>
+                            @endif
+                        </td>
+                        <td>
+                            <a href="{{ route('customer.edit', $customer->customer_id) }}"
+                                class="btn btn-primary btn-sm"
+                                style="height:30px;width:30px;border-radius:50%;padding:4px;"
+                                title="Edit / View">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                        </td>
+                    </tr>
                     @endforeach
                 </tbody>
             </table>
             <span style="float:right">{{ $customers->links() }}</span>
             @else
-                <h6 class="text-center mb-0">No customers found.</h6>
+            <h6 class="text-center mb-0">No customers found.</h6>
             @endif
         </div>
     </div>

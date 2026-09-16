@@ -6,7 +6,8 @@
 $waPhone = preg_replace('/\D+/', '', (string) $customer->phone);
 $waPhone = ltrim($waPhone, '0');
 if (strlen($waPhone) === 10) { $waPhone = '91' . $waPhone; }
-$defaultMsg = "Hi {$customer->full_name},\n\n"
+$name = trim(($customer->first_name ?? '') . ' ' . ($customer->last_name ?? '')) ?: 'There!';
+$defaultMsg = "Hey {$name},\n\n"
 . "You have items waiting in your cart. Complete your order before they're gone.\n\n"
 . "Shop now: https://www.dhirago.com/";
 
