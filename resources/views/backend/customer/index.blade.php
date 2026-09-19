@@ -31,6 +31,7 @@
                         <th>Name</th>
                         <th>Email</th>
                         <th>Phone</th>
+                        <th>Date</th>
                         <th>City</th>
                         <th>Cart</th>
                         <th>Status</th>
@@ -67,6 +68,7 @@
                         <td> {{ $name ?: '—' }}</td>
                         <td>{{ $customer->email ?: '—' }}</td>
                         <td> {{ $phone ?: '—' }}</td>
+                        <td>{{ $customer->date }}</td>
                         <td> {{ $city ?: '—' }}</td>
                         <td>
                             @if($cartCount > 0)

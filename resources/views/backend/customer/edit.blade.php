@@ -56,13 +56,20 @@ $defaultMsg = "Hey {$name},\n\n"
                             <input type="text" name="phone" class="form-control" value="{{ old('phone', $customer->phone) }}">
                         </div>
                     </div>
-                    <div class="form-group">
+                    <div class="form-row">
+
+                    <div class="form-group col-md-6">
                         <label>Status</label>
                         <select name="status" class="form-control">
                             @php $st = old('status', $customer->status); @endphp
                             <option value="active" {{ $st === 'active' || $st === '1' ? 'selected' : '' }}>Active</option>
                             <option value="inactive" {{ $st === 'inactive' || $st === '0' ? 'selected' : '' }}>Inactive</option>
                         </select>
+                    </div>
+                     <div class="form-group col-md-6">
+                            <label>Date</label>
+                            <input type="text"  disabled class="form-control" value="{{ $customer->date }}">
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Address</label>
