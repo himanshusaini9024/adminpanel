@@ -6,11 +6,9 @@
 $waPhone = preg_replace('/\D+/', '', (string) $customer->phone);
 $waPhone = ltrim($waPhone, '0');
 if (strlen($waPhone) === 10) { $waPhone = '91' . $waPhone; }
-$name = trim(($customer->first_name ?? '') . ' ' . ($customer->last_name ?? '')) ?: 'There!';
-$defaultMsg = "Hey {$name},\n\n"
-. "You have items waiting in your cart. Complete your order before they're gone.\n\n"
-. "Shop now: https://www.dhirago.com/";
-
+// Do NOT put "Hey {name}" here — WhatsApp template already has Hey {{1}}!
+$defaultMsg = "You have items waiting in your cart. Complete your order before they're gone.\n\n"
+    . "Shop now: https://www.dhirago.com/cart";
 @endphp
 
 <div class="row">
@@ -211,7 +209,11 @@ $defaultMsg = "Hey {$name},\n\n"
                         <label>Message <span class="text-danger">*</span></label>
                         <textarea name="message" id="msg-body" class="form-control" rows="6" required>{{ old('message', $defaultMsg) }}</textarea>
                         @error('message')<span class="text-danger">{{ $message }}</span>@enderror
-                     
+                        <small class="text-muted d-block mt-1">
+                            WhatsApp template already says <strong>Hey {'{{1}}'}!</strong> —
+                            do not start the message with “Hey name”. Write only the reminder text.
+                            WebP cart images are auto-converted to JPEG for WhatsApp.
+                        </small>
                     </div>
                     <div class="d-flex flex-wrap" style="gap:8px;">
                         <button type="submit" class="btn btn-success">

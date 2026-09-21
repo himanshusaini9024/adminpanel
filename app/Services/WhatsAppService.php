@@ -297,8 +297,12 @@ class WhatsAppService
         $language = trim((string) config('services.whatsapp.reminder_template_lang', 'en')) ?: 'en';
         $headerImage = $this->resolveHeaderImage($headerImageOverride);
 
-        // Collapse whitespace for template vars
-        $shortMessage = trim(preg_replace('/\s+/', ' ', $message) ?? $message);
+        // Template is: Hey {{1}}! {{2}} Thanks for joining us.
+        // {{1}} = name OR "There" (once). {{2}} must NOT repeat the greeting.
+        $greetingName = $this->resolveGreetingName($customerName);
+        $shortMessage = $this->stripLeadingGreeting(
+            trim(preg_replace('/\s+/', ' ', $message) ?? $message)
+        );
 
         if ($template !== '') {
             if ($headerImage === '') {
@@ -313,7 +317,7 @@ class WhatsAppService
             $response = $this->sendTemplateMessage(
                 $phone,
                 $template,
-                [$customerName ?: 'Customer', $shortMessage],
+                [$greetingName, $shortMessage],
                 $language,
                 $headerImage
             );
@@ -348,5 +352,47 @@ class WhatsAppService
                     . 'For offers/reminders, create a Meta template and set WHATSAPP_REMINDER_TEMPLATE in .env.')
                 : ('WhatsApp text failed: ' . (data_get($response->json(), 'error.message') ?: $response->body())),
         ];
+    }
+
+    /**
+     * Value for template {{1}} in "Hey {{1}}!".
+     * Real name if present; otherwise "There" (renders as "Hey There!").
+     */
+    public function resolveGreetingName(?string $customerName): string
+    {
+        $name = trim(preg_replace('/\s+/', ' ', (string) $customerName) ?? '');
+        $name = trim($name, " \t\n\r\0\x0B,!. ");
+
+        $placeholders = ['', 'customer', 'there', 'there!', 'user', 'guest', '-'];
+        if ($name === '' || in_array(strtolower($name), $placeholders, true)) {
+            return 'There';
+        }
+
+        return mb_substr($name, 0, 60);
+    }
+
+    /**
+     * Remove leading "Hey/Hi {name}," from message body so it is not duplicated
+     * after template "Hey {{1}}!".
+     */
+    public function stripLeadingGreeting(string $message): string
+    {
+        $message = trim($message);
+        if ($message === '') {
+            return '-';
+        }
+
+        // Hey Name, / Hi Name! / Hey There!, / Hello Customer —
+        $stripped = preg_replace(
+            '/^(?:hey|hi|hello)\s+[\p{L}\p{N}\s\'.-]{1,80}[!.,]*\s*/iu',
+            '',
+            $message,
+            1
+        );
+
+        $stripped = trim((string) ($stripped ?? $message));
+        $stripped = trim(preg_replace('/\s+/', ' ', $stripped) ?? $stripped);
+
+        return $stripped !== '' ? mb_substr($stripped, 0, 500) : '-';
     }
 }

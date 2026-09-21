@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\Product;
+use App\Services\WhatsAppHeaderImageService;
 use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -81,11 +82,12 @@ class CustomerController extends Controller
 
     /**
      * Send reminder / offer message via email and/or WhatsApp.
+     * WhatsApp/email header image prefers the first cart product image.
      */
-    public function sendMessage(Request $request, $id, WhatsAppService $whatsapp)
+    public function sendMessage(Request $request, $id, WhatsAppService $whatsapp, WhatsAppHeaderImageService $headerImages)
     {
         $customer = Customer::findOrFail($id);
-  
+
         $validated = $request->validate([
             'channel' => 'required|in:email,whatsapp,both',
             'subject' => 'required_if:channel,email,both|nullable|string|max:200',
@@ -97,6 +99,11 @@ class CustomerController extends Controller
         $body    = $validated['message'];
         $results = [];
 
+        $cartItems = $this->resolveCartItems($customer);
+        $cartHeaderImage = $this->resolveCartProductImageUrl($cartItems);
+        // Meta rejects WebP headers — convert cart product image to public JPEG
+        $whatsAppHeaderImage = $headerImages->ensureJpegUrl($cartHeaderImage);
+
         // Email
         if (in_array($channel, ['email', 'both'], true)) {
             if (empty($customer->email)) {
@@ -105,14 +112,17 @@ class CustomerController extends Controller
                 try {
                     $name = trim(($customer->first_name ?? '') . ' ' . ($customer->last_name ?? '')) ?: 'Customer';
                     Mail::send('emails.customer-message', [
-                        'customer' => $customer,
-                        'name'     => $name,
-                        'body'     => $body,
-                        'subject'  => $subject,
+                        'customer'    => $customer,
+                        'name'        => $name,
+                        'body'        => $body,
+                        'subject'     => $subject,
+                        'headerImage' => $cartHeaderImage,
+                        'cartItems'   => $cartItems,
                     ], function ($message) use ($customer, $subject) {
                         $message->to($customer->email)->subject($subject);
                     });
-                    $results[] = 'Email sent to ' . $customer->email;
+                    $results[] = 'Email sent to ' . $customer->email
+                        . ($cartHeaderImage ? ' (cart product image)' : '');
                 } catch (\Throwable $e) {
                     Log::error('Customer email failed', ['error' => $e->getMessage(), 'customer_id' => $id]);
                     $results[] = 'Email failed: ' . $e->getMessage();
@@ -120,7 +130,7 @@ class CustomerController extends Controller
             }
         }
 
-        // WhatsApp
+        // WhatsApp — header image = first cart product (fallback to default logo in service)
         $whatsAppFailed = false;
         if (in_array($channel, ['whatsapp', 'both'], true)) {
             if (empty($customer->phone)) {
@@ -128,9 +138,19 @@ class CustomerController extends Controller
                 $whatsAppFailed = true;
             } else {
                 try {
-                    $name = trim(($customer->first_name ?? '') . ' ' . ($customer->last_name ?? '')) ?: 'Customer';
-                    $result = $whatsapp->sendCustomerOutreach($customer->phone, $name, $body);
-                    $results[] = $result['message'];
+                    $name = trim(($customer->first_name ?? '') . ' ' . ($customer->last_name ?? ''));
+                    $result = $whatsapp->sendCustomerOutreach(
+                        $customer->phone,
+                        $name,
+                        $body,
+                        $whatsAppHeaderImage ?: null
+                    );
+                    $results[] = $result['message']
+                        . ($whatsAppHeaderImage
+                            ? ' Header: cart product JPEG.'
+                            : ($cartHeaderImage
+                                ? ' Header: default (cart WebP convert failed).'
+                                : ' Header: default template image (no cart image).'));
                     if (empty($result['ok'])) {
                         $whatsAppFailed = true;
                     }
@@ -249,5 +269,44 @@ class CustomerController extends Controller
         }
 
         return $items;
+    }
+
+    /**
+     * Public HTTPS URL of the first cart product image (WhatsApp/email header).
+     *
+     * @param  array<int, array<string, mixed>>  $cartItems
+     */
+    private function resolveCartProductImageUrl(array $cartItems): ?string
+    {
+        foreach ($cartItems as $item) {
+            $raw = $item['image'] ?? null;
+            if (empty($raw) || !is_string($raw)) {
+                continue;
+            }
+
+            // Prefer desktop product photo from Product model when available
+            $product = $item['product'] ?? null;
+            if ($product && !empty($product->photo)) {
+                $photo = $product->photo;
+                if (is_string($photo) && str_starts_with(trim($photo), '[')) {
+                    $photos = json_decode($photo, true);
+                    if (is_array($photos) && !empty($photos)) {
+                        $first = $photos[0];
+                        $raw = is_array($first) ? ($first['url'] ?? $first['desk'] ?? $raw) : (string) $first;
+                    }
+                } elseif (is_string($photo)) {
+                    $raw = $photo;
+                }
+            }
+
+            $url = function_exists('media_url') ? media_url($raw) : $raw;
+            $url = trim((string) $url);
+
+            if ($url !== '' && str_starts_with($url, 'http')) {
+                return $url;
+            }
+        }
+
+        return null;
     }
 }
