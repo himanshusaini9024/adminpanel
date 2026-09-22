@@ -32,6 +32,7 @@
                         <th>Comment</th>
                         <th>Status</th>
                         <th>Type</th>
+                        <th>Exchange Size</th>
                         <th>Refund Process</th>
                         <th>Reverse AWB</th>
                         <th>Courier</th>
@@ -92,6 +93,12 @@
                         <td>
                             <span class="badge badge-primary">
                                 {{ $return->type ?? '-' }}
+                            </span>
+                        </td>
+
+                           <td>
+                            <span class="badge badge-primary">
+                                {{ $return->exchange_size ?? '-' }}
                             </span>
                         </td>
 
@@ -220,7 +227,7 @@
                     @empty
 
                     <tr>
-                        <td colspan="9" class="text-center">
+                        <td colspan="12" class="text-center">
                             No return requests found
                         </td>
                     </tr>
