@@ -55,7 +55,7 @@
           <tr>
             <td style="padding:0;">
               <img
-                src="https://images.dhirago.com/ecommerce/email/email.webp"
+                src="https://images.dhirago.com/ecommerce/email/email.webp?v=2"
                 alt="DHIRAGO" width="600"
                 style="display:block;width:100%;max-width:600px;height:auto;border:0;">
             </td>
@@ -266,7 +266,7 @@
           <tr>
             <td>
               <img
-                src="https://images.dhirago.com/ecommerce/email/email.webp"
+                src="https://images.dhirago.com/ecommerce/email/email.webp?v=2"
                 alt="DHIRAGO" width="600"
                 style="display:block;width:100%;max-width:600px;height:auto;border:0;">
               <p style="font-size:13px;color:#8fa197;margin:0;text-align:center;padding:12px 20px;">

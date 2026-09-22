@@ -22,7 +22,7 @@
           </tr>
           <tr>
             <td style="background:#f8faf8;padding:18px 40px;text-align:center;color:#888;font-size:12px;">
-              &copy; {{ date('Y') }} {{ config('app.name', 'Dhirago') }}
+              &copy; {{ date('Y') }} Dhirago
             </td>
           </tr>
         </table>

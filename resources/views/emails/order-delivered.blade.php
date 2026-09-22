@@ -8,6 +8,6 @@
     We hope you love it!
   </p>
   <p style="margin:0;color:#666;font-size:14px;">
-    Thank you for shopping with {{ config('app.name', 'Dhirago') }}.
+    Thank you for shopping with Dhirago.
   </p>
 @endsection
