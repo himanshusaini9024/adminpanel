@@ -90,6 +90,8 @@ class ReturnController extends Controller
             ]);
         });
 
+        $return->notifyCustomer();
+
         return response()->json([
             'success' => true,
             'return'  => $return,
@@ -130,11 +132,13 @@ class ReturnController extends Controller
                 'reverse_shipment_id' => $response['shipment_id'] ?? null,
                 'courier'             => $response['company_name'] ?? null,
             ]);
+            $return->notifyCustomer('pending');
 
             return back()->with('success', 'Reverse pickup scheduled successfully');
         }
 
         $return->update(['status' => 'pickup_failed']);
+        $return->notifyCustomer('pending');
 
         return back()->with('error', 'Failed to schedule reverse pickup with courier');
     }
@@ -151,6 +155,7 @@ class ReturnController extends Controller
         }
 
         $return->update(['status' => 'rejected']);
+        $return->notifyCustomer('pending');
 
         return back()->with('success', 'Return rejected successfully');
     }
@@ -166,7 +171,9 @@ class ReturnController extends Controller
             return back()->with('error', 'Return is not awaiting pickup');
         }
 
+        $previous = $return->status;
         $return->update(['status' => 'picked_up']);
+        $return->notifyCustomer($previous);
 
         return back()->with('success', 'Marked as picked up');
     }
@@ -183,7 +190,9 @@ class ReturnController extends Controller
             return back()->with('error', 'Return has not been picked up yet');
         }
 
+        $previous = $return->status;
         $return->update(['status' => 'delivered']);
+        $return->notifyCustomer($previous);
 
         return back()->with('success', 'Marked as received at warehouse');
     }
@@ -218,6 +227,7 @@ class ReturnController extends Controller
             ]);
 
             $return->order->update(['status' => 'refunded']);
+            $return->notifyCustomer('delivered');
 
             return back()->with('success', 'Refund processed successfully');
         } catch (\Exception $e) {
@@ -315,6 +325,8 @@ class ReturnController extends Controller
                 'replacement_order_id' => $replacementOrder->id,
                 'status'                => 'replacement_created',
             ]);
+
+            $return->notifyCustomer('delivered');
 
             Log::info('Exchange replacement order created', [
                 'return_id'            => $return->id,

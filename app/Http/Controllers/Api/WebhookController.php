@@ -228,22 +228,33 @@ class WebhookController extends Controller
         )->first();
 
         if ($return) {
+            $previousStatus = $return->status;
             $status = strtoupper($data['status'] ?? '');
+            $newStatus = null;
 
             if (str_contains($status, 'CANCEL')) {
-                $return->status = 'rejected';
-            } elseif (str_contains($status, 'PICKUP')) {
-                $return->status = 'pickup_scheduled';
+                $newStatus = 'rejected';
             } elseif (str_contains($status, 'PICKED')) {
-                $return->status = 'picked_up';
+                // Check PICKED before PICKUP so "PICKED UP" does not match PICKUP first.
+                $newStatus = 'picked_up';
+            } elseif (str_contains($status, 'PICKUP')) {
+                $newStatus = 'pickup_scheduled';
             } elseif (str_contains($status, 'TRANSIT')) {
-                $return->status = 'in_transit';
+                $newStatus = 'in_transit';
             } elseif (str_contains($status, 'DELIVERED')) {
-                $return->status = 'delivered';
+                $newStatus = 'delivered';
             }
 
-            $return->courier = $data['company_name'] ?? null;
+            if ($newStatus) {
+                $return->status = $newStatus;
+            }
+
+            $return->courier = $data['company_name'] ?? ($return->courier);
             $return->save();
+
+            if ($newStatus) {
+                $return->notifyCustomer($previousStatus);
+            }
         }
 
         return response()->json(['success' => true]);

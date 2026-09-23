@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Jobs\ReturnStatusNotificationJob;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -70,5 +71,22 @@ class ReturnOrder extends Model
     public function replacementOrder()
     {
         return $this->belongsTo(Order::class, 'replacement_order_id');
+    }
+
+    /**
+     * Queue email + WhatsApp + web push for the current status.
+     * Skips when status did not change (e.g. duplicate webhook).
+     */
+    public function notifyCustomer(?string $previousStatus = null): void
+    {
+        if ($previousStatus !== null && $previousStatus === $this->status) {
+            return;
+        }
+
+        if (empty($this->status)) {
+            return;
+        }
+
+        ReturnStatusNotificationJob::dispatch($this->id, $this->status);
     }
 }
