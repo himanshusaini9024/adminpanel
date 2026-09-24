@@ -116,31 +116,51 @@ class ReturnController extends Controller
      */
     public function approve($id, $sku)
     {
-        $return = ReturnOrder::with('order')->findOrFail($id);
+        $return = ReturnOrder::with(['order', 'orderItem'])->findOrFail($id);
 
-        if ($return->status !== 'pending') {
+        if (!in_array($return->status, ['pending', 'pickup_failed'], true)) {
             return back()->with('error', 'Already processed');
         }
 
         $shiprocket = new ShiprocketService();
         $response = $shiprocket->createReturn($return, $sku);
 
-        if (isset($response['status_code']) && in_array($response['status_code'], [21, 22, 23])) {
+        $statusCode = (int) ($response['status_code'] ?? 0);
+        $success = !empty($response['shipment_id'])
+            && in_array($statusCode, [21, 22, 23, 28], true)
+            && empty($response['error']);
+
+        // createReturn also assigns AWB; treat assigned reverse pickup as success even if
+        // Shiprocket still reports pending (21) after AWB.
+        if ($success || (!empty($response['awb_code']) && !empty($response['shipment_id']))) {
+            $previous = $return->status;
             $return->update([
                 'status'              => 'pickup_scheduled',
                 'reverse_order_id'    => $response['order_id'] ?? null,
                 'reverse_shipment_id' => $response['shipment_id'] ?? null,
-                'courier'             => $response['company_name'] ?? null,
+                'reverse_awb'         => $response['awb_code'] ?? null,
+                'courier'             => $response['courier_name']
+                    ?? $response['company_name']
+                    ?? null,
             ]);
-            $return->notifyCustomer('pending');
+            $return->notifyCustomer($previous);
 
-            return back()->with('success', 'Reverse pickup scheduled successfully');
+            return back()->with(
+                'success',
+                $response['message']
+                    ?? ('Reverse pickup scheduled'
+                        . (!empty($response['awb_code']) ? ' (AWB ' . $response['awb_code'] . ')' : ''))
+            );
         }
 
+        $previous = $return->status;
         $return->update(['status' => 'pickup_failed']);
-        $return->notifyCustomer('pending');
+        $return->notifyCustomer($previous);
 
-        return back()->with('error', 'Failed to schedule reverse pickup with courier');
+        $detail = $response['message']
+            ?? (($response['status'] ?? 'unknown') . ' (code ' . $statusCode . ')');
+
+        return back()->with('error', 'Failed to schedule reverse pickup: ' . $detail);
     }
 
     /**

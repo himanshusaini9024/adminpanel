@@ -154,19 +154,20 @@
 
                         <td>
 
-                            @if($return->status == 'pending')
+                            @if(in_array($return->status, ['pending', 'pickup_failed'], true))
 
                             <form
-                                action="{{ url('admin/returns/'.$return->id.'/'.($return->order->items->first()->sku ?? 'NOSKU').'/approve') }}"
+                                action="{{ url('admin/returns/'.$return->id.'/'.($return->orderItem->sku ?? $return->order->items->first()->sku ?? 'NOSKU').'/approve') }}"
                                 method="POST"
                                 style="display:inline-block">
                                 @csrf
 
                                 <button class="btn btn-success btn-sm">
-                                    Approve
+                                    {{ $return->status === 'pickup_failed' ? 'Retry Pickup' : 'Approve' }}
                                 </button>
                             </form>
 
+                            @if($return->status === 'pending')
                             <form
                                 action="{{ url('admin/returns/'.$return->id.'/reject') }}"
                                 method="POST"
@@ -177,6 +178,7 @@
                                     Reject
                                 </button>
                             </form>
+                            @endif
 
                             @elseif($return->status == 'delivered')
 

@@ -59,6 +59,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Shiprocket
+    |--------------------------------------------------------------------------
+    | pickup_location = nickname from Shiprocket → Settings → Pickup Addresses
+    | (same place you hand parcels to the delivery boy for outbound orders).
+    */
+    'shiprocket' => [
+        'pickup_location' => env('SHIPROCKET_PICKUP_LOCATION', 'Home'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | WhatsApp Cloud API
     |--------------------------------------------------------------------------
     */
