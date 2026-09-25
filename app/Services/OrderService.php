@@ -12,13 +12,16 @@ class OrderService
 {
     protected ShiprocketService $shiprocket;
     protected FirstOrderDiscountService $firstOrderDiscount;
+    protected CouponDiscountService $couponDiscount;
 
     public function __construct(
         ShiprocketService $shiprocket,
-        FirstOrderDiscountService $firstOrderDiscount
+        FirstOrderDiscountService $firstOrderDiscount,
+        CouponDiscountService $couponDiscount
     ) {
         $this->shiprocket = $shiprocket;
         $this->firstOrderDiscount = $firstOrderDiscount;
+        $this->couponDiscount = $couponDiscount;
     }
 
     public function createOrder(array $data): Order
@@ -47,13 +50,34 @@ class OrderService
                 $skipFirstOrder
             );
 
+            $afterFirst = $pricing['total'];
+            $couponResult = $this->couponDiscount->applyForOrder(
+                $afterFirst,
+                $data['coupon_code'] ?? null,
+                $customerId
+            );
+
+            // If client sent a coupon code that is invalid/already used, fail the order.
+            $requestedCode = $this->couponDiscount->normalizeCode($data['coupon_code'] ?? null);
+            if ($requestedCode && !$couponResult['applied']) {
+                throw new \InvalidArgumentException(
+                    $couponResult['message'] ?: 'Invalid coupon code'
+                );
+            }
+
+            $firstDiscount = $pricing['applied'] ? (float) $pricing['discount'] : 0.0;
+            $couponAmount = $couponResult['applied'] ? (float) $couponResult['discount'] : 0.0;
+            $totalDiscount = round($firstDiscount + $couponAmount, 2);
+            $payableTotal = round(max(0, $computedSubtotal - $totalDiscount), 2);
+
             $order = Order::create([
                 'customer_id'         => $customerId,
                 'razorpay_payment_id' => $data['payment_id'] ?? null,
                 'razorpay_order_id'   => $data['razorpay_order_id'] ?? null,
                 'sub_total'           => $pricing['sub_total'],
-                'total_amount'        => $pricing['total'],
-                'coupon'              => $pricing['applied'] ? $pricing['discount'] : ($data['coupon'] ?? null),
+                'total_amount'        => $payableTotal,
+                'coupon'              => $totalDiscount > 0 ? $totalDiscount : ($data['coupon'] ?? null),
+                'coupon_code'         => $couponResult['applied'] ? $couponResult['code'] : null,
                 'quantity'            => $data['quantity'] ?? 0,
                 'city'                => $data['city'] ?? null,
                 'payment_method'      => $data['payment_method'] ?? null,
@@ -74,6 +98,14 @@ class OrderService
 
             $order->order_number = env('ORDER_SERIES') + $order->id;
             $order->save();
+
+            if ($couponResult['applied'] && $customerId && $couponResult['coupon_id']) {
+                $this->couponDiscount->recordRedemption(
+                    (int) $couponResult['coupon_id'],
+                    (int) $customerId,
+                    (int) $order->id
+                );
+            }
 
             $shiprocketItems = [];
 

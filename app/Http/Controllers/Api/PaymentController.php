@@ -4,30 +4,43 @@ namespace App\Http\Controllers\Api;
 
 use Razorpay\Api\Api;
 use App\Http\Controllers\Controller;
+use App\Services\CouponDiscountService;
 use App\Services\FirstOrderDiscountService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class PaymentController extends Controller
 {
-    public function createRazorpayOrder(Request $request, FirstOrderDiscountService $discount)
-    {
+    public function createRazorpayOrder(
+        Request $request,
+        FirstOrderDiscountService $firstOrderDiscount,
+        CouponDiscountService $couponDiscount
+    ) {
         $customerId = Auth::guard('customer')->id();
 
         $data = $request->validate([
             'amount' => 'nullable|numeric|min:0',
-            'items'  => 'nullable|array',
+            'items' => 'nullable|array',
             'items.*.price' => 'nullable|numeric|min:0',
             'items.*.quantity' => 'nullable|integer|min:0',
+            'coupon_code' => 'nullable|string|max:50',
         ]);
 
         $subTotal = isset($data['items']) && count($data['items'])
-            ? $discount->subtotalFromItems($data['items'])
+            ? $firstOrderDiscount->subtotalFromItems($data['items'])
             : round((float) ($data['amount'] ?? 0), 2);
 
-        // Respects FIRST_ORDER_DISCOUNT_ENABLED — no discount when disabled.
-        $quote = $discount->quote($subTotal, $customerId);
-        $payable = $quote['total'];
+        $firstQuote = $firstOrderDiscount->quote($subTotal, $customerId);
+        $afterFirst = $firstQuote['total'];
+
+        $couponQuote = $couponDiscount->quote(
+            $afterFirst,
+            $data['coupon_code'] ?? null,
+            $customerId
+        );
+
+        $couponAmount = $couponQuote['valid'] ? $couponQuote['discount'] : 0.0;
+        $payable = round(max(0, $afterFirst - $couponAmount), 2);
 
         if ($payable <= 0) {
             return response()->json([
@@ -48,7 +61,12 @@ class PaymentController extends Controller
             'id' => $order['id'],
             'amount' => $order['amount'],
             'currency' => $order['currency'],
-            'quote' => $quote,
+            'quote' => [
+                'sub_total' => $subTotal,
+                'first_order_discount' => $firstQuote['discount'],
+                'coupon' => $couponQuote,
+                'total' => $payable,
+            ],
         ]);
     }
 

@@ -27,6 +27,7 @@ class Order extends Model
         'payment_status',
         'shipping_id',
         'coupon',
+        'coupon_code',
         'city',
         'state',
         'expected_delivery_date',
