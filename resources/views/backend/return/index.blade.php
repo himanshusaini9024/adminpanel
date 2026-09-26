@@ -76,6 +76,12 @@
                                 Pickup Scheduled
                             </span>
 
+                              @elseif($return->status == 'picked_up')
+
+                            <span class="badge badge-info">
+                                picked up
+                            </span>
+
                             @elseif($return->status == 'rejected')
 
                             <span class="badge badge-danger">
