@@ -32,6 +32,15 @@ class OrderService
             Log::info('Order Data', $data);
 
             $items = $data['items'] ?? [];
+            if (!is_array($items) || count($items) < 1) {
+                throw new \InvalidArgumentException('Cannot place an order with an empty cart.');
+            }
+
+            $quantity = (int) ($data['quantity'] ?? 0);
+            if ($quantity < 1) {
+                throw new \InvalidArgumentException('Cannot place an order with zero quantity.');
+            }
+
             $customerId = Auth::guard('customer')->id() ?: (isset($data['customer_id']) ? (int) $data['customer_id'] : null);
             $orderType = $data['order_type'] ?? 'normal';
             $skipFirstOrder = ($orderType === 'exchange')
@@ -132,17 +141,25 @@ class OrderService
             }
 
             if (env('SHIPMENT_LIVE', false)) {
-                $shiprocketResponse = $this->shiprocket->createOrder($order, $shiprocketItems);
+                try {
+                    $shiprocketResponse = $this->shiprocket->createOrder($order, $shiprocketItems);
 
-                Log::info('Shiprocket Response', ['response' => $shiprocketResponse]);
+                    Log::info('Shiprocket Response', ['response' => $shiprocketResponse]);
 
-                if (isset($shiprocketResponse['shipment_id'])) {
-                    $order->shipment_id = $shiprocketResponse['shipment_id'];
-                    if (!empty($shiprocketResponse['awb_code'])) {
-                        $order->awb_code = $shiprocketResponse['awb_code'];
+                    if (isset($shiprocketResponse['shipment_id'])) {
+                        $order->shipment_id = $shiprocketResponse['shipment_id'];
+                        if (!empty($shiprocketResponse['awb_code'])) {
+                            $order->awb_code = $shiprocketResponse['awb_code'];
+                        }
+                        $order->shipping_status = $shiprocketResponse['status'] ?? 'NEW';
+                        $order->save();
                     }
-                    $order->shipping_status = $shiprocketResponse['status'] ?? 'NEW';
-                    $order->save();
+                } catch (\Throwable $shipEx) {
+                    // Keep a valid local order even if shipping sync fails.
+                    Log::error('Shiprocket create failed (order kept)', [
+                        'order_id' => $order->id,
+                        'message'  => $shipEx->getMessage(),
+                    ]);
                 }
             } else {
                 Log::info('Shiprocket disabled');

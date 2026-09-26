@@ -75,7 +75,17 @@ class OrderController extends Controller
 
     public function latest(Request $request)
     {
-        $order = Order::latest()->first();
+        $customerId = Auth::guard('customer')->id()
+            ?? $request->query('customer_id');
+
+        if (!$customerId) {
+            return response()->json(['message' => 'Customer required'], 400);
+        }
+
+        $order = Order::with('items')
+            ->where('customer_id', $customerId)
+            ->latest()
+            ->first();
 
         if (!$order) {
             return response()->json(['message' => 'No order found'], 404);
