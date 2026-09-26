@@ -101,9 +101,7 @@ class ShiprocketService
     public function createOrder($order, $items)
     {
         $token = $this->login();
-        Log::info('token', [
-            'token' => $token
-        ]);
+     
         $payload = [
             "order_id" => $this->orderprefix . $order->order_number,
             "order_date" => now()->format('Y-m-d H:i'),

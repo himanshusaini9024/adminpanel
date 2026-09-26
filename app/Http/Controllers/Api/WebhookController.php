@@ -29,8 +29,8 @@ class WebhookController extends Controller
         \Log::info('Shiprocket Webhook', $request->all());
         $data = $request->all();
 
-        // Return / reverse shipment updates
-        if (isset($data['channel_order_id']) && empty($data['awb']) && empty($data['shipment_status']) && empty($data['current_status'])) {
+        // Return / reverse shipment updates (tracking payloads include AWB + is_return / RET* order_id)
+        if ($this->isReturnWebhook($data)) {
             return $this->handleReturnWebhook($data);
         }
 
@@ -220,44 +220,211 @@ class WebhookController extends Controller
         return $order;
     }
 
+    /**
+     * Detect reverse / return shipment webhooks from Shiprocket.
+     */
+    private function isReturnWebhook(array $data): bool
+    {
+        if (!empty($data['is_return']) || (string) ($data['is_return'] ?? '') === '1') {
+            return true;
+        }
+
+        $orderId = (string) (
+            $data['order_id']
+            ?? $data['channel_order_id']
+            ?? data_get($data, 'shipment.order_id')
+            ?? ''
+        );
+
+        if ($orderId !== '' && preg_match('/^RET\d+/i', $orderId)) {
+            return true;
+        }
+
+        $status = strtoupper((string) (
+            $data['current_status']
+            ?? $data['shipment_status']
+            ?? $data['status']
+            ?? ''
+        ));
+
+        if ($status !== '' && str_starts_with($status, 'RETURN')) {
+            return true;
+        }
+
+        // Legacy format: channel_order_id only, no AWB/status
+        if (isset($data['channel_order_id']) && empty($data['awb']) && empty($data['shipment_status']) && empty($data['current_status'])) {
+            return true;
+        }
+
+        return false;
+    }
+
     private function handleReturnWebhook(array $data)
     {
-        $return = ReturnOrder::where(
-            'reverse_shipment_id',
-            $data['shipment_id'] ?? null
-        )->first();
+        $awb = $data['awb']
+            ?? $data['awb_code']
+            ?? data_get($data, 'shipment.awb')
+            ?? null;
 
-        if ($return) {
-            $previousStatus = $return->status;
-            $status = strtoupper($data['status'] ?? '');
-            $newStatus = null;
+        $srOrderId = $data['sr_order_id']
+            ?? $data['order_id']
+            ?? null;
 
-            if (str_contains($status, 'CANCEL')) {
-                $newStatus = 'rejected';
-            } elseif (str_contains($status, 'PICKED')) {
-                // Check PICKED before PICKUP so "PICKED UP" does not match PICKUP first.
-                $newStatus = 'picked_up';
-            } elseif (str_contains($status, 'PICKUP')) {
-                $newStatus = 'pickup_scheduled';
-            } elseif (str_contains($status, 'TRANSIT')) {
-                $newStatus = 'in_transit';
-            } elseif (str_contains($status, 'DELIVERED')) {
-                $newStatus = 'delivered';
-            }
-
-            if ($newStatus) {
-                $return->status = $newStatus;
-            }
-
-            $return->courier = $data['company_name'] ?? ($return->courier);
-            $return->save();
-
-            if ($newStatus) {
-                $return->notifyCustomer($previousStatus);
+        // Tracking payloads put our channel id in order_id (e.g. RET1O4T260924143951)
+        $channelOrderId = null;
+        foreach (['order_id', 'channel_order_id'] as $key) {
+            $value = (string) ($data[$key] ?? '');
+            if ($value !== '' && preg_match('/^RET\d+/i', $value)) {
+                $channelOrderId = $value;
+                break;
             }
         }
 
-        return response()->json(['success' => true]);
+        $srShipmentId = $data['shipment_id']
+            ?? data_get($data, 'shipment.shipment_id')
+            ?? null;
+
+        $return = $this->findReturn($channelOrderId, $awb, $srOrderId, $srShipmentId);
+
+        if (!$return) {
+            \Log::error('Return not found for Shiprocket webhook', [
+                'channel_order_id' => $channelOrderId,
+                'awb' => $awb,
+                'sr_order_id' => $srOrderId,
+                'shipment_id' => $srShipmentId,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Return not found',
+            ], 404);
+        }
+
+        $previousStatus = $return->status;
+        $status = strtoupper((string) (
+            $data['current_status']
+            ?? $data['shipment_status']
+            ?? $data['status']
+            ?? ''
+        ));
+
+        $newStatus = $this->mapReturnStatus($status);
+
+        if ($awb && empty($return->reverse_awb)) {
+            $return->reverse_awb = $awb;
+        }
+        if ($srShipmentId && empty($return->reverse_shipment_id)) {
+            $return->reverse_shipment_id = $srShipmentId;
+        }
+        if (is_numeric($srOrderId) && empty($return->reverse_order_id)) {
+            $return->reverse_order_id = $srOrderId;
+        }
+
+        $courier = $data['courier_name']
+            ?? $data['company_name']
+            ?? $data['courier']
+            ?? null;
+        if ($courier) {
+            $return->courier = $courier;
+        }
+
+        if ($newStatus) {
+            $return->status = $newStatus;
+        }
+
+        $return->save();
+
+        if ($newStatus) {
+            $return->notifyCustomer($previousStatus);
+        }
+
+        \Log::info('Return updated from Shiprocket webhook', [
+            'return_id' => $return->id,
+            'from' => $previousStatus,
+            'to' => $return->status,
+            'shiprocket_status' => $status,
+            'awb' => $return->reverse_awb,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'return_id' => $return->id,
+            'status' => $return->status,
+        ]);
+    }
+
+    private function findReturn(?string $channelOrderId, $awb, $srOrderId, $srShipmentId): ?ReturnOrder
+    {
+        $return = null;
+
+        // RET{returnId}O{orderId}T{ymdHis}
+        if ($channelOrderId && preg_match('/^RET(\d+)O(\d+)/i', $channelOrderId, $m)) {
+            $return = ReturnOrder::where('id', (int) $m[1])
+                ->where('order_id', (int) $m[2])
+                ->first();
+
+            if (!$return) {
+                $return = ReturnOrder::find((int) $m[1]);
+            }
+        }
+
+        if (!$return && $awb) {
+            $return = ReturnOrder::where('reverse_awb', $awb)->first();
+        }
+
+        if (!$return && $srShipmentId) {
+            $return = ReturnOrder::where('reverse_shipment_id', $srShipmentId)->first();
+        }
+
+        if (!$return && $srOrderId && is_numeric($srOrderId)) {
+            $return = ReturnOrder::where('reverse_order_id', $srOrderId)->first();
+        }
+
+        return $return;
+    }
+
+    private function mapReturnStatus(string $status): ?string
+    {
+        $s = strtoupper(trim($status));
+        if ($s === '') {
+            return null;
+        }
+
+        if (str_contains($s, 'CANCEL')) {
+            return 'rejected';
+        }
+
+        // RETURN DELIVERED / DELIVERED — item reached warehouse
+        if (str_contains($s, 'DELIVERED') || $s === 'DLVRD') {
+            return 'delivered';
+        }
+
+        // RETURN PICKED UP / PICKED UP — check before generic PICKUP
+        if (
+            str_contains($s, 'PICKED UP')
+            || str_contains($s, 'PICKED_UP')
+            || preg_match('/\bPICKED\b/', $s)
+            || $s === '42'
+        ) {
+            return 'picked_up';
+        }
+
+        if (str_contains($s, 'TRANSIT') || str_contains($s, 'IN TRANSIT')) {
+            return 'in_transit';
+        }
+
+        // OUT FOR PICKUP / PICKUP SCHEDULED / RETURN PENDING / RETURN INITIATED
+        if (
+            str_contains($s, 'OUT FOR PICKUP')
+            || str_contains($s, 'PICKUP')
+            || str_contains($s, 'RETURN PENDING')
+            || str_contains($s, 'RETURN INITIATED')
+            || str_contains($s, 'RETURN QUEUED')
+        ) {
+            return 'pickup_scheduled';
+        }
+
+        return null;
     }
 
     /**
