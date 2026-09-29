@@ -13,15 +13,18 @@ class OrderService
     protected ShiprocketService $shiprocket;
     protected FirstOrderDiscountService $firstOrderDiscount;
     protected CouponDiscountService $couponDiscount;
+    protected InventoryService $inventory;
 
     public function __construct(
         ShiprocketService $shiprocket,
         FirstOrderDiscountService $firstOrderDiscount,
-        CouponDiscountService $couponDiscount
+        CouponDiscountService $couponDiscount,
+        InventoryService $inventory
     ) {
         $this->shiprocket = $shiprocket;
         $this->firstOrderDiscount = $firstOrderDiscount;
         $this->couponDiscount = $couponDiscount;
+        $this->inventory = $inventory;
     }
 
     public function createOrder(array $data): Order
@@ -139,6 +142,10 @@ class OrderService
                     'selling_price' => $item['price'],
                 ];
             }
+
+            // Unpaid (COD) orders are rejected when stock is short; paid orders were already
+            // stock-checked before payment, so they always go through.
+            $this->inventory->deductForOrder($order, ($data['payment_status'] ?? null) !== 'paid');
 
             if (env('SHIPMENT_LIVE', false)) {
                 try {

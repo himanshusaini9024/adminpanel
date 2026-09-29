@@ -37,7 +37,18 @@ class ReturnOrder extends Model
 
     protected $casts = [
         'refunded_at' => 'datetime',
+        'restocked_at' => 'datetime',
     ];
+
+    protected static function booted()
+    {
+        // Item back at the warehouse (admin button or Shiprocket webhook) — restock once.
+        static::saved(function (ReturnOrder $return) {
+            if ($return->wasChanged('status') && $return->status === 'delivered') {
+                app(\App\Services\InventoryService::class)->restockReturn($return);
+            }
+        });
+    }
 
     public function order()
     {

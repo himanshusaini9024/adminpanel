@@ -192,21 +192,11 @@ class OrderController extends Controller
         ]);
 
         try {
-            $order = Order::with('cart.product')->findOrFail($id);
+            $order = Order::findOrFail($id);
             $previousStatus = $order->status;
 
-            // Update stock when order is delivered
+            // Stock is taken when the order is placed and returned on cancel (Order model hook).
             if ($validated['status'] == 'delivered' && $order->status != 'delivered') {
-                foreach ($order->cart as $cart) {
-                    $product = $cart->product;
-                    if ($product) {
-                        $product->stock -= $cart->quantity;
-                        if ($product->stock < 0) {
-                            $product->stock = 0;
-                        }
-                        $product->save();
-                    }
-                }
                 $order->delivered_at = $order->delivered_at ?: now();
             }
 

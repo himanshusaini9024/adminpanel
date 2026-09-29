@@ -131,6 +131,14 @@
         </div>
     </li>
 
+    {{-- Inventory --}}
+    <li class="nav-item">
+        <a class="nav-link" href="{{route('inventory.index')}}">
+          <i class="fas fa-warehouse"></i>
+          <span>Inventory</span>
+        </a>
+    </li>
+
     {{-- Shipping --}}
     <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#shippingCollapse" aria-expanded="true" aria-controls="shippingCollapse">

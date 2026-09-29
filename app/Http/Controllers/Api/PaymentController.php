@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use Razorpay\Api\Api;
 use App\Http\Controllers\Controller;
+use App\Exceptions\InsufficientStockException;
 use App\Services\CouponDiscountService;
 use App\Services\FirstOrderDiscountService;
+use App\Services\InventoryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -14,17 +16,37 @@ class PaymentController extends Controller
     public function createRazorpayOrder(
         Request $request,
         FirstOrderDiscountService $firstOrderDiscount,
-        CouponDiscountService $couponDiscount
+        CouponDiscountService $couponDiscount,
+        InventoryService $inventory
     ) {
         $customerId = Auth::guard('customer')->id();
 
         $data = $request->validate([
             'amount' => 'nullable|numeric|min:0',
             'items' => 'nullable|array',
+            'items.*.id' => 'nullable',
+            'items.*.size' => 'nullable|string|max:20',
+            'items.*.name' => 'nullable|string|max:255',
             'items.*.price' => 'nullable|numeric|min:0',
             'items.*.quantity' => 'nullable|integer|min:0',
             'coupon_code' => 'nullable|string|max:50',
         ]);
+
+        // Check stock before the customer pays.
+        try {
+            $inventory->assertAvailable(array_map(fn ($item) => [
+                'product_id' => $item['id'] ?? null,
+                'size' => $item['size'] ?? null,
+                'quantity' => $item['quantity'] ?? 0,
+                'name' => $item['name'] ?? null,
+            ], $data['items'] ?? []));
+        } catch (InsufficientStockException $e) {
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage(),
+                'shortages' => $e->shortages,
+            ], 422);
+        }
 
         $subTotal = isset($data['items']) && count($data['items'])
             ? $firstOrderDiscount->subtotalFromItems($data['items'])

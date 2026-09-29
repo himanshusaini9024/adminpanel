@@ -164,4 +164,14 @@ class Product extends Model
     {
         return $this->hasOne(Brand::class, 'id', 'brand_id');
     }
+
+    public function stocks()
+    {
+        return $this->hasMany(ProductStock::class);
+    }
+
+    public function inventoryMovements()
+    {
+        return $this->hasMany(InventoryMovement::class);
+    }
 }

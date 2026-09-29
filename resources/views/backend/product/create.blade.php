@@ -129,14 +129,8 @@
         </div>
 
         <div class="form-group">
-          <label for="size">Size</label>
-          <select name="size[]" class="form-control selectpicker" multiple data-live-search="true">
-              <option value="">--Select any size--</option>
-              <option value="S">Small (S)</option>
-              <option value="M">Medium (M)</option>
-              <option value="L">Large (L)</option>
-              <option value="XL">Extra Large (XL)</option>
-          </select>
+          <label>Sizes &amp; Stock <span class="text-danger">*</span></label>
+          @include('backend.product.partials.size-stock', ['productSizes' => '', 'stockMap' => []])
         </div>
 
         <div class="form-group">
@@ -178,14 +172,6 @@
       @endforeach
   </select>
 </div>
-
-        <div class="form-group">
-          <label for="stock">Quantity <span class="text-danger">*</span></label>
-          <input id="quantity" type="number" name="stock" min="0" placeholder="Enter quantity" value="{{old('stock')}}" class="form-control">
-          @error('stock')
-          <span class="text-danger">{{$message}}</span>
-          @enderror
-        </div>
 
         <hr>
         <h6 class="mb-3">Size Guide <small class="text-muted">(inch &amp; cm)</small></h6>

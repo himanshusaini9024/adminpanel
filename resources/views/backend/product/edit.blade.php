@@ -550,15 +550,11 @@
                     </div>
                     <div class="form-col">
                         <div class="form-group">
-                            <label>Size(s)</label>
-                            <select name="size[]" class="form-control" multiple>
-                                @php $sizes = explode(',', $product->size ?? ''); @endphp
-                                <option value="S"  {{ in_array('S',  $sizes) ? 'selected' : '' }}>Small (S)</option>
-                                <option value="M"  {{ in_array('M',  $sizes) ? 'selected' : '' }}>Medium (M)</option>
-                                <option value="L"  {{ in_array('L',  $sizes) ? 'selected' : '' }}>Large (L)</option>
-                                <option value="XL" {{ in_array('XL', $sizes) ? 'selected' : '' }}>Extra Large (XL)</option>
-                            </select>
-                            <small style="color:var(--muted);">Hold Ctrl/Cmd to select multiple</small>
+                            <label>Sizes &amp; Stock <span class="req">*</span></label>
+                            @include('backend.product.partials.size-stock', [
+                                'productSizes' => $product->size,
+                                'stockMap' => $stockMap ?? [],
+                            ])
                         </div>
                     </div>
                     <div class="form-col">
@@ -632,11 +628,9 @@
                     </div>
                     <div class="form-col">
                         <div class="form-group">
-                            <label>Stock / Quantity <span class="req">*</span></label>
-                            <input type="number" name="stock" class="form-control {{ $errors->has('stock') ? 'is-invalid' : '' }}"
-                                   placeholder="Quantity" min="0"
-                                   value="{{ old('stock', $product->stock) }}">
-                            @error('stock') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            <label>Stock / Quantity</label>
+                            <input type="text" class="form-control" value="{{ (int) $product->stock }} in stock" readonly>
+                            <small style="color:var(--muted);">Set stock per size in the Data tab (Sizes &amp; Stock).</small>
                         </div>
                     </div>
                 </div>
@@ -1220,10 +1214,9 @@ document.getElementById('addFaqBtn').addEventListener('click', function () {
 function validateProductForm() {
     const name  = document.querySelector('[name="product_description[1][name]"]');
     const price = document.querySelector('[name="price"]');
-    const stock = document.querySelector('[name="stock"]');
     let valid = true;
 
-    [name, price, stock].forEach(field => {
+    [name, price].forEach(field => {
         if (field && !field.value.trim()) {
             field.classList.add('is-invalid');
             valid = false;

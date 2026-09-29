@@ -3,14 +3,20 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\Brand;
+use App\Services\InventoryService;
 
 class ProductController extends Controller
 {
+    public function __construct(private InventoryService $inventory)
+    {
+    }
+
     public function index()
     {
         $products = Product::getAllProduct();
@@ -41,7 +47,8 @@ class ProductController extends Controller
             }],
             'description' => 'nullable|string',
             'size' => 'nullable',
-            'stock' => 'required|numeric',
+            'size_stock' => 'nullable|array',
+            'size_stock.*' => 'nullable|integer|min:0',
             'color' => 'required|string',
             'cat_id' => 'required|exists:categories,id',
             'brand_id' => 'nullable|exists:brands,id',
@@ -76,7 +83,8 @@ class ProductController extends Controller
             $this->buildSizeGuideFromRequest($request)
         );
 
-        unset($validatedData['size_guide_json']);
+        unset($validatedData['size_guide_json'], $validatedData['size_stock']);
+        $validatedData['stock'] = 0;
 
         $pricing = Product::normalizePricing(
             $validatedData['price'] ?? 0,
@@ -90,6 +98,7 @@ class ProductController extends Controller
         $product = Product::create($validatedData);
 
         if ($product) {
+            $this->saveSizeStock($request, $product);
             $this->revalidateStorefrontProduct($product->slug);
         }
 
@@ -119,6 +128,7 @@ class ProductController extends Controller
         $categories = Category::where('is_parent', 1)->get();
         $items = Product::where('id', $id)->get();
         $isCopy = true;
+        $stockMap = $this->inventory->stockMap($original);
 
         return view('backend.product.edit', compact(
             'product',
@@ -127,7 +137,8 @@ class ProductController extends Controller
             'brands',
             'categories',
             'items',
-            'isCopy'
+            'isCopy',
+            'stockMap'
         ));
     }
 
@@ -145,6 +156,7 @@ class ProductController extends Controller
         $categories = Category::where('is_parent', 1)->get();
         $items = Product::where('id', $id)->get();
         $isCopy = false;
+        $stockMap = $this->inventory->stockMap($product);
 
         return view('backend.product.edit', compact(
             'product',
@@ -153,7 +165,8 @@ class ProductController extends Controller
             'brands',
             'categories',
             'items',
-            'isCopy'
+            'isCopy',
+            'stockMap'
         ));
     }
 
@@ -166,6 +179,7 @@ class ProductController extends Controller
         $data = $this->buildFullProductPayload($request, $product->photo);
 
         $product->update($data);
+        $this->saveSizeStock($request, $product);
         $this->revalidateStorefrontProduct($product->slug);
 
         return redirect()->route('product.index')
@@ -200,11 +214,29 @@ class ProductController extends Controller
             $data['sku'] = $this->uniqueCopySku($data['sku']);
         }
 
+        $data['stock'] = 0;
         $product = Product::create($data);
+        $this->saveSizeStock($request, $product);
         $this->revalidateStorefrontProduct($product->slug);
 
         return redirect()->route('product.index')
             ->with('success', 'Product copied and created successfully.');
+    }
+
+    /**
+     * Save "Sizes & Stock" table (size_stock[S], size_stock[_none] when no sizes).
+     */
+    private function saveSizeStock(Request $request, Product $product): void
+    {
+        $input = (array) $request->input('size_stock', []);
+        $map = [];
+
+        foreach ($this->inventory->sizesFor($product->fresh()) as $size) {
+            $key = $size === '' ? '_none' : $size;
+            $map[$size] = (int) ($input[$key] ?? 0);
+        }
+
+        $this->inventory->setStock($product, $map, Auth::id(), 'Product form');
     }
 
     private function validateFullProductForm(Request $request): void
@@ -244,7 +276,8 @@ class ProductController extends Controller
             'price'         => 'required|numeric|min:0',
             'discount'      => 'nullable|numeric|min:0|max:100',
             'special_price' => 'nullable|numeric|min:0',
-            'stock'         => 'required|numeric|min:0',
+            'size_stock'    => 'nullable|array',
+            'size_stock.*'  => 'nullable|integer|min:0',
             'sort_order'    => 'nullable|integer|min:0',
 
             'photo'       => 'nullable|array',
@@ -335,7 +368,6 @@ class ProductController extends Controller
             'price'         => $pricing['price'],
             'special_price' => $pricing['special_price'],
             'discount'      => $pricing['discount'],
-            'stock'        => $request->input('stock'),
             'photo'        => $photo,
             'slug'        => $data['slug'],
             'measurements' => json_encode($measurements),

@@ -217,6 +217,9 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin']], function 
     Route::resource('category', App\Http\Controllers\CategoryController::class);
     Route::resource('product', App\Http\Controllers\ProductController::class);
     Route::get('product/{id}/copy', [App\Http\Controllers\ProductController::class, 'copy'])->name('product.copy');
+    Route::get('inventory', [App\Http\Controllers\InventoryController::class, 'index'])->name('inventory.index');
+    Route::get('inventory/history', [App\Http\Controllers\InventoryController::class, 'history'])->name('inventory.history');
+    Route::post('inventory/{id}', [App\Http\Controllers\InventoryController::class, 'update'])->name('inventory.update');
     Route::get('settings', [AdminController::class, 'settings'])->name('settings');
     Route::get('change-password', [AdminController::class, 'changePassword'])->name('change.password.form');
     Route::post('change-password', [AdminController::class, 'changPasswordStore'])->name('change.password');

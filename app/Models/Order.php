@@ -41,9 +41,30 @@ class Order extends Model
     protected $casts = [
         'expected_delivery_date' => 'date',
         'delivered_at'           => 'datetime',
+        'stock_deducted_at'      => 'datetime',
+        'stock_restored_at'      => 'datetime',
     ];
 
     protected $appends = ['can_update_address'];
+
+    protected static function booted()
+    {
+        // Cancelling gives stock back; un-cancelling takes it again (whatever screen/webhook changed it).
+        static::updated(function (Order $order) {
+            if (!$order->wasChanged('status')) {
+                return;
+            }
+
+            $inventory = app(\App\Services\InventoryService::class);
+            $from = $order->getOriginal('status');
+
+            if ($order->status === 'cancel' && $from !== 'cancel') {
+                $inventory->restoreForOrder($order);
+            } elseif ($from === 'cancel' && $order->status !== 'cancel' && $order->stock_restored_at) {
+                $inventory->deductForOrder($order, false, 'order_reinstated');
+            }
+        });
+    }
 
     public function getCanUpdateAddressAttribute(): bool
     {

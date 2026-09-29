@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\InventoryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -68,6 +69,9 @@ class CategoryController extends Controller
         // ✅ GET DATA
         $result = $products->get();
 
+        $inventory = app(InventoryService::class);
+        $stockMaps = $inventory->stockMapsFor($result);
+
         // ✅ FORMAT RESPONSE
         $formatted = [];
         $catbanner = null;
@@ -99,6 +103,9 @@ class CategoryController extends Controller
                 $item->special_price
             );
 
+            $stockMap = $stockMaps[$item->id] ?? [];
+            $available = $inventory->totalAvailable($stockMap);
+
             $formatted[] = [
                 'id' => $item->id,
                 'name' => $item->name,
@@ -115,6 +122,9 @@ class CategoryController extends Controller
                 'color' => $item->color,
                 'sort_order' => $item->sort_order,
                 'image' => array_values($images),
+                'quantityAvailable' => $available,
+                'inStock' => $available > 0,
+                'sizeStock' => $inventory->sizeStockPayload($stockMap),
             ];
         }
 

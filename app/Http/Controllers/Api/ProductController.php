@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Services\InventoryService;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
@@ -63,6 +64,10 @@ public function index()
             $product->special_price
         );
 
+        $inventory = app(InventoryService::class);
+        $stockMap = $inventory->stockMap($product);
+        $available = $inventory->totalAvailable($stockMap);
+
         return response()->json([
             'id' => (string) $product->id,
             'name' => $product->title,
@@ -72,7 +77,9 @@ public function index()
             'mrp' => (float) $pricing['price'],
             'special_price' => (float) $pricing['special_price'],
             'discount' => (float) $pricing['discount'],
-            'quantityAvailable' => (int) $product->stock,
+            'quantityAvailable' => $available,
+            'inStock' => $available > 0,
+            'sizeStock' => $inventory->sizeStockPayload($stockMap),
             'category' => $product->cat_info->title ?? '',
 
             'currentPrice' => (float) $pricing['special_price'],
@@ -98,6 +105,33 @@ public function index()
                     'punctuation' => (int) $review->rate,
                 ];
             })->values()
+        ])->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    }
+
+    /**
+     * Live stock check for the storefront cart/checkout.
+     * Body: { items: [{ id, size, quantity, name? }] }
+     */
+    public function cartStock(Request $request, InventoryService $inventory)
+    {
+        $data = $request->validate([
+            'items' => 'present|array|max:100',
+            'items.*.id' => 'required',
+            'items.*.size' => 'nullable|string|max:20',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.name' => 'nullable|string|max:255',
+        ]);
+
+        $lines = $inventory->checkLines(array_map(fn ($item) => [
+            'product_id' => $item['id'],
+            'size' => $item['size'] ?? null,
+            'quantity' => $item['quantity'],
+            'name' => $item['name'] ?? null,
+        ], $data['items']));
+
+        return response()->json([
+            'ok' => collect($lines)->every(fn ($line) => $line['ok']),
+            'items' => $lines,
         ])->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
     }
 

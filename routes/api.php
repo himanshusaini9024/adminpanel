@@ -36,6 +36,7 @@ Route::get('/search', [HomepageController::class, 'search']);
 
 Route::get('/category/{slug}', [CategoryController::class, 'show']);
 Route::get('/product/{pid}', [ProductController::class, 'show']);
+Route::post('/cart/stock', [ProductController::class, 'cartStock']);
 Route::post('/contact', [ContactController::class, 'store']);
 Route::get('/products', [ProductController::class, 'index']);
 
