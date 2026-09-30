@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -27,14 +28,42 @@ class ShiprocketService
         )) ?: 'Home';
     }
 
-    public function login()
+    /**
+     * Shiprocket API token, cached for 9 days (tokens last 10). The cache key includes the
+     * credentials, so changing them in .env picks up a fresh token straight away.
+     * After a failed login the same credentials are not retried for 15 minutes: Shiprocket
+     * blocks the account after repeated failures.
+     */
+    public function login(): string
     {
-        $response = Http::post($this->baseUrl . '/auth/login', [
-            'email' => $this->email,
-            'password' => $this->password,
-        ]);
+        $cacheKey = 'shiprocket_token_' . md5($this->baseUrl . '|' . $this->email . '|' . $this->password);
+        $failedKey = $cacheKey . '_failed';
 
-        return $response->json()['token'];
+        if ($lastFailure = Cache::get($failedKey)) {
+            throw new \RuntimeException('Shiprocket login failed: ' . $lastFailure . ' (not retrying for 15 minutes)');
+        }
+
+        return Cache::remember($cacheKey, now()->addDays(9), function () use ($failedKey) {
+            $response = Http::post($this->baseUrl . '/auth/login', [
+                'email' => $this->email,
+                'password' => $this->password,
+            ]);
+
+            $token = $response->json('token');
+            if (!$response->successful() || !$token) {
+                $reason = $response->json('message') ?: ('HTTP ' . $response->status());
+                Log::error('Shiprocket login failed', [
+                    'status' => $response->status(),
+                    'message' => $reason,
+                    'email' => $this->email,
+                ]);
+                Cache::put($failedKey, $reason, now()->addMinutes(15));
+
+                throw new \RuntimeException('Shiprocket login failed: ' . $reason);
+            }
+
+            return $token;
+        });
     }
 
     /**

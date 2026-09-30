@@ -123,7 +123,11 @@ class ReturnController extends Controller
         }
 
         $shiprocket = new ShiprocketService();
-        $response = $shiprocket->createReturn($return, $sku);
+        try {
+            $response = $shiprocket->createReturn($return, $sku);
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
 
         $statusCode = (int) ($response['status_code'] ?? 0);
         $success = !empty($response['shipment_id'])
