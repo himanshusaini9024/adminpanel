@@ -115,7 +115,7 @@ class ShiprocketService
             "billing_pincode" => $order->post_code,
             "billing_state" => $order->state,
             "billing_country" => "India",
-            "billing_email" => $order->email,
+            "billing_email" => $order->email ?: config('mail.from.address'),
             "billing_phone" => $order->phone,
             'shipping_is_billing' => true,
 
@@ -127,7 +127,7 @@ class ShiprocketService
             "shipping_pincode" => $order->post_code,
             "shipping_state" => $order->state,
             "shipping_country" => "India",
-            "shipping_email" => $order->email,
+            "shipping_email" => $order->email ?: config('mail.from.address'),
             "shipping_phone" => $order->phone,
 
             "order_items" => $items,

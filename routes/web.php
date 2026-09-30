@@ -230,6 +230,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin']], function 
     Route::resource('message', MessageController::class);
     Route::get('/message/five', [MessageController::class, 'messageFive'])->name('messages.five');
 
+    Route::get('manual-order/create', [App\Http\Controllers\ManualOrderController::class, 'create'])->name('manual-order.create');
+    Route::post('manual-order', [App\Http\Controllers\ManualOrderController::class, 'store'])->name('manual-order.store');
+    Route::post('order/{id}/mark-paid', [App\Http\Controllers\ManualOrderController::class, 'markPaid'])->name('order.mark-paid');
+    Route::get('order/{id}/payment-proof', [App\Http\Controllers\ManualOrderController::class, 'paymentProof'])->name('order.payment-proof');
     Route::resource('order', OrderController::class);
     Route::resource('shipping', App\Http\Controllers\ShippingController::class);
     Route::resource('coupon', CouponController::class);

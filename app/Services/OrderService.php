@@ -103,9 +103,14 @@ class OrderService
                 'post_code'           => $data['pincode'] ?? null,
                 'order_type'          => $orderType,
                 'parent_order_id'     => $data['parent_order_id'] ?? null,
+                'order_source'        => $data['order_source'] ?? 'website',
+                'payment_reference'   => $data['payment_reference'] ?? null,
+                'payment_proof'       => $data['payment_proof'] ?? null,
+                'paid_at'             => $data['paid_at'] ?? null,
+                'admin_note'          => $data['admin_note'] ?? null,
             ]);
 
-            $order->order_number = env('ORDER_SERIES') + $order->id;
+            $order->order_number = $this->nextOrderNumber();
             $order->save();
 
             if ($couponResult['applied'] && $customerId && $couponResult['coupon_id']) {
@@ -115,8 +120,6 @@ class OrderService
                     (int) $order->id
                 );
             }
-
-            $shiprocketItems = [];
 
             foreach ($items as $item) {
                 OrderItem::create([
@@ -131,38 +134,11 @@ class OrderService
                     'size'         => $item['size'] ?? null,
                     'color'        => $item['color'] ?? null,
                 ]);
-
-                $shiprocketItems[] = [
-                    'name'          => $item['name'],
-                    'sku'           => $item['sku'] . '-' . ($item['size'] ?? ''),
-                    'units'         => $item['quantity'],
-                    'selling_price' => $item['price'],
-                ];
             }
 
-            if (env('SHIPMENT_LIVE', false)) {
-                try {
-                    $shiprocketResponse = $this->shiprocket->createOrder($order, $shiprocketItems);
-
-                    Log::info('Shiprocket Response', ['response' => $shiprocketResponse]);
-
-                    if (isset($shiprocketResponse['shipment_id'])) {
-                        $order->shipment_id = $shiprocketResponse['shipment_id'];
-                        if (!empty($shiprocketResponse['awb_code'])) {
-                            $order->awb_code = $shiprocketResponse['awb_code'];
-                        }
-                        $order->shipping_status = $shiprocketResponse['status'] ?? 'NEW';
-                        $order->save();
-                    }
-                } catch (\Throwable $shipEx) {
-                    // Keep a valid local order even if shipping sync fails.
-                    Log::error('Shiprocket create failed (order kept)', [
-                        'order_id' => $order->id,
-                        'message'  => $shipEx->getMessage(),
-                    ]);
-                }
-            } else {
-                Log::info('Shiprocket disabled');
+            // Unpaid bank-transfer orders are booked with the courier only once marked paid.
+            if (empty($data['hold_shipment'])) {
+                $this->pushToShiprocket($order);
             }
 
             DB::commit();
@@ -179,5 +155,67 @@ class OrderService
 
             throw $e;
         }
+    }
+
+    /**
+     * Next number after the highest existing one (never below ORDER_SERIES). Must run inside the
+     * order transaction: the row lock serialises concurrent orders, and a rolled-back order
+     * releases its number instead of leaving a gap the way auto-increment ids do.
+     */
+    private function nextOrderNumber(): int
+    {
+        $last = (int) Order::query()
+            ->whereNotNull('order_number')
+            ->lockForUpdate()
+            ->max(DB::raw('CAST(order_number AS UNSIGNED)'));
+
+        return max($last, (int) env('ORDER_SERIES', 0)) + 1;
+    }
+
+    /**
+     * Book the order with Shiprocket (when SHIPMENT_LIVE). Failures are logged and the
+     * local order is kept. Returns true when Shiprocket accepted the order.
+     */
+    public function pushToShiprocket(Order $order): bool
+    {
+        if (!env('SHIPMENT_LIVE', false)) {
+            Log::info('Shiprocket disabled');
+            return false;
+        }
+
+        if ($order->shipment_id) {
+            return true;
+        }
+
+        $shiprocketItems = $order->items()->get()->map(fn ($item) => [
+            'name'          => $item->name,
+            'sku'           => $item->sku . '-' . ($item->size ?? ''),
+            'units'         => $item->quantity,
+            'selling_price' => $item->price,
+        ])->all();
+
+        try {
+            $shiprocketResponse = $this->shiprocket->createOrder($order, $shiprocketItems);
+
+            Log::info('Shiprocket Response', ['response' => $shiprocketResponse]);
+
+            if (isset($shiprocketResponse['shipment_id'])) {
+                $order->shipment_id = $shiprocketResponse['shipment_id'];
+                if (!empty($shiprocketResponse['awb_code'])) {
+                    $order->awb_code = $shiprocketResponse['awb_code'];
+                }
+                $order->shipping_status = $shiprocketResponse['status'] ?? 'NEW';
+                $order->save();
+
+                return true;
+            }
+        } catch (\Throwable $shipEx) {
+            Log::error('Shiprocket create failed (order kept)', [
+                'order_id' => $order->id,
+                'message'  => $shipEx->getMessage(),
+            ]);
+        }
+
+        return false;
     }
 }

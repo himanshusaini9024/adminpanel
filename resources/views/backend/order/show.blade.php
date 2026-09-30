@@ -8,6 +8,37 @@
      <!-- <a href="{{route('order.pdf',$order->id)}}" class=" btn btn-sm btn-primary shadow-sm float-right"><i class="fas fa-download fa-sm text-white-50"></i> Generate PDF</a> -->
   </h5>
   <div class="card-body">
+    @include('backend.layouts.notification')
+    @if($errors->any())
+      <div class="alert alert-danger">{{ $errors->first() }}</div>
+    @endif
+
+    @if($order && $order->isAwaitingBankPayment())
+    <div class="alert alert-warning">
+      <h6 class="font-weight-bold mb-2">Waiting for bank transfer</h6>
+      <p class="mb-3">This order has not been sent to Shiprocket yet. Once the money is in your account, record it here and it is booked for delivery.</p>
+      <form method="POST" action="{{ route('order.mark-paid', $order->id) }}" enctype="multipart/form-data" class="form-row align-items-end"
+            onsubmit="this.querySelector('button[type=submit]').disabled = true;">
+        @csrf
+        <div class="form-group col-md-3 mb-2">
+          <label class="small mb-1">UTR / transaction reference <span class="text-danger">*</span></label>
+          <input type="text" name="payment_reference" value="{{ old('payment_reference') }}" class="form-control form-control-sm" required>
+        </div>
+        <div class="form-group col-md-3 mb-2">
+          <label class="small mb-1">Payment date</label>
+          <input type="datetime-local" name="paid_at" class="form-control form-control-sm">
+        </div>
+        <div class="form-group col-md-3 mb-2">
+          <label class="small mb-1">Payment screenshot</label>
+          <input type="file" name="payment_proof" class="form-control-file" accept="image/*,application/pdf">
+        </div>
+        <div class="form-group col-md-3 mb-2">
+          <button type="submit" class="btn btn-success btn-sm btn-block">Mark as paid</button>
+        </div>
+      </form>
+    </div>
+    @endif
+
     @if($order)
     <table class="table table-striped table-hover">
       <thead>
@@ -87,13 +118,37 @@
                         <td> : ₹ {{number_format($order->total_amount,2)}}</td>
                     </tr>
                     <tr>
+                        <td>Order Source</td>
+                        <td> : {{ $order->source_label }}</td>
+                    </tr>
+                    <tr>
                         <td>Payment Method</td>
-                        <td> : @if($order->payment_method=='cod') Cash on Delivery @else online @endif</td>
+                        <td> : {{ $order->payment_method_label }}</td>
                     </tr>
                     <tr>
                         <td>Payment Status</td>
-                        <td> : {{$order->payment_status}}</td>
+                        <td> : {{$order->payment_status}}
+                          @if($order->paid_at) ({{ $order->paid_at->format('d M Y, g:i a') }}) @endif
+                        </td>
                     </tr>
+                    @if($order->payment_reference)
+                    <tr>
+                        <td>UTR / Reference</td>
+                        <td> : <code>{{ $order->payment_reference }}</code></td>
+                    </tr>
+                    @endif
+                    @if($order->payment_proof)
+                    <tr>
+                        <td>Payment Screenshot</td>
+                        <td> : <a href="{{ route('order.payment-proof', $order->id) }}" target="_blank" rel="noopener">View</a></td>
+                    </tr>
+                    @endif
+                    @if($order->admin_note)
+                    <tr>
+                        <td>Internal Note</td>
+                        <td> : {!! nl2br(e($order->admin_note)) !!}</td>
+                    </tr>
+                    @endif
               </table>
             </div>
           </div>

@@ -99,7 +99,7 @@
                         <td style="padding:18px 10px;text-align:center;">
                           <div style="font-size:20px;line-height:1;margin-bottom:8px;">&#128179;</div>
                           <div style="font-size:13px;font-weight:bold;color:#0b1f17;">
-                            {{ ucfirst($order->payment_method) }}
+                            {{ $order->payment_method_label }}
                           </div>
                         </td>
                       </tr>
@@ -189,7 +189,7 @@
                       <tr>
                         <td style="padding:6px 0;color:#555;font-size:15px;">Payment Method</td>
                         <td style="padding:6px 0;color:#111;font-size:15px;text-align:right;font-weight:bold;">
-                          {{ ucfirst($order->payment_method) }}
+                          {{ $order->payment_method_label }}
                         </td>
                       </tr>
                       <tr>
