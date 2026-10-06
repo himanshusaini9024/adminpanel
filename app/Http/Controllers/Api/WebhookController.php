@@ -8,6 +8,9 @@ use App\Models\Order;
 use App\Models\ReturnOrder;
 use App\Services\ShiprocketService;
 use App\Jobs\OrderStatusNotificationJob;
+use App\Models\User;
+use App\Notifications\StatusNotification;
+use Illuminate\Support\Facades\Notification;
 
 class WebhookController extends Controller
 {
@@ -99,7 +102,18 @@ class WebhookController extends Controller
             }
         }
 
-        $mapped = $this->mapShiprocketStatus((string) $status, $awb, $hadAwb);
+        $statusId = $data['current_status_id'] ?? ($data['shipment_status_id'] ?? null);
+        $mapped = $this->mapShiprocketStatus((string) $status, $statusId, $awb, $hadAwb);
+
+        if ($mapped['order_status'] && !$order->canMoveToStatus($mapped['order_status'])) {
+            \Log::info('Shiprocket webhook status ignored (would move order backwards)', [
+                'order_id' => $order->id,
+                'current' => $order->status,
+                'incoming' => $mapped['order_status'],
+                'shiprocket_status' => $status,
+            ]);
+            $mapped = ['order_status' => null, 'event' => null];
+        }
 
         if ($mapped['order_status']) {
             $order->status = $mapped['order_status'];
@@ -108,8 +122,23 @@ class WebhookController extends Controller
         if ($mapped['order_status'] === 'delivered' && empty($order->delivered_at)) {
             $order->delivered_at = now();
         }
+        if (in_array($mapped['order_status'], ['rto', 'rto_delivered'], true) && empty($order->rto_initiated_at)) {
+            $order->rto_initiated_at = now();
+        }
+        if ($mapped['order_status'] === 'rto_delivered' && empty($order->rto_delivered_at)) {
+            $order->rto_delivered_at = now();
+        }
+
+        $remark = $this->courierRemark($data);
+        if ($remark !== null) {
+            $order->courier_remark = $remark;
+        }
 
         $order->save();
+
+        if ($order->status !== $previousStatus) {
+            $this->alertAdmin($order);
+        }
 
         // Optional tracking enrichment
         if (!empty($order->awb_code)) {
@@ -247,7 +276,8 @@ class WebhookController extends Controller
             ?? ''
         ));
 
-        if ($status !== '' && str_starts_with($status, 'RETURN')) {
+        // "RETURN TO ORIGIN" is an undelivered forward parcel coming back (RTO), not a customer return.
+        if ($status !== '' && str_starts_with($status, 'RETURN') && !str_contains($status, 'ORIGIN')) {
             return true;
         }
 
@@ -428,14 +458,65 @@ class WebhookController extends Controller
     }
 
     /**
+     * Map a Shiprocket forward-shipment status to our order status + customer event.
+     * Order matters: "UNDELIVERED" and "RTO DELIVERED" both contain "DELIVERED".
+     *
      * @return array{order_status:?string,event:?string}
      */
-    private function mapShiprocketStatus(string $status, ?string $awb, bool $hadAwb): array
+    private function mapShiprocketStatus(string $status, $statusId, ?string $awb, bool $hadAwb): array
     {
-        $s = strtoupper(trim($status));
+        $s = preg_replace('/\s+/', ' ', strtoupper(trim(str_replace(['_', '-'], ' ', $status))));
+
+        // Only status text is reliable across courier payloads; numeric ids are a fallback.
+        if ($s === '' && is_numeric($statusId)) {
+            $s = match ((int) $statusId) {
+                7 => 'DELIVERED',
+                9 => 'RTO INITIATED',
+                10, 14 => 'RTO DELIVERED',
+                12 => 'LOST',
+                17 => 'OUT FOR DELIVERY',
+                21 => 'UNDELIVERED',
+                24 => 'DESTROYED',
+                25 => 'DAMAGED',
+                default => '',
+            };
+        }
+
+        $isRto = preg_match('/^RTO\b/', $s) || str_contains($s, 'RETURN TO ORIGIN');
+
+        // Undelivered parcel is back at our warehouse
+        if ($isRto && preg_match('/DELIVERED|ACKNOWLEDGED|RECEIVED/', $s)) {
+            return ['order_status' => 'rto_delivered', 'event' => null];
+        }
+
+        // RTO initiated / in transit / out for delivery to warehouse / RTO NDR
+        if ($isRto) {
+            return ['order_status' => 'rto', 'event' => 'rto_initiated'];
+        }
+
+        // Delivery attempt failed (NDR) — courier normally retries
+        if (
+            str_contains($s, 'UNDELIVERED')
+            || str_contains($s, 'NOT DELIVERED')
+            || str_contains($s, 'DELIVERY FAILED')
+            || str_contains($s, 'FAILED DELIVERY')
+            || preg_match('/\bNDR\b/', $s)
+        ) {
+            return ['order_status' => 'undelivered', 'event' => 'undelivered'];
+        }
+
+        if (preg_match('/\b(LOST|DAMAGED|DESTROYED|DISPOSED)\b/', $s)) {
+            return ['order_status' => 'lost', 'event' => null];
+        }
+
+        // Shipment cancelled in Shiprocket (often to re-book with another courier):
+        // shipping_status records it, the order itself stays as it is.
+        if (str_contains($s, 'CANCEL')) {
+            return ['order_status' => null, 'event' => null];
+        }
 
         // Delivered
-        if (str_contains($s, 'DELIVERED') || $s === 'DLVRD') {
+        if ((str_contains($s, 'DELIVERED') && !str_contains($s, 'PARTIAL')) || $s === 'DLVRD') {
             return ['order_status' => 'delivered', 'event' => 'delivered'];
         }
 
@@ -487,7 +568,61 @@ class WebhookController extends Controller
             'out_for_delivery' => $previousStatus !== 'out_for_delivery'
                 && $previousStatus !== 'delivered',
             'delivered' => $previousStatus !== 'delivered',
+            // Once per failed attempt (courier goes out again in between)
+            'undelivered' => $previousStatus !== 'undelivered',
+            'rto_initiated' => !in_array($previousStatus, ['rto', 'rto_delivered'], true),
             default => false,
         };
+    }
+
+    /**
+     * Latest courier remark, e.g. "Customer not available" / "Address incomplete".
+     */
+    private function courierRemark(array $data): ?string
+    {
+        $scans = $data['scans'] ?? null;
+        $lastScan = is_array($scans) && $scans !== [] ? end($scans) : null;
+
+        $remark = $data['ndr_reason']
+            ?? $data['remarks']
+            ?? (is_array($lastScan) ? ($lastScan['activity'] ?? null) : null);
+
+        $remark = trim((string) $remark);
+
+        return $remark === '' ? null : mb_substr($remark, 0, 255);
+    }
+
+    /**
+     * Bell notification in the admin panel for courier problems that need action.
+     */
+    private function alertAdmin(Order $order): void
+    {
+        $title = match ($order->status) {
+            'undelivered' => "Delivery failed for order #{$order->order_number}",
+            'rto' => "Order #{$order->order_number} is returning to warehouse (RTO)",
+            'rto_delivered' => "RTO order #{$order->order_number} is back at the warehouse",
+            'lost' => "Order #{$order->order_number} reported lost/damaged by courier",
+            default => null,
+        };
+
+        if (!$title) {
+            return;
+        }
+
+        try {
+            $admin = User::where('role', 'admin')->first();
+            if ($admin) {
+                Notification::send($admin, new StatusNotification([
+                    'title' => $title,
+                    'actionURL' => route('order.show', $order->id),
+                    'fas' => 'fa-truck',
+                ]));
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Admin alert failed for Shiprocket webhook', [
+                'order_id' => $order->id,
+                'message' => $e->getMessage(),
+            ]);
+        }
     }
 }

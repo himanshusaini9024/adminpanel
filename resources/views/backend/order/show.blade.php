@@ -8,6 +8,34 @@
      <!-- <a href="{{route('order.pdf',$order->id)}}" class=" btn btn-sm btn-primary shadow-sm float-right"><i class="fas fa-download fa-sm text-white-50"></i> Generate PDF</a> -->
   </h5>
   <div class="card-body">
+    @if($order && in_array($order->status, ['undelivered', 'rto', 'rto_delivered', 'lost'], true))
+      @php $prepaid = $order->payment_status === 'paid' && $order->payment_method !== 'cod'; @endphp
+      <div class="alert {{ $order->status === 'undelivered' ? 'alert-warning' : 'alert-danger' }}">
+        <h6 class="font-weight-bold mb-1">{{ $order->status_label }}</h6>
+        @if($order->courier_remark)
+          <p class="mb-1">Courier remark: <strong>{{ $order->courier_remark }}</strong></p>
+        @endif
+        <p class="mb-0">
+          @switch($order->status)
+            @case('undelivered')
+              The courier will retry. Contact the customer and, if needed, update the address or reattempt
+              date in Shiprocket (NDR section) before it turns into an RTO.
+              @break
+            @case('rto')
+              The parcel is coming back to the warehouse. The customer has been informed.
+              @break
+            @case('rto_delivered')
+              The parcel is back at the warehouse. Check the product, then
+              {{ $prepaid ? 'refund the customer or re-ship the order (paid online).' : 'cancel the order or re-ship it if the customer still wants it (COD: no payment was collected).' }}
+              @break
+            @case('lost')
+              Raise a claim with Shiprocket and arrange a replacement or refund for the customer.
+              @break
+          @endswitch
+        </p>
+      </div>
+    @endif
+
     @if($order)
     <table class="table table-striped table-hover">
       <thead>
@@ -31,15 +59,7 @@
             <td>{{$order->quantity}}</td>
             <td>₹{{number_format($order->total_amount,2)}}</td>
             <td>
-                @if($order->status=='new')
-                  <span class="badge badge-primary">{{$order->status}}</span>
-                @elseif($order->status=='process')
-                  <span class="badge badge-warning">{{$order->status}}</span>
-                @elseif($order->status=='delivered')
-                  <span class="badge badge-success">{{$order->status}}</span>
-                @else
-                  <span class="badge badge-danger">{{$order->status}}</span>
-                @endif
+                @include('backend.order.partials.status-badge', ['order' => $order])
             </td>
             <td>
                 <a href="{{route('order.edit',$order->id)}}" class="btn btn-primary btn-sm float-left mr-1" style="height:30px; width:30px;border-radius:50%" data-toggle="tooltip" title="edit" data-placement="bottom"><i class="fas fa-edit"></i></a>
@@ -75,8 +95,36 @@
                     </tr>
                     <tr>
                         <td>Order Status</td>
-                        <td> : {{$order->status}}</td>
+                        <td> : {{ $order->status_label }}</td>
                     </tr>
+                    @if($order->shipping_status || $order->awb_code)
+                    <tr>
+                        <td>Courier</td>
+                        <td> : {{ $order->courier_name ?: '—' }} @if($order->awb_code) (AWB <code>{{ $order->awb_code }}</code>) @endif</td>
+                    </tr>
+                    <tr>
+                        <td>Shiprocket Status</td>
+                        <td> : {{ $order->shipping_status ?: '—' }}</td>
+                    </tr>
+                    @endif
+                    @if($order->courier_remark)
+                    <tr>
+                        <td>Courier Remark</td>
+                        <td> : {{ $order->courier_remark }}</td>
+                    </tr>
+                    @endif
+                    @if($order->rto_initiated_at)
+                    <tr>
+                        <td>RTO Started</td>
+                        <td> : {{ $order->rto_initiated_at->format('d M Y, g:i a') }}</td>
+                    </tr>
+                    @endif
+                    @if($order->rto_delivered_at)
+                    <tr>
+                        <td>Back at Warehouse</td>
+                        <td> : {{ $order->rto_delivered_at->format('d M Y, g:i a') }}</td>
+                    </tr>
+                    @endif
                  
                     <tr>
                       <td>Coupon</td>

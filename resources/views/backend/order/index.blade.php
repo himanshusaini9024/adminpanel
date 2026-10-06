@@ -57,15 +57,7 @@
                     <td>@foreach($shipping_charge as $data) $ {{number_format($data,2)}} @endforeach</td>
                     <td>₹{{number_format($order->total_amount,2)}}</td>
                     <td>
-                        @if($order->status=='new')
-                          <span class="badge badge-primary">{{$order->status}}</span>
-                        @elseif($order->status=='process')
-                          <span class="badge badge-warning">{{$order->status}}</span>
-                        @elseif($order->status=='delivered')
-                          <span class="badge badge-success">{{$order->status}}</span>
-                        @else
-                          <span class="badge badge-danger">{{$order->status}}</span>
-                        @endif
+                        @include('backend.order.partials.status-badge', ['order' => $order])
                     </td>
                     <td>{{$order->created_at}}</td>
                     <td>

@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Mail;
 /**
  * Notify customer by email + WhatsApp + Web Push when order shipping status changes.
  *
- * Events: shipment_booked | out_for_delivery | delivered
+ * Events: shipment_booked | out_for_delivery | delivered | undelivered | rto_initiated
  */
 class OrderStatusNotificationJob implements ShouldQueue
 {
@@ -57,6 +57,9 @@ class OrderStatusNotificationJob implements ShouldQueue
      * - order_shipped: Hi {{1}}, ... order {{2}} ... Tracking {{3}} ... Track: {{4}}
      * - out_for_delivery: Hi {{1}}, your order #{{2}} is out for delivery
      * - order_delivered: Hi {{1}}, your order #{{2}} has been delivered. Thank you!
+     * - order_undelivered: Hi {{1}}, we couldn't deliver your order #{{2}} today ...
+     * - order_rto: Hi {{1}}, your order #{{2}} could not be delivered and is being returned ...
+     * Until a template is approved in Meta, the text fallback below is used.
      *
      * @return array{subject:string,view:string,wa_template:string,wa_params:array}|null
      */
@@ -87,6 +90,20 @@ class OrderStatusNotificationJob implements ShouldQueue
                 'subject' => "Your order #{$orderNo} has been delivered",
                 'view' => 'emails.order-delivered',
                 'wa_template' => config('services.whatsapp.delivered_template', 'order_delivered'),
+                // Meta: {{1}} name, {{2}} order
+                'wa_params' => [$name, $orderLabel],
+            ],
+            'undelivered' => [
+                'subject' => "We couldn't deliver your order #{$orderNo}",
+                'view' => 'emails.order-undelivered',
+                'wa_template' => config('services.whatsapp.undelivered_template', 'order_undelivered'),
+                // Meta: {{1}} name, {{2}} order
+                'wa_params' => [$name, $orderLabel],
+            ],
+            'rto_initiated' => [
+                'subject' => "Your order #{$orderNo} is being returned to us",
+                'view' => 'emails.order-rto',
+                'wa_template' => config('services.whatsapp.rto_template', 'order_rto'),
                 // Meta: {{1}} name, {{2}} order
                 'wa_params' => [$name, $orderLabel],
             ],
@@ -204,6 +221,8 @@ class OrderStatusNotificationJob implements ShouldQueue
             'shipment_booked' => "Hi {$name}, your Dhirago order #{$orderNo} has been shipped. Tracking/AWB: {$awb}. We'll update you when it's out for delivery.",
             'out_for_delivery' => "Hi {$name}, your Dhirago order #{$orderNo} is out for delivery via {$courier}. Please keep your phone reachable.",
             'delivered' => "Hi {$name}, your Dhirago order #{$orderNo} has been delivered. Thank you for shopping with us!",
+            'undelivered' => "Hi {$name}, {$courier} could not deliver your Dhirago order #{$orderNo} today. They will try again; please keep your phone reachable. Reply here if you need to update your address or delivery time.",
+            'rto_initiated' => "Hi {$name}, your Dhirago order #{$orderNo} could not be delivered and is being returned to us. Reply here and our team will help you with re-delivery or next steps.",
             default => "Hi {$name}, your Dhirago order #{$orderNo} status has been updated.",
         };
     }
@@ -223,6 +242,8 @@ class OrderStatusNotificationJob implements ShouldQueue
                 'shipment_booked' => 'Your order #' . $order->order_number . ' has been shipped.',
                 'out_for_delivery' => 'Your order #' . $order->order_number . ' is out for delivery.',
                 'delivered' => 'Your order #' . $order->order_number . ' has been delivered.',
+                'undelivered' => 'Delivery of order #' . $order->order_number . ' failed. The courier will try again.',
+                'rto_initiated' => 'Order #' . $order->order_number . ' could not be delivered and is being returned to us.',
                 default => $config['subject'],
             };
 

@@ -188,7 +188,7 @@ class OrderController extends Controller
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
-            'status' => 'required|in:new,process,shipped,out_for_delivery,delivered,cancel'
+            'status' => ['required', \Illuminate\Validation\Rule::in(array_keys(Order::STATUS_LABELS))],
         ]);
 
         try {
@@ -210,6 +210,13 @@ class OrderController extends Controller
                 $order->delivered_at = $order->delivered_at ?: now();
             }
 
+            if (in_array($validated['status'], ['rto', 'rto_delivered'], true)) {
+                $order->rto_initiated_at = $order->rto_initiated_at ?: now();
+            }
+            if ($validated['status'] === 'rto_delivered') {
+                $order->rto_delivered_at = $order->rto_delivered_at ?: now();
+            }
+
             $order->status = $validated['status'];
             $order->save();
 
@@ -219,6 +226,8 @@ class OrderController extends Controller
                     'shipped' => 'shipment_booked',
                     'out_for_delivery' => 'out_for_delivery',
                     'delivered' => 'delivered',
+                    'undelivered' => 'undelivered',
+                    'rto' => $previousStatus === 'rto_delivered' ? null : 'rto_initiated',
                     default => null,
                 };
                 if ($event) {
