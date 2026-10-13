@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Jobs\OrderPlacedJob;
+use App\Jobs\MetaPurchaseJob;
+use Illuminate\Support\Arr;
 use App\Jobs\OrderStatusNotificationJob;
 
 class OrderController extends Controller
@@ -45,10 +47,18 @@ class OrderController extends Controller
     public function store(Request $request, OrderService $orderService)
     {
         try {
-            $order = $orderService->createOrder($request->all());
+            $order = $orderService->createOrder(Arr::except($request->all(), ['meta']));
             OrderPlacedJob::dispatch($order->id);
 
-         
+            // Runs after the response is sent, so Meta's API never slows down checkout.
+            MetaPurchaseJob::dispatchAfterResponse($order->id, [
+                'ip' => $request->header('CF-Connecting-IP') ?: $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'fbp' => $request->input('meta.fbp'),
+                'fbc' => $request->input('meta.fbc'),
+                'event_source_url' => $request->input('meta.event_source_url'),
+            ]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Order created successfully',

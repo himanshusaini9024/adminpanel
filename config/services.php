@@ -73,6 +73,14 @@ return [
     | WhatsApp Cloud API
     |--------------------------------------------------------------------------
     */
+    'meta' => [
+        'pixel_id' => env('META_PIXEL_ID'),
+        'access_token' => env('META_ACCESS_TOKEN'),
+        // Set temporarily to see server events under Events Manager → Test events.
+        'test_event_code' => env('META_TEST_EVENT_CODE'),
+        'graph_version' => env('META_GRAPH_VERSION', 'v23.0'),
+    ],
+
     'whatsapp' => [
         'token' => env('WHATSAPP_TOKEN'),
         'phone_id' => env('WHATSAPP_PHONE_ID'),
