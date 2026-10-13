@@ -39,6 +39,11 @@ class Order extends Model
         'courier_remark',
         'rto_initiated_at',
         'rto_delivered_at',
+        'order_source',
+        'payment_reference',
+        'payment_proof',
+        'paid_at',
+        'admin_note',
     ];
 
     protected $casts = [
@@ -46,6 +51,7 @@ class Order extends Model
         'delivered_at'           => 'datetime',
         'rto_initiated_at'       => 'datetime',
         'rto_delivered_at'       => 'datetime',
+        'paid_at'                => 'datetime',
     ];
 
     public const STATUS_LABELS = [
@@ -90,6 +96,37 @@ class Order extends Model
     public function canMoveToStatus(string $status): bool
     {
         return (self::STATUS_RANK[$status] ?? 0) >= (self::STATUS_RANK[$this->status] ?? 0);
+    }
+
+    public const PAYMENT_METHOD_LABELS = [
+        'cod' => 'Cash on Delivery',
+        'online' => 'Online (Razorpay)',
+        'bank_transfer' => 'Bank transfer',
+        'paypal' => 'PayPal',
+    ];
+
+    public const SOURCE_LABELS = [
+        'website' => 'Website',
+        'whatsapp' => 'WhatsApp',
+        'instagram' => 'Instagram',
+        'phone' => 'Phone call',
+        'store' => 'In store',
+    ];
+
+    public function getPaymentMethodLabelAttribute(): string
+    {
+        return self::PAYMENT_METHOD_LABELS[$this->payment_method] ?? ucfirst((string) $this->payment_method);
+    }
+
+    public function getSourceLabelAttribute(): string
+    {
+        return self::SOURCE_LABELS[$this->order_source ?? 'website'] ?? ucfirst((string) $this->order_source);
+    }
+
+    /** Bank-transfer order still waiting for the money to arrive. */
+    public function isAwaitingBankPayment(): bool
+    {
+        return $this->payment_method === 'bank_transfer' && $this->payment_status !== 'paid';
     }
 
     protected $appends = ['can_update_address'];

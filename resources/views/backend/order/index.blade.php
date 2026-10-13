@@ -10,6 +10,7 @@
      </div>
     <div class="card-header py-3">
       <h6 class="m-0 font-weight-bold text-primary float-left">Order Lists</h6>
+      <a href="{{ route('manual-order.create') }}" class="btn btn-sm btn-primary float-right"><i class="fas fa-plus"></i> Create order (WhatsApp / bank transfer)</a>
     </div>
     <div class="card-body">
       <div class="table-responsive">
@@ -50,7 +51,15 @@
             @endphp 
                 <tr>
                     <td>{{$order->id}}</td>
-                    <td>{{$order->order_number}}</td>
+                    <td>
+                        {{$order->order_number}}
+                        @if(($order->order_source ?? 'website') !== 'website')
+                          <br><span class="badge badge-info">{{ $order->source_label }}</span>
+                        @endif
+                        @if($order->isAwaitingBankPayment())
+                          <br><span class="badge badge-warning">Awaiting bank payment</span>
+                        @endif
+                    </td>
                     <td>{{$order->first_name}}</td>
                     <td>{{$order->email}}</td>
                     <td>{{$order->quantity}}</td>
