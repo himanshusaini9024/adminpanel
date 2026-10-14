@@ -11,6 +11,7 @@
     <div class="card-header py-3">
       <h6 class="m-0 font-weight-bold text-primary float-left">Product Lists</h6>
       <a href="{{route('product.create')}}" class="btn btn-primary btn-sm float-right" data-toggle="tooltip" data-placement="bottom" title="Add User"><i class="fas fa-plus"></i> Add Product</a>
+      <a href="{{route('product.bulk.index')}}" class="btn btn-outline-primary btn-sm float-right mr-2"><i class="fas fa-file-upload"></i> Bulk Upload</a>
     </div>
     <div class="card-body">
       <div class="table-responsive">

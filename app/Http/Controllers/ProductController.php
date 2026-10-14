@@ -479,7 +479,7 @@ class ProductController extends Controller
     /**
      * Bust Next.js ISR cache so price/content changes show immediately.
      */
-    private function revalidateStorefrontProduct(?string $slug = null): void
+    public function revalidateStorefrontProduct(?string $slug = null): void
     {
         $storefront = rtrim((string) env('STOREFRONT_URL', ''), '/');
         $secret = (string) env('REVALIDATE_SECRET', '');
