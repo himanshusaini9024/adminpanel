@@ -81,6 +81,26 @@ return [
         'graph_version' => env('META_GRAPH_VERSION', 'v23.0'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Google Merchant Center product feed
+    |--------------------------------------------------------------------------
+    | Public feed URLs Google fetches on a schedule. Protect with a secret token.
+    */
+    'merchant' => [
+        'feed_token' => env('MERCHANT_FEED_TOKEN'),
+        'storefront_url' => rtrim(env('STOREFRONT_URL', 'https://dhirago.com'), '/'),
+        'brand' => env('MERCHANT_BRAND', 'Dhirago'),
+        'currency' => env('MERCHANT_CURRENCY', 'INR'),
+        'country' => env('MERCHANT_COUNTRY', 'IN'),
+        'language' => env('MERCHANT_LANGUAGE', 'en'),
+        'gender' => env('MERCHANT_GENDER', 'male'),
+        'age_group' => env('MERCHANT_AGE_GROUP', 'adult'),
+        // Apparel & Accessories > Clothing > Shirts & Tops
+        'google_product_category' => env('MERCHANT_GOOGLE_PRODUCT_CATEGORY', '212'),
+        'product_type' => env('MERCHANT_PRODUCT_TYPE', "Apparel & Accessories > Clothing > Shirts & Tops"),
+    ],
+
     'whatsapp' => [
         'token' => env('WHATSAPP_TOKEN'),
         'phone_id' => env('WHATSAPP_PHONE_ID'),

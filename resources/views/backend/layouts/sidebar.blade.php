@@ -128,6 +128,7 @@
             <a class="collapse-item" href="{{route('product.index')}}">Products</a>
             <a class="collapse-item" href="{{route('product.create')}}">Add Product</a>
             <a class="collapse-item" href="{{route('product.bulk.index')}}">Bulk Upload</a>
+            <a class="collapse-item" href="{{route('merchant-feed.index')}}">Merchant Feed</a>
           </div>
         </div>
     </li>

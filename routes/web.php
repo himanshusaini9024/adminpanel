@@ -218,6 +218,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin']], function 
     Route::get('product/bulk-upload', [App\Http\Controllers\ProductBulkUploadController::class, 'index'])->name('product.bulk.index');
     Route::get('product/bulk-upload/template', [App\Http\Controllers\ProductBulkUploadController::class, 'template'])->name('product.bulk.template');
     Route::post('product/bulk-upload', [App\Http\Controllers\ProductBulkUploadController::class, 'store'])->name('product.bulk.store');
+    Route::get('merchant-feed', [App\Http\Controllers\MerchantFeedController::class, 'index'])->name('merchant-feed.index');
     Route::resource('product', App\Http\Controllers\ProductController::class);
     Route::get('product/{id}/copy', [App\Http\Controllers\ProductController::class, 'copy'])->name('product.copy');
     Route::get('settings', [AdminController::class, 'settings'])->name('settings');

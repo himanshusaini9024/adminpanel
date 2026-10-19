@@ -35,6 +35,11 @@ Route::get('/justproduct', [HomepageController::class, 'index']);
 Route::get('/search', [HomepageController::class, 'search']);
 
 Route::get('/category/{slug}', [CategoryController::class, 'show']);
+
+// Google Merchant Center product feed (token-protected)
+Route::get('/merchant/feed.xml', [App\Http\Controllers\Api\MerchantFeedController::class, 'xml']);
+Route::get('/merchant/feed.tsv', [App\Http\Controllers\Api\MerchantFeedController::class, 'tsv']);
+Route::get('/merchant/products.json', [App\Http\Controllers\Api\MerchantFeedController::class, 'json']);
 Route::get('/product/{pid}', [ProductController::class, 'show']);
 Route::post('/contact', [ContactController::class, 'store']);
 Route::get('/products', [ProductController::class, 'index']);
