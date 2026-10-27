@@ -9,7 +9,7 @@ class CustomerAddress extends Model
 {
     
       protected $fillable = [
-        'customer_id','name','phone',
+        'customer_id','name','phone','email',
         'address1','address2','city','state',
         'pincode','type','is_default'
     ];

@@ -158,9 +158,19 @@
                     @endif
                  
                     <tr>
+                      <td>Sub Total</td>
+                      <td> : ₹ {{number_format($order->sub_total,2)}}</td>
+                    </tr>
+                    <tr>
                       <td>Coupon</td>
                       <td> : ₹ {{number_format($order->coupon,2)}}</td>
                     </tr>
+                    @if(($order->cod_charge ?? 0) > 0)
+                    <tr>
+                        <td>COD Charges</td>
+                        <td> : ₹ {{number_format($order->cod_charge,2)}}</td>
+                    </tr>
+                    @endif
                     <tr>
                         <td>Total Amount</td>
                         <td> : ₹ {{number_format($order->total_amount,2)}}</td>

@@ -149,6 +149,8 @@ class OrderController extends Controller
                 'rto_delivered_at' => $order->rto_delivered_at,
                 'payment_method' => $order->payment_method,
                 'payment_status' => $order->payment_status,
+                'sub_total' => $order->sub_total,
+                'cod_charge' => (float) ($order->cod_charge ?? 0),
                 'total_amount' => $order->total_amount,
                 'first_name' => $order->first_name,
                 'last_name' => $order->last_name,

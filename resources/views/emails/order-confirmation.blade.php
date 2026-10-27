@@ -198,6 +198,14 @@
                           {{ ucfirst($order->payment_status) }}
                         </td>
                       </tr>
+                      @if(($order->cod_charge ?? 0) > 0)
+                      <tr>
+                        <td style="padding:6px 0;color:#555;font-size:15px;">COD Charges</td>
+                        <td style="padding:6px 0;color:#111;font-size:15px;text-align:right;font-weight:bold;">
+                          &#8377;{{ number_format($order->cod_charge, 2) }}
+                        </td>
+                      </tr>
+                      @endif
                       <tr>
                         <td style="padding:14px 0 0;border-top:1px solid #eee;color:#111;font-size:16px;font-weight:bold;">
                           Total Amount
