@@ -329,6 +329,8 @@ class ProductController extends Controller
             'description'  => format_product_description_html($request->input('product_description.1.description')),
             'summary'      => $request->input('summary'),
             'sku'          => $request->input('sku'),
+            'meta_title'   => $request->input('product_description.1.meta_title') ?: null,
+            'meta_description' => $request->input('product_description.1.meta_description') ?: null,
             'brand_id'     => $request->input('brand_id'),
             'size'         => $size,
             'color'        => $request->input('color'),

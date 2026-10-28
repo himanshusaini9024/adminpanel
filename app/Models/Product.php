@@ -31,6 +31,8 @@ class Product extends Model
         'condition',
         'measurements',
         'sku',
+        'meta_title',
+        'meta_description',
     ];
 
     /**

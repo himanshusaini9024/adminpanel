@@ -423,14 +423,14 @@
                         <div class="form-group">
                             <label>Meta Title</label>
                             <input type="text" name="product_description[1][meta_title]" class="form-control"
-                                   value="{{ old('meta_title', $product->meta_title ?? '') }}">
+                                   value="{{ old('product_description.1.meta_title', $product->meta_title ?? '') }}">
                         </div>
                     </div>
                     <div class="form-col">
                         <div class="form-group">
                             <label>Meta Description</label>
                             <input type="text" name="product_description[1][meta_description]" class="form-control"
-                                   value="{{ old('meta_description', $product->meta_description ?? '') }}">
+                                   value="{{ old('product_description.1.meta_description', $product->meta_description ?? '') }}">
                         </div>
                     </div>
                     <div class="form-col">

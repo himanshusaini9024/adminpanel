@@ -68,6 +68,8 @@ public function index()
             'name' => $product->title,
             'sku' => $product->sku,
             'slug' => $product->slug,
+            'meta_title' => $product->meta_title,
+            'meta_description' => $product->meta_description,
             'price' => (float) $pricing['price'],
             'mrp' => (float) $pricing['price'],
             'special_price' => (float) $pricing['special_price'],
