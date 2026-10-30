@@ -4,8 +4,10 @@
 
 @section('main-content')
 <div class="card">
-<h5 class="card-header">Order    
-     <!-- <a href="{{route('order.pdf',$order->id)}}" class=" btn btn-sm btn-primary shadow-sm float-right"><i class="fas fa-download fa-sm text-white-50"></i> Generate PDF</a> -->
+<h5 class="card-header">Order
+     <a href="{{ route('order.pdf', $order->id) }}" class="btn btn-sm btn-primary shadow-sm float-right">
+       <i class="fas fa-file-invoice fa-sm text-white-50"></i> Generate Invoice
+     </a>
   </h5>
   <div class="card-body">
     @include('backend.layouts.notification')
@@ -93,6 +95,7 @@
                 @include('backend.order.partials.status-badge', ['order' => $order])
             </td>
             <td>
+                <a href="{{ route('order.pdf', $order->id) }}" class="btn btn-success btn-sm float-left mr-1" style="height:30px; width:30px;border-radius:50%" data-toggle="tooltip" title="Invoice" data-placement="bottom"><i class="fas fa-file-invoice"></i></a>
                 <a href="{{route('order.edit',$order->id)}}" class="btn btn-primary btn-sm float-left mr-1" style="height:30px; width:30px;border-radius:50%" data-toggle="tooltip" title="edit" data-placement="bottom"><i class="fas fa-edit"></i></a>
                 <form method="POST" action="{{route('order.destroy',[$order->id])}}">
                   @csrf

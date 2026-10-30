@@ -300,14 +300,16 @@ class OrderController extends Controller
         return redirect()->route('home')->with($type, $message);
     }
 
-    // PDF generate
+    // Invoice PDF
     public function pdf(Request $request)
     {
-        $order = Order::getAllOrder($request->id);
-        // return $order;
-        $file_name = $order->order_number . '-' . $order->first_name . '.pdf';
-        // return $file_name;
-        $pdf = PDF::loadview('backend.order.pdf', compact('order'));
+        $order = Order::with('items')->findOrFail($request->id);
+        $company = config('invoice');
+        $file_name = 'invoice-' . $order->order_number . '.pdf';
+
+        $pdf = PDF::loadView('backend.order.pdf', compact('order', 'company'))
+            ->setPaper('a4');
+
         return $pdf->download($file_name);
     }
     // Income chart

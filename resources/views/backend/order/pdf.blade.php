@@ -1,181 +1,183 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Order @if($order)- {{$order->order_number}} @endif</title>
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+  <meta charset="utf-8">
+  <title>Tax Invoice #{{ $order->order_number }}</title>
+  <style>
+    body { font-family: DejaVu Sans, sans-serif; font-size: 10px; color: #111; margin: 18px; }
+    .center { text-align: center; }
+    .brand { font-size: 22px; font-weight: bold; letter-spacing: 1px; margin: 0 0 4px; }
+    .title-wrap { border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 6px 0; margin: 8px 0 14px; }
+    .title { font-size: 14px; font-weight: bold; margin: 0; letter-spacing: 1px; }
+    table { width: 100%; border-collapse: collapse; }
+    .meta td { vertical-align: top; padding: 0 8px 0 0; width: 33.33%; }
+    .box-title { font-size: 10px; font-weight: bold; text-transform: uppercase; margin: 0 0 6px; border-bottom: 1px solid #ccc; padding-bottom: 3px; }
+    .line { margin: 1px 0; line-height: 1.35; }
+    .strong { font-weight: bold; }
+    .items { margin-top: 14px; }
+    .items th { border: 1px solid #000; background: #f3f3f3; padding: 5px 4px; font-size: 9px; text-transform: uppercase; }
+    .items td { border: 1px solid #000; padding: 5px 4px; font-size: 9px; vertical-align: top; }
+    .right { text-align: right; }
+    .net { margin-top: 10px; font-size: 12px; font-weight: bold; text-align: right; }
+    .note { margin-top: 8px; font-size: 9px; }
+    .sign { margin-top: 28px; width: 220px; border: 1px solid #000; height: 70px; text-align: center; padding-top: 48px; font-size: 9px; }
+    .small { font-size: 9px; color: #333; }
+  </style>
 </head>
 <body>
+@php
+  use App\Support\IndianStateCode;
 
-@if($order)
-<style type="text/css">
-  .invoice-header {
-    background: #f7f7f7;
-    padding: 10px 20px 10px 20px;
-    border-bottom: 1px solid gray;
+  $company = $company ?? config('invoice');
+  $items = $order->items ?? collect();
+  $gstRate = (float) ($company['gst_rate'] ?? 5);
+  $hsn = $company['hsn'] ?? '6205';
+  $sellerStateCode = (string) ($company['state_code'] ?? '08');
+  $buyerStateCode = IndianStateCode::fromState($order->state);
+  $isInterState = $buyerStateCode === '' || $buyerStateCode !== $sellerStateCode;
+
+  $discountTotal = (float) ($order->coupon ?? 0);
+  $grossItems = (float) $items->sum(fn ($i) => (float) $i->price * (int) $i->quantity);
+  $itemCount = max(1, (int) $items->sum('quantity'));
+
+  $rows = [];
+  $sumTaxable = 0;
+  $sumTax = 0;
+  $sumTotal = 0;
+
+  foreach ($items as $index => $item) {
+      $qty = max(1, (int) $item->quantity);
+      $unitPrice = (float) $item->price;
+      $lineGross = $unitPrice * $qty;
+      $lineDiscount = $grossItems > 0 ? round($discountTotal * ($lineGross / $grossItems), 2) : 0;
+      $unitDiscount = $qty > 0 ? round($lineDiscount / $qty, 2) : 0;
+      $lineNet = max(0, $lineGross - $lineDiscount);
+      $taxable = $gstRate > 0 ? round($lineNet / (1 + ($gstRate / 100)), 2) : $lineNet;
+      $tax = round($lineNet - $taxable, 2);
+
+      $rows[] = [
+          'sno' => $index + 1,
+          'name' => $item->name,
+          'sku' => $item->sku,
+          'hsn' => $hsn,
+          'qty' => $qty,
+          'unit_price' => $unitPrice,
+          'unit_discount' => $unitDiscount,
+          'taxable' => $taxable,
+          'tax' => $tax,
+          'total' => $lineNet,
+      ];
+
+      $sumTaxable += $taxable;
+      $sumTax += $tax;
+      $sumTotal += $lineNet;
   }
-  .site-logo {
-    margin-top: 20px;
+
+  $invoiceNo = 'INV-' . $order->order_number;
+  $paymentLabel = $order->payment_method_label ?? strtoupper((string) $order->payment_method);
+  $country = $order->country;
+  if (!$country || strtoupper((string) $country) === 'IND') {
+      $country = 'India';
   }
-  .invoice-right-top h3 {
-    padding-right: 20px;
-    margin-top: 20px;
-    color: green;
-    font-size: 30px!important;
-    font-family: serif;
-  }
-  .invoice-left-top {
-    border-left: 4px solid green;
-    padding-left: 20px;
-    padding-top: 20px;
-  }
-  .invoice-left-top p {
-    margin: 0;
-    line-height: 20px;
-    font-size: 16px;
-    margin-bottom: 3px;
-  }
-  thead {
-    background: green;
-    color: #FFF;
-  }
-  .authority h5 {
-    margin-top: -10px;
-    color: green;
-  }
-  .thanks h4 {
-    color: green;
-    font-size: 25px;
-    font-weight: normal;
-    font-family: serif;
-    margin-top: 20px;
-  }
-  .site-address p {
-    line-height: 6px;
-    font-weight: 300;
-  }
-  .table tfoot .empty {
-    border: none;
-  }
-  .table-bordered {
-    border: none;
-  }
-  .table-header {
-    padding: .75rem 1.25rem;
-    margin-bottom: 0;
-    background-color: rgba(0,0,0,.03);
-    border-bottom: 1px solid rgba(0,0,0,.125);
-  }
-  .table td, .table th {
-    padding: .30rem;
-  }
-</style>
-  <div class="invoice-header">
-    <div class="float-left site-logo">
-      <img src="{{asset('backend/img/logo.png')}}" alt="">
-    </div>
-    <div class="float-right site-address">
-      <h4>{{env('APP_NAME')}}</h4>
-      <p>{{env('APP_ADDRESS')}}</p>
-      <p>Phone: <a href="tel:{{env('APP_PHONE')}}">{{env('APP_PHONE')}}</a></p>
-      <p>Email: <a href="mailto:{{env('APP_EMAIL')}}">{{env('APP_EMAIL')}}</a></p>
-    </div>
-    <div class="clearfix"></div>
+@endphp
+
+  <div class="center">
+    <p class="brand">{{ $company['company_name'] ?? 'Dhirago' }}</p>
   </div>
-  <div class="invoice-description">
-    <div class="invoice-left-top float-left">
-      <h6>Invoice to</h6>
-       <h3>{{$order->first_name}} {{$order->last_name}}</h3>
-       <div class="address">
-        <p>
-          <strong>Country: </strong>
-          {{$order->country}}
-        </p>
-        <p>
-          <strong>Address: </strong>
-          {{ $order->address1 }} OR {{ $order->address2}}
-        </p>
-         <p><strong>Phone:</strong> {{ $order->phone }}</p>
-         <p><strong>Email:</strong> {{ $order->email }}</p>
-       </div>
-    </div>
-    <div class="invoice-right-top float-right" class="text-right">
-      <h3>Invoice #{{$order->order_number}}</h3>
-      <p>{{ $order->created_at->format('D d m Y') }}</p>
-      {{-- <img class="img-responsive" src="data:image/png;base64, {{ base64_encode(QrCode::format('png')->size(150)->generate(route('admin.product.order.show', $order->id )))}}"> --}}
-    </div>
-    <div class="clearfix"></div>
+  <div class="title-wrap center">
+    <p class="title">TAX INVOICE</p>
   </div>
-  <section class="order_details pt-3">
-    <div class="table-header">
-      <h5>Order Details</h5>
-    </div>
-    <table class="table table-bordered table-stripe">
-      <thead>
+
+  <table class="meta">
+    <tr>
+      <td>
+        <p class="box-title">Shipping Address</p>
+        <p class="line strong">{{ trim($order->first_name . ' ' . $order->last_name) }}</p>
+        @if($order->address1)<p class="line">{{ $order->address1 }}</p>@endif
+        @if($order->address2)<p class="line">{{ $order->address2 }}</p>@endif
+        <p class="line">{{ collect([$order->city, $order->post_code])->filter()->implode(' ') }}</p>
+        <p class="line">{{ collect([$order->state, $country])->filter()->implode(', ') }}</p>
+        @if($buyerStateCode)<p class="line"><span class="strong">State Code:</span> {{ $buyerStateCode }}</p>@endif
+        @if($order->phone)<p class="line small">Ph: {{ $order->phone }}</p>@endif
+        @if($order->email)<p class="line small">{{ $order->email }}</p>@endif
+      </td>
+      <td>
+        <p class="box-title">Sold By</p>
+        <p class="line strong">{{ $company['company_name'] ?? 'Dhirago' }}</p>
+        <p class="line">{{ $company['address'] ?? '' }}</p>
+        <p class="line">{{ collect([$company['state'] ?? null, $company['country'] ?? 'India'])->filter()->implode(', ') }}</p>
+        <p class="line"><span class="strong">State Code:</span> {{ $sellerStateCode }}</p>
+        @if(!empty($company['phone']))<p class="line"><span class="strong">Ph:</span> {{ $company['phone'] }}</p>@endif
+        <p class="line"><span class="strong">GSTIN No:</span> {{ $company['gstin'] ?: '—' }}</p>
+        @if(!empty($company['email']))<p class="line"><span class="strong">Email:</span> {{ $company['email'] }}</p>@endif
+      </td>
+      <td>
+        <p class="box-title">Invoice Details</p>
+        <p class="line"><span class="strong">Invoice No:</span> {{ $invoiceNo }}</p>
+        <p class="line"><span class="strong">Invoice Date:</span> {{ optional($order->created_at)->format('d/m/Y') }}</p>
+        <p class="line"><span class="strong">Order No:</span> {{ $order->order_number }}</p>
+        <p class="line"><span class="strong">Order Date:</span> {{ optional($order->created_at)->format('d/m/Y') }}</p>
+        <p class="line"><span class="strong">Channel:</span> {{ $order->order_source ? strtoupper($order->order_source) : 'WEBSITE' }}</p>
+        @if($order->courier_name)
+          <p class="line"><span class="strong">Shipped By:</span> {{ $order->courier_name }}</p>
+        @endif
+        @if($order->awb_code)
+          <p class="line"><span class="strong">AWB No:</span> {{ $order->awb_code }}</p>
+        @endif
+        <p class="line"><span class="strong">Payment Method:</span> {{ $paymentLabel }}</p>
+        <p class="line"><span class="strong">Payment Status:</span> {{ strtoupper((string) $order->payment_status) }}</p>
+        @if($order->admin_note)
+          <p class="line"><span class="strong">Remark:</span> {{ $order->admin_note }}</p>
+        @endif
+      </td>
+    </tr>
+  </table>
+
+  <table class="items">
+    <thead>
+      <tr>
+        <th style="width:4%">S.No</th>
+        <th style="width:28%">Product Name</th>
+        <th style="width:8%">HSN</th>
+        <th style="width:6%" class="right">Qty</th>
+        <th style="width:10%" class="right">Unit Price</th>
+        <th style="width:10%" class="right">Unit Discount</th>
+        <th style="width:11%" class="right">Taxable Value</th>
+        <th style="width:11%" class="right">{{ $isInterState ? 'IGST' : 'CGST+SGST' }} ({{ number_format($gstRate, 2) }}%)</th>
+        <th style="width:12%" class="right">Total (Incl. GST)</th>
+      </tr>
+    </thead>
+    <tbody>
+      @foreach($rows as $row)
         <tr>
-          <th scope="col" class="col-6">Product</th>
-          <th scope="col" class="col-3">Quantity</th>
-          <th scope="col" class="col-3">Total</th>
-        </tr>
-      </thead>
-      <tbody>
-      @foreach($order->cart_info as $cart)
-      @php 
-        $product=DB::table('products')->select('title')->where('id',$cart->product_id)->get();
-      @endphp
-        <tr>
-          <td><span>
-              @foreach($product as $pro)
-                {{$pro->title}}
-              @endforeach
-            </span></td>
-          <td>x{{$cart->quantity}}</td>
-          <td><span>${{number_format($cart->price,2)}}</span></td>
+          <td>{{ $row['sno'] }}</td>
+          <td>
+            <span class="strong">{{ $row['name'] }}</span><br>
+            <span class="small">SKU: {{ $row['sku'] }}</span>
+          </td>
+          <td>{{ $row['hsn'] }}</td>
+          <td class="right">{{ $row['qty'] }}</td>
+          <td class="right">{{ number_format($row['unit_price'], 2) }}</td>
+          <td class="right">{{ number_format($row['unit_discount'], 2) }}</td>
+          <td class="right">{{ number_format($row['taxable'], 2) }}</td>
+          <td class="right">{{ number_format($row['tax'], 2) }}</td>
+          <td class="right">{{ number_format($row['total'], 2) }}</td>
         </tr>
       @endforeach
-      </tbody>
-      <tfoot>
-        <tr>
-          <th scope="col" class="empty"></th>
-          <th scope="col" class="text-right">Subtotal:</th>
-          <th scope="col"> <span>${{number_format($order->sub_total,2)}}</span></th>
-        </tr>
-      {{-- @if(!empty($order->coupon))
-        <tr>
-          <th scope="col" class="empty"></th>
-          <th scope="col" class="text-right">Discount:</th>
-          <th scope="col"><span>-{{$order->coupon->discount(Helper::orderPrice($order->id, $order->user->id))}}{{Helper::base_currency()}}</span></th>
-        </tr>
-      @endif --}}
-        <tr>
-          <th scope="col" class="empty"></th>
-          @php
-            $shipping_charge=DB::table('shippings')->where('id',$order->shipping_id)->pluck('price');
-          @endphp
-          <th scope="col" class="text-right ">Shipping:</th>
-          <th><span>${{number_format($shipping_charge[0],2)}}</span></th>
-        </tr>
-        <tr>
-          <th scope="col" class="empty"></th>
-          <th scope="col" class="text-right">Total:</th>
-          <th>
-            <span>
-                ${{number_format($order->total_amount,2)}}
-            </span>
-          </th>
-        </tr>
-      </tfoot>
-    </table>
-  </section>
-  <div class="thanks mt-3">
-    <h4>Thank you for your business !!</h4>
+      <tr>
+        <td colspan="6" class="right strong">TOTAL</td>
+        <td class="right strong">{{ number_format($sumTaxable, 2) }}</td>
+        <td class="right strong">{{ number_format($sumTax, 2) }}</td>
+        <td class="right strong">{{ number_format((float) $order->total_amount, 2) }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="net">NET TOTAL : Rs. {{ number_format((float) $order->total_amount, 2) }}</p>
+  <p class="note">Whether tax is payable under reverse charge - No</p>
+
+  <div class="sign">
+    Authorized Signature for {{ $company['company_name'] ?? 'Dhirago' }}
   </div>
-  <div class="authority float-right mt-5">
-    <p>-----------------------------------</p>
-    <h5>Authority Signature:</h5>
-  </div>
-  <div class="clearfix"></div>
-@else
-  <h5 class="text-danger">Invalid</h5>
-@endif
 </body>
 </html>
