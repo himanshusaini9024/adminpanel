@@ -1,54 +1,47 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use App\Models\User;
+use App\Support\RoleAccess;
+
 class UsersController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
     public function index()
     {
-        $users=User::orderBy('id','ASC')->paginate(10);
-        return view('backend.users.index')->with('users',$users);
+        $users = User::whereIn('role', RoleAccess::staffRoles())
+            ->orderBy('id', 'ASC')
+            ->paginate(10);
+
+        return view('backend.users.index')->with('users', $users);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
     public function create()
     {
-        return view('backend.users.create');
+        return view('backend.users.create', [
+            'roles' => RoleAccess::labels(),
+        ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
     public function store(Request $request)
     {
+        $staffRoles = implode(',', RoleAccess::staffRoles());
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email',
             'password' => 'required|string|min:6',
-            'role' => 'required|in:admin,user',
+            'role' => 'required|in:' . $staffRoles,
             'status' => 'required|in:active,inactive',
             'photo' => 'nullable|string|max:500',
         ]);
 
         try {
             $validated['password'] = Hash::make($validated['password']);
-            $user = User::create($validated);
-            
+            User::create($validated);
+
             return redirect()->route('users.index')
                 ->with('success', 'Successfully added user');
         } catch (\Exception $e) {
@@ -58,59 +51,53 @@ class UsersController extends Controller
         }
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function show($id)
     {
         //
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function edit($id)
     {
-        $user=User::findOrFail($id);
-        return view('backend.users.edit')->with('user',$user);
+        $user = User::findOrFail($id);
+
+        return view('backend.users.edit', [
+            'user' => $user,
+            'roles' => RoleAccess::labels(),
+        ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function update(Request $request, $id)
     {
         $user = User::findOrFail($id);
-        
+        $staffRoles = implode(',', RoleAccess::staffRoles());
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . $id,
-            'role' => 'required|in:admin,user',
+            'role' => 'required|in:' . $staffRoles,
             'status' => 'required|in:active,inactive',
             'photo' => 'nullable|string|max:500',
             'password' => 'nullable|string|min:6|confirmed',
         ]);
 
         try {
-            // Only update password if provided
             if ($request->filled('password')) {
                 $validated['password'] = Hash::make($validated['password']);
             } else {
                 unset($validated['password']);
             }
-            
+
+            // Do not demote the last remaining admin
+            if ($user->role === 'admin' && $validated['role'] !== 'admin') {
+                $otherAdmins = User::where('role', 'admin')->where('id', '!=', $user->id)->count();
+                if ($otherAdmins === 0) {
+                    return redirect()->route('users.index')
+                        ->with('error', 'You cannot remove the last admin account.');
+                }
+            }
+
             $status = $user->update($validated);
-            
+
             return redirect()->route('users.index')
                 ->with($status ? 'success' : 'error',
                     $status ? 'Successfully updated' : 'Error occurred while updating');
@@ -121,25 +108,26 @@ class UsersController extends Controller
         }
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function destroy($id)
     {
         try {
             $user = User::findOrFail($id);
-            
-            // Prevent deleting own account
+
             if ($user->id === auth()->id()) {
                 return redirect()->route('users.index')
                     ->with('error', 'You cannot delete your own account');
             }
-            
+
+            if ($user->role === 'admin') {
+                $otherAdmins = User::where('role', 'admin')->where('id', '!=', $user->id)->count();
+                if ($otherAdmins === 0) {
+                    return redirect()->route('users.index')
+                        ->with('error', 'You cannot delete the last admin account.');
+                }
+            }
+
             $status = $user->delete();
-            
+
             return redirect()->route('users.index')
                 ->with($status ? 'success' : 'error',
                     $status ? 'User successfully deleted' : 'There is an error while deleting user');

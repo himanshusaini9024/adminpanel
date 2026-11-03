@@ -1,6 +1,5 @@
 <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
 
-    <!-- Sidebar - Brand -->
     <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{route('admin')}}">
       <div class="sidebar-brand-icon rotate-n-15">
         <i class="fas fa-laugh-wink"></i>
@@ -8,64 +7,61 @@
       <div class="sidebar-brand-text mx-3">Admin</div>
     </a>
 
-    <!-- Divider -->
     <hr class="sidebar-divider my-0">
 
-    <!-- Nav Item - Dashboard -->
     <li class="nav-item active">
       <a class="nav-link" href="{{route('admin')}}">
         <i class="fas fa-fw fa-tachometer-alt"></i>
         <span>Dashboard</span></a>
     </li>
 
-    <!-- Divider -->
+    @module('file_manager')
     <hr class="sidebar-divider">
-
-    <!-- Heading -->
-    <div class="sidebar-heading">
-        Media
-    </div>
-
-    <!-- File Manager -->
+    <div class="sidebar-heading">Media</div>
     <li class="nav-item">
         <a class="nav-link" href="{{route('file-manager')}}">
             <i class="fas fa-fw fa-folder-open"></i>
             <span>File Manager</span></a>
     </li>
+    @endmodule
 
-    <!-- Divider -->
-       <hr class="sidebar-divider">
-
-    <div class="sidebar-heading">
-        Leads
-    </div>
-       <li class="nav-item">
+    @if(auth()->user()->canModule('customers') || auth()->user()->canModule('push') || auth()->user()->canModule('whatsapp') || auth()->user()->canModule('orders'))
+    <hr class="sidebar-divider">
+    <div class="sidebar-heading">Leads</div>
+    @module('customers')
+    <li class="nav-item">
         <a class="nav-link" href="{{route('customer.index')}}">
             <i class="fas fa-user-friends"></i>
             <span>Customers</span></a>
     </li>
-       <li class="nav-item">
+    @endmodule
+    @module('push')
+    <li class="nav-item">
         <a class="nav-link" href="{{route('push.index')}}">
             <i class="fas fa-bell"></i>
             <span>Push Notification</span></a>
     </li>
-       <li class="nav-item">
+    @endmodule
+    @module('whatsapp')
+    <li class="nav-item">
         <a class="nav-link" href="{{route('whatsapp.index')}}">
             <i class="fab fa-whatsapp"></i>
             <span>WhatsApp Notification</span></a>
     </li>
-       <li class="nav-item">
+    @endmodule
+    @module('orders')
+    <li class="nav-item">
         <a class="nav-link" href="{{route('order.index')}}">
             <i class="fas fa-hammer fa-chart-area"></i>
             <span>Orders</span>
         </a>
     </li>
+    @endmodule
+    @endif
+
+    @module('banners')
     <hr class="sidebar-divider">
-
-    <div class="sidebar-heading">
-        Banner
-    </div>
-
+    <div class="sidebar-heading">Banner</div>
     <li class="nav-item">
       <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
         <i class="fas fa-image"></i>
@@ -79,14 +75,13 @@
         </div>
       </div>
     </li>
-    <!-- Divider -->
-    <hr class="sidebar-divider">
-        <!-- Heading -->
-        <div class="sidebar-heading">
-            Shop
-        </div>
+    @endmodule
 
-    <!-- Categories -->
+    @if(auth()->user()->canModule('categories') || auth()->user()->canModule('brands') || auth()->user()->canModule('products') || auth()->user()->canModule('shipping') || auth()->user()->canModule('returns') || auth()->user()->canModule('reviews'))
+    <hr class="sidebar-divider">
+    <div class="sidebar-heading">Shop</div>
+
+    @module('categories')
     <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#categoryCollapse" aria-expanded="true" aria-controls="categoryCollapse">
           <i class="fas fa-sitemap"></i>
@@ -100,9 +95,10 @@
           </div>
         </div>
     </li>
+    @endmodule
 
-     {{-- Brands --}}
-     <li class="nav-item">
+    @module('brands')
+    <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#brandCollapse" aria-expanded="true" aria-controls="brandCollapse">
           <i class="fas fa-table"></i>
           <span>Brands</span>
@@ -115,8 +111,9 @@
           </div>
         </div>
     </li>
+    @endmodule
 
-    {{-- Products --}}
+    @module('products')
     <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#productCollapse" aria-expanded="true" aria-controls="productCollapse">
           <i class="fas fa-cubes"></i>
@@ -128,12 +125,15 @@
             <a class="collapse-item" href="{{route('product.index')}}">Products</a>
             <a class="collapse-item" href="{{route('product.create')}}">Add Product</a>
             <a class="collapse-item" href="{{route('product.bulk.index')}}">Bulk Upload</a>
+            @module('merchant_feed')
             <a class="collapse-item" href="{{route('merchant-feed.index')}}">Merchant Feed</a>
+            @endmodule
           </div>
         </div>
     </li>
+    @endmodule
 
-    {{-- Shipping --}}
+    @module('shipping')
     <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#shippingCollapse" aria-expanded="true" aria-controls="shippingCollapse">
           <i class="fas fa-truck"></i>
@@ -147,33 +147,29 @@
           </div>
         </div>
     </li>
+    @endmodule
 
-    <!--Orders -->
- 
-
+    @module('returns')
     <li class="nav-item">
-    <a class="nav-link" href="{{ url('admin/returns') }}">
+      <a class="nav-link" href="{{ route('admin.returns') }}">
         <i class="fas fa-undo"></i>
         <span>Returns</span>
-    </a>
-</li>
+      </a>
+    </li>
+    @endmodule
 
-    <!-- Reviews -->
+    @module('reviews')
     <li class="nav-item">
         <a class="nav-link" href="{{route('review.index')}}">
             <i class="fas fa-comments"></i>
             <span>Reviews</span></a>
     </li>
+    @endmodule
+    @endif
 
-    <!-- Divider -->
+    @module('posts')
     <hr class="sidebar-divider">
-
-    <!-- Heading -->
-    <div class="sidebar-heading">
-      Posts
-    </div>
-
-    <!-- Posts -->
+    <div class="sidebar-heading">Posts</div>
     <li class="nav-item">
       <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#postCollapse" aria-expanded="true" aria-controls="postCollapse">
         <i class="fas fa-fw fa-folder"></i>
@@ -187,9 +183,7 @@
         </div>
       </div>
     </li>
-
-     <!-- Category -->
-     <li class="nav-item">
+    <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#postCategoryCollapse" aria-expanded="true" aria-controls="postCategoryCollapse">
           <i class="fas fa-sitemap fa-folder"></i>
           <span>Category</span>
@@ -202,8 +196,6 @@
           </div>
         </div>
       </li>
-
-      <!-- Tags -->
     <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#tagCollapse" aria-expanded="true" aria-controls="tagCollapse">
             <i class="fas fa-tags fa-folder"></i>
@@ -217,41 +209,46 @@
             </div>
         </div>
     </li>
-
-      <!-- Comments -->
-      <li class="nav-item">
+    <li class="nav-item">
         <a class="nav-link" href="{{route('comment.index')}}">
             <i class="fas fa-comments fa-chart-area"></i>
             <span>Comments</span></a>
-      </li>
+    </li>
+    @endmodule
 
-    <!-- Divider -->
+    @if(auth()->user()->canModule('coupons') || auth()->user()->canModule('users') || auth()->user()->canModule('roles') || auth()->user()->canModule('settings'))
     <hr class="sidebar-divider d-none d-md-block">
-     <!-- Heading -->
-    <div class="sidebar-heading">
-        General Settings
-    </div>
+    <div class="sidebar-heading">General Settings</div>
+    @module('coupons')
     <li class="nav-item">
       <a class="nav-link" href="{{route('coupon.index')}}">
           <i class="fas fa-table"></i>
           <span>Coupon</span></a>
     </li>
-     <!-- Users -->
-     <li class="nav-item">
+    @endmodule
+    @module('users')
+    <li class="nav-item">
         <a class="nav-link" href="{{route('users.index')}}">
             <i class="fas fa-users"></i>
             <span>Users</span></a>
     </li>
-     <!-- Customers -->
-   
-     <!-- General settings -->
-     <li class="nav-item">
+    @endmodule
+    @module('roles')
+    <li class="nav-item">
+        <a class="nav-link" href="{{route('roles.index')}}">
+            <i class="fas fa-user-shield"></i>
+            <span>Roles &amp; Access</span></a>
+    </li>
+    @endmodule
+    @module('settings')
+    <li class="nav-item">
         <a class="nav-link" href="{{route('settings')}}">
             <i class="fas fa-cog"></i>
             <span>Settings</span></a>
     </li>
+    @endmodule
+    @endif
 
-    <!-- Sidebar Toggler (Sidebar) -->
     <div class="text-center d-none d-md-inline">
       <button class="rounded-circle border-0" id="sidebarToggle"></button>
     </div>

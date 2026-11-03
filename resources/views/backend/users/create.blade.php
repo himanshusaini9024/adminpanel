@@ -46,17 +46,17 @@
           <span class="text-danger">{{$message}}</span>
           @enderror
         </div>
-        @php 
-        $roles=DB::table('users')->select('role')->get();
-        @endphp
         <div class="form-group">
             <label for="role" class="col-form-label">Role</label>
-            <select name="role" class="form-control">
+            <select name="role" class="form-control" required>
                 <option value="">-----Select Role-----</option>
-                @foreach($roles as $role)
-                    <option value="{{$role->role}}">{{$role->role}}</option>
+                @foreach($roles as $value => $label)
+                    <option value="{{ $value }}" @selected(old('role') === $value)>{{ $label }}</option>
                 @endforeach
             </select>
+            <small class="form-text text-muted">
+              Admin = full access. SEO / Marketing / Sales / Accounts see only their modules.
+            </small>
           @error('role')
           <span class="text-danger">{{$message}}</span>
           @enderror

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Providers\RouteServiceProvider;
+use App\Support\RoleAccess;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
 use Illuminate\Http\Request;
 use Socialite;
@@ -37,9 +38,29 @@ class LoginController extends Controller
      * @return void
      */
 
-    public function credentials(Request $request){
-        return ['email'=>$request->email,'password'=>$request->password,'status'=>'active','role'=>'admin'];
+    public function credentials(Request $request)
+    {
+        return [
+            'email' => $request->email,
+            'password' => $request->password,
+            'status' => 'active',
+        ];
     }
+
+    protected function authenticated(Request $request, $user)
+    {
+        if (!RoleAccess::isStaff($user)) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login')
+                ->with('error', 'This account cannot access the admin panel.');
+        }
+
+        return redirect()->intended(RouteServiceProvider::HOME);
+    }
+
     public function __construct()
     {
         $this->middleware('guest')->except('logout');

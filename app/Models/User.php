@@ -40,4 +40,24 @@ class User extends Authenticatable
     public function orders(){
         return $this->hasMany('App\Models\Order');
     }
+
+    public function isStaff(): bool
+    {
+        return \App\Support\RoleAccess::isStaff($this);
+    }
+
+    public function isAdmin(): bool
+    {
+        return \App\Support\RoleAccess::isAdmin($this);
+    }
+
+    public function canModule(string $module): bool
+    {
+        return \App\Support\RoleAccess::canModule($this, $module);
+    }
+
+    public function roleLabel(): string
+    {
+        return \App\Support\RoleAccess::labels()[$this->role] ?? ucfirst((string) $this->role);
+    }
 }

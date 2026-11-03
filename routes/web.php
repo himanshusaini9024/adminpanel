@@ -207,6 +207,8 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin']], function 
         return view('backend.layouts.file-manager');
     })->name('file-manager');
     Route::resource('users', App\Http\Controllers\UsersController::class);
+    Route::get('roles', [App\Http\Controllers\RolePermissionController::class, 'index'])->name('roles.index');
+    Route::put('roles/{role}', [App\Http\Controllers\RolePermissionController::class, 'update'])->name('roles.update');
     Route::get('customer', [App\Http\Controllers\CustomerController::class, 'index'])->name('customer.index');
     Route::get('customer/{id}/edit', [App\Http\Controllers\CustomerController::class, 'edit'])->name('customer.edit');
     Route::put('customer/{id}', [App\Http\Controllers\CustomerController::class, 'update'])->name('customer.update');
@@ -329,7 +331,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin']], function 
     Route::get(
         '/returns',
         [ReturnController::class, 'adminReturns']
-    );
+    )->name('admin.returns');
 
     Route::post(
         '/returns/{id}/{sku}/approve',
