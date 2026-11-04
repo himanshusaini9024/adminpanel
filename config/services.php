@@ -113,6 +113,13 @@ return [
             'WHATSAPP_REMINDER_TEMPLATE_IMAGE',
             'https://images.dhirago.com/ecommerce/logo/logo.jpg'
         ),
+        // Abandoned-cart crawler (runs 21:00 IST): only carts updated within this many hours
+        'cart_reminder_within_hours' => (int) env('WHATSAPP_CART_REMINDER_WITHIN_HOURS', 24),
+        'cart_reminder_message' => env(
+            'WHATSAPP_CART_REMINDER_MESSAGE',
+            'You left something lovely in your cart. Complete your order on dhirago.com before it sells out.'
+        ),
+
         'shipment_booked_template' => env('WHATSAPP_SHIPMENT_BOOKED_TEMPLATE', 'order_shipped'),
         'out_for_delivery_template' => env('WHATSAPP_OUT_FOR_DELIVERY_TEMPLATE', 'out_for_delivery'),
         'delivered_template' => env('WHATSAPP_DELIVERED_TEMPLATE', 'order_delivered'),

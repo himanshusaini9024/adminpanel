@@ -24,7 +24,13 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')->hourly();
+        // Abandoned-cart WhatsApp: once a night at 9 PM IST.
+        // Only customers whose cart changed in the last 24 hours (and not already reminded).
+        $schedule->command('cart:send-abandonment-reminders')
+            ->dailyAt('21:00')
+            ->timezone(config('app.timezone', 'Asia/Kolkata'))
+            ->withoutOverlapping()
+            ->appendOutputTo(storage_path('logs/cart-reminders.log'));
     }
 
     /**

@@ -85,13 +85,60 @@ class UserController extends Controller
         }
 
         $cart = $request->input('cart');
+        $items = is_array($cart) ? $cart : [];
+        if (isset($items['items']) && is_array($items['items'])) {
+            $items = $items['items'];
+        }
 
-        $user->cart = json_encode($cart);
+        $fingerprint = $this->cartFingerprint($items);
+        $previous = $this->cartFingerprint(
+            method_exists($user, 'getCartItemsAttribute') ? $user->cart_items : (json_decode((string) $user->cart, true) ?: [])
+        );
+
+        $user->cart = json_encode(array_values($items));
+
+        if ($fingerprint === '[]') {
+            $user->cart_updated_at = null;
+            $user->cart_reminder_sent_at = null;
+        } elseif ($fingerprint !== $previous) {
+            // New / changed cart → start a fresh 24h reminder window
+            $user->cart_updated_at = now();
+            $user->cart_reminder_sent_at = null;
+        }
+
         $user->save();
 
         return response()->json([
             'message' => 'Cart saved successfully'
         ]);
+    }
+
+    /**
+     * Stable signature so login re-sync of the same items does not reset the reminder window.
+     */
+    private function cartFingerprint($items): string
+    {
+        if (!is_array($items) || $items === []) {
+            return '[]';
+        }
+
+        $rows = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $rows[] = [
+                'id' => (string) ($item['id'] ?? $item['product_id'] ?? ''),
+                'sku' => (string) ($item['sku'] ?? ''),
+                'size' => (string) ($item['size'] ?? ''),
+                'color' => (string) ($item['color'] ?? ''),
+                'qty' => (int) ($item['quantity'] ?? $item['qty'] ?? 0),
+            ];
+        }
+
+        usort($rows, fn ($a, $b) => strcmp($a['id'] . $a['sku'] . $a['size'], $b['id'] . $b['sku'] . $b['size']));
+
+        return json_encode($rows);
     }
 
     public function getCart(Request $request)

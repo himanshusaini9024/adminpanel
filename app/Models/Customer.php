@@ -33,6 +33,8 @@ class Customer extends Authenticatable
         'city',
         'status',
         'cart',
+        'cart_updated_at',
+        'cart_reminder_sent_at',
         'wishlist',
         'wallet_amount',
         'date',
@@ -45,6 +47,8 @@ class Customer extends Authenticatable
     protected $casts = [
         'password' => 'hashed',
         'date' => 'datetime',
+        'cart_updated_at' => 'datetime',
+        'cart_reminder_sent_at' => 'datetime',
     ];
 
     // ✅ IMPORTANT: Address relation
