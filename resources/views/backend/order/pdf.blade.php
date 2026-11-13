@@ -92,7 +92,7 @@
     <tr>
       <td>
         <p class="box-title">Shipping Address</p>
-        <p class="line strong">{{ trim($order->first_name . ' ' . $order->last_name) }}</p>
+        <p class="line strong">{{ trim($order->first_name ) }}</p>
         @if($order->address1)<p class="line">{{ $order->address1 }}</p>@endif
         @if($order->address2)<p class="line">{{ $order->address2 }}</p>@endif
         <p class="line">{{ collect([$order->city, $order->post_code])->filter()->implode(' ') }}</p>
@@ -138,12 +138,12 @@
       <tr>
         <th style="width:4%">S.No</th>
         <th style="width:28%">Product Name</th>
-        <th style="width:8%">HSN</th>
+        <!-- <th style="width:8%">HSN</th> -->
         <th style="width:6%" class="right">Qty</th>
         <th style="width:10%" class="right">Unit Price</th>
         <th style="width:10%" class="right">Unit Discount</th>
-        <th style="width:11%" class="right">Taxable Value</th>
-        <th style="width:11%" class="right">{{ $isInterState ? 'IGST' : 'CGST+SGST' }} ({{ number_format($gstRate, 2) }}%)</th>
+        <!-- <th style="width:11%" class="right">Taxable Value</th>
+        <th style="width:11%" class="right">{{ $isInterState ? 'IGST' : 'CGST+SGST' }} ({{ number_format($gstRate, 2) }}%)</th> -->
         <th style="width:12%" class="right">Total (Incl. GST)</th>
       </tr>
     </thead>
@@ -155,21 +155,16 @@
             <span class="strong">{{ $row['name'] }}</span><br>
             <span class="small">SKU: {{ $row['sku'] }}</span>
           </td>
-          <td>{{ $row['hsn'] }}</td>
+          <!-- <td>{{ $row['hsn'] }}</td> -->
           <td class="right">{{ $row['qty'] }}</td>
           <td class="right">{{ number_format($row['unit_price'], 2) }}</td>
           <td class="right">{{ number_format($row['unit_discount'], 2) }}</td>
-          <td class="right">{{ number_format($row['taxable'], 2) }}</td>
-          <td class="right">{{ number_format($row['tax'], 2) }}</td>
+          <!-- <td class="right">{{ number_format($row['taxable'], 2) }}</td>
+          <td class="right">{{ number_format($row['tax'], 2) }}</td> -->
           <td class="right">{{ number_format($row['total'], 2) }}</td>
         </tr>
       @endforeach
-      <tr>
-        <td colspan="6" class="right strong">TOTAL</td>
-        <td class="right strong">{{ number_format($sumTaxable, 2) }}</td>
-        <td class="right strong">{{ number_format($sumTax, 2) }}</td>
-        <td class="right strong">{{ number_format((float) $order->total_amount, 2) }}</td>
-      </tr>
+      
     </tbody>
   </table>
 
