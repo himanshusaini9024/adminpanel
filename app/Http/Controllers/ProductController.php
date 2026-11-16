@@ -269,13 +269,18 @@ class ProductController extends Controller
 
         $photo = $fallbackPhoto;
         if ($request->has('photo') && is_array($request->photo)) {
+            $altBase = \Illuminate\Support\Str::slug(
+                $request->input('product_description.1.name')
+                    ?: $request->input('product_description.1.displaysetname')
+                    ?: 'product'
+            );
             $clean = [];
             foreach ($request->photo as $p) {
                 if (!empty($p['url'])) {
                     $clean[] = [
                         'url' => media_path_versioned($p['url'], strtotime(now())),
                         'url_mobile' => !empty($p['url_mobile']) ? media_path_versioned($p['url_mobile'], $request->date_added) : null,
-                        'alt' => $p['alt'] ?? null,         
+                        'alt' => $p['alt'] ?? null,
                         'type' => $p['type'] ?? null,
                         'sort_order' => $p['sort_order'] ?? null,
                         'new_size' => !empty($p['new_size']),
@@ -291,7 +296,14 @@ class ProductController extends Controller
                     if ($bo === null) return -1;
                     return (int) $ao <=> (int) $bo;
                 });
-                $photo = json_encode(array_values($clean));
+                $clean = array_values($clean);
+                foreach ($clean as $i => &$img) {
+                    $img['alt'] = trim((string) ($img['alt'] ?? '')) !== ''
+                        ? $img['alt']
+                        : $altBase . ($i + 1);
+                }
+                unset($img);
+                $photo = json_encode($clean);
             }
         }
 

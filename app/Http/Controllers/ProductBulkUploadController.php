@@ -237,7 +237,10 @@ class ProductBulkUploadController extends Controller
             'status' => ($row['status'] ?? '') ?: 'inactive',
             'is_featured' => in_array(Str::lower($row['is_featured'] ?? ''), ['1', 'yes', 'true'], true) ? 1 : 0,
             'sort_order' => ($row['sort_order'] ?? '') !== '' ? (int) $row['sort_order'] : null,
-            'photo' => $this->buildPhotos($row['images'] ?? '', ($row['image_alt'] ?? '') ?: $row['title']),
+            'photo' => $this->buildPhotos(
+                $row['images'] ?? '',
+                Str::slug(($row['image_alt'] ?? '') ?: $row['title']) ?: 'product'
+            ),
             'measurements' => json_encode(['type' => 'size_guide', 'dimensions' => []]),
         ], []];
     }
@@ -265,7 +268,7 @@ class ProductBulkUploadController extends Controller
         return array_values(array_unique(array_filter($parts, fn ($p) => $p !== '')));
     }
 
-    private function buildPhotos(string $images, string $alt): ?string
+    private function buildPhotos(string $images, string $altBase): ?string
     {
         $urls = array_values(array_filter(array_map('trim', explode('|', $images))));
         if (!$urls) {
@@ -278,7 +281,7 @@ class ProductBulkUploadController extends Controller
             $photos[] = [
                 'url' => media_path_versioned($url, $version),
                 'url_mobile' => null,
-                'alt' => $alt,
+                'alt' => $altBase . ($i + 1),
                 'type' => null,
                 'sort_order' => (string) ($i + 1),
                 'new_size' => false,
