@@ -76,8 +76,11 @@ return [
     'meta' => [
         'pixel_id' => env('META_PIXEL_ID'),
         'access_token' => env('META_ACCESS_TOKEN'),
-        // Set temporarily to see server events under Events Manager → Test events.
+        // Local/LAN only — Events Manager → Test events. Never set on production.
         'test_event_code' => env('META_TEST_EVENT_CODE'),
+        // Force overrides (optional): META_FORCE_NON_PRODUCTION=1 | META_FORCE_PRODUCTION=1
+        'force_non_production' => (bool) env('META_FORCE_NON_PRODUCTION', false),
+        'force_production' => (bool) env('META_FORCE_PRODUCTION', false),
         'graph_version' => env('META_GRAPH_VERSION', 'v23.0'),
     ],
 

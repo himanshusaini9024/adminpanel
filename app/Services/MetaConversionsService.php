@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Log;
 /**
  * Meta Conversions API (server-side events). Customer data is normalised and SHA-256 hashed
  * as Meta requires; the browser Pixel sends the same event_id so Meta counts each event once.
+ *
+ * Local / private event_source_url isolation: do not write into the live dataset unless
+ * META_TEST_EVENT_CODE is set (events then appear under Test events only).
  */
 class MetaConversionsService
 {
@@ -38,12 +41,15 @@ class MetaConversionsService
             'item_price' => (float) $item->price,
         ])->values()->all();
 
+        $eventSourceUrl = $context['event_source_url']
+            ?? rtrim((string) config('services.webpush.storefront_url'), '/') . '/checkout';
+
         $this->send([[
             'event_name' => 'Purchase',
             'event_time' => ($order->created_at ?? now())->timestamp,
             'event_id' => self::purchaseEventId($order),
             'action_source' => 'website',
-            'event_source_url' => $context['event_source_url'] ?? rtrim((string) config('services.webpush.storefront_url'), '/') . '/checkout',
+            'event_source_url' => $eventSourceUrl,
             'user_data' => $this->userData($order, $context),
             'custom_data' => [
                 'currency' => 'INR',
@@ -53,7 +59,7 @@ class MetaConversionsService
                 'contents' => $contents,
                 'num_items' => array_sum(array_column($contents, 'quantity')),
             ],
-        ]], ['order_id' => $order->id]);
+        ]], ['order_id' => $order->id, 'event_source_url' => $eventSourceUrl]);
     }
 
     public function send(array $events, array $logContext = []): bool
@@ -64,9 +70,21 @@ class MetaConversionsService
             return false;
         }
 
+        $eventSourceUrl = $logContext['event_source_url']
+            ?? ($events[0]['event_source_url'] ?? null);
+
+        $gate = $this->resolveSendGate($eventSourceUrl);
+        if (!$gate['ok']) {
+            Log::info('Meta CAPI skipped: ' . $gate['reason'], $logContext + [
+                'event_source_url' => $eventSourceUrl,
+            ]);
+
+            return false;
+        }
+
         $body = ['data' => $events, 'access_token' => config('services.meta.access_token')];
-        if ($testCode = config('services.meta.test_event_code')) {
-            $body['test_event_code'] = $testCode;
+        if (!empty($gate['test_event_code'])) {
+            $body['test_event_code'] = $gate['test_event_code'];
         }
 
         try {
@@ -80,6 +98,7 @@ class MetaConversionsService
                 Log::warning('Meta CAPI request failed', $logContext + [
                     'status' => $response->status(),
                     'error' => $response->json('error.message') ?? $response->body(),
+                    'test_mode' => !empty($gate['test_event_code']),
                 ]);
 
                 return false;
@@ -88,6 +107,7 @@ class MetaConversionsService
             Log::info('Meta CAPI sent', $logContext + [
                 'events' => array_column($events, 'event_name'),
                 'events_received' => $response->json('events_received'),
+                'test_mode' => !empty($gate['test_event_code']),
             ]);
 
             return true;
@@ -96,6 +116,79 @@ class MetaConversionsService
 
             return false;
         }
+    }
+
+    /**
+     * @return array{ok:bool,reason?:string,test_event_code?:?string}
+     */
+    private function resolveSendGate(?string $eventSourceUrl): array
+    {
+        if (config('services.meta.force_production')) {
+            return ['ok' => true, 'test_event_code' => null];
+        }
+
+        $privateSource = $this->isPrivateUrl($eventSourceUrl);
+        $appNonProd = config('services.meta.force_non_production') || $this->isAppNonProduction();
+
+        // Local storefront → production API must never write into the live dataset.
+        if (!$appNonProd && $privateSource) {
+            return [
+                'ok' => false,
+                'reason' => 'private_event_source_blocked_on_production_api',
+            ];
+        }
+
+        if ($appNonProd || $privateSource) {
+            $testCode = trim((string) config('services.meta.test_event_code'));
+            if ($testCode === '') {
+                return [
+                    'ok' => false,
+                    'reason' => 'non_production_requires_META_TEST_EVENT_CODE',
+                ];
+            }
+
+            return ['ok' => true, 'test_event_code' => $testCode];
+        }
+
+        // Production traffic: never attach a leftover META_TEST_EVENT_CODE.
+        return ['ok' => true, 'test_event_code' => null];
+    }
+
+    private function isAppNonProduction(): bool
+    {
+        if ($this->isPrivateUrl(config('app.url'))) {
+            return true;
+        }
+
+        return app()->environment(['local', 'development', 'testing']);
+    }
+
+    private function isPrivateUrl(?string $value): bool
+    {
+        if (!$value) {
+            return false;
+        }
+
+        $host = parse_url($value, PHP_URL_HOST);
+        if (!$host) {
+            return false;
+        }
+
+        $host = strtolower(rtrim($host, '.'));
+
+        if (in_array($host, ['localhost', '127.0.0.1', '::1', '0.0.0.0'], true)) {
+            return true;
+        }
+
+        if (filter_var($host, FILTER_VALIDATE_IP)) {
+            return !filter_var(
+                $host,
+                FILTER_VALIDATE_IP,
+                FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+            );
+        }
+
+        return false;
     }
 
     private function userData(Order $order, array $context): array
