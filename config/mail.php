@@ -89,8 +89,8 @@ return [
     ],
 
     'to' => [
-    'address' => env('MAIL_TO'),
-    'name' => 'Admin',
+    'address' => env('MAIL_FROM_ADDRESS','contact@dhirago.com'),
+    'name' => env('MAIL_FROM_NAME', 'Dhirago'),
 ],
 
     /*
