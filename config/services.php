@@ -129,4 +129,22 @@ return [
         'status_template_lang' => env('WHATSAPP_STATUS_TEMPLATE_LANG', 'en'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Fast2SMS (DLT OTP)
+    |--------------------------------------------------------------------------
+    | Must live in config so values work when `php artisan config:cache` is used.
+    */
+    'fast2sms' => [
+        'api_key' => env('FAST2SMS_API_KEY', ''),
+        'sender_id' => env('FAST2SMS_SENDER_ID', 'DHRAGO'),
+        'entity_id' => env('FAST2SMS_ENTITY_ID', ''),
+        'template_id' => env('FAST2SMS_OTP_TEMPLATE_ID', ''),
+        'route' => env('FAST2SMS_ROUTE', 'dlt'),
+        'template_text' => env(
+            'FAST2SMS_OTP_TEMPLATE_TEXT',
+            'Your OTP for login to DHIRAGO FASHION is {#num#}. This OTP is valid for 10 minutes. Do not share this OTP with anyone. -DHIRAGO FASHION PRIVATE LIMITED'
+        ),
+    ],
+
 ];

@@ -12,18 +12,42 @@ class Fast2SMSService
     protected string $entityId;
     protected string $templateId;
     protected string $route;
+    protected string $templateText;
 
     public function __construct()
     {
-        $this->apiKey = (string) env('FAST2SMS_API_KEY', '');
-        $this->senderId = (string) env('FAST2SMS_SENDER_ID', 'DHRAGO');
-        $this->entityId = (string) env('FAST2SMS_ENTITY_ID', '');
-        $this->templateId = (string) env('FAST2SMS_OTP_TEMPLATE_ID', '');
-        $this->route = (string) env('FAST2SMS_ROUTE', 'dlt');
+        $this->apiKey = (string) config('services.fast2sms.api_key', '');
+        $this->senderId = (string) config('services.fast2sms.sender_id', 'DHRAGO');
+        $this->entityId = (string) config('services.fast2sms.entity_id', '');
+        $this->templateId = (string) config('services.fast2sms.template_id', '');
+        $this->route = (string) config('services.fast2sms.route', 'dlt');
+        $this->templateText = (string) config(
+            'services.fast2sms.template_text',
+            'Your OTP for login to DHIRAGO FASHION is {#num#}. This OTP is valid for 10 minutes. Do not share this OTP with anyone. -DHIRAGO FASHION PRIVATE LIMITED'
+        );
     }
 
     public function sendOtp(string $number, string $otp)
     {
+        if ($this->apiKey === '') {
+            Log::error('Fast2SMS OTP failed', [
+                'reason' => 'empty_api_key',
+                'hint' => 'Set FAST2SMS_API_KEY in .env then: php artisan config:clear && php artisan config:cache',
+            ]);
+
+            return new \Illuminate\Http\Client\Response(
+                new \GuzzleHttp\Psr7\Response(
+                    401,
+                    ['Content-Type' => 'application/json'],
+                    json_encode([
+                        'return' => false,
+                        'status_code' => 412,
+                        'message' => 'Fast2SMS API key not configured',
+                    ])
+                )
+            );
+        }
+
         $number = preg_replace('/\D+/', '', $number);
         if (strlen($number) === 12 && str_starts_with($number, '91')) {
             $number = substr($number, 2);
@@ -47,6 +71,8 @@ class Fast2SMSService
                 'status' => $response->status(),
                 'body' => $body,
                 'number' => $number,
+                'api_key_set' => $this->apiKey !== '',
+                'api_key_len' => strlen($this->apiKey),
             ]);
         } else {
             Log::info('Fast2SMS OTP queued', [
@@ -79,14 +105,7 @@ class Fast2SMSService
      */
     private function buildDltManualPayload(string $number, string $otp): array
     {
-        $message = str_replace(
-            '{#num#}',
-            $otp,
-            (string) env(
-                'FAST2SMS_OTP_TEMPLATE_TEXT',
-                'Your OTP for login to DHIRAGO FASHION is {#num#}. This OTP is valid for 10 minutes. Do not share this OTP with anyone. -DHIRAGO FASHION PRIVATE LIMITED'
-            )
-        );
+        $message = str_replace('{#num#}', $otp, $this->templateText);
 
         $payload = [
             'route' => 'dlt_manual',
