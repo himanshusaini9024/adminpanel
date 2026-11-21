@@ -29,8 +29,16 @@ class Category extends Model
         return Category::with('child_cat')->where('is_parent',1)->where('status','active')->orderBy('title','ASC')->get();
     }
     public function products(){
+        return $this->belongsToMany(Product::class, 'category_product')
+            ->where('products.status', 'active')
+            ->withTimestamps();
+    }
+
+    /** Legacy: products whose primary cat_id points here. */
+    public function primaryProducts(){
         return $this->hasMany('App\Models\Product','cat_id','id')->where('status','active');
     }
+
     public function sub_products(){
         return $this->hasMany('App\Models\Product','child_cat_id','id')->where('status','active');
     }

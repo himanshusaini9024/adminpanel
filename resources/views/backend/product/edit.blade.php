@@ -345,21 +345,28 @@
                    
                     <div class="form-col">
                         <div class="form-group">
-                            <label>Category <span class="req">*</span></label>
-                            <select name="cat_id" id="cat_id" class="form-control">
-                                <option value="">-- Select Category --</option>
-                                @foreach($categories as $cat)
-                                    <option value="{{ $cat->id }}" {{ $product->cat_id == $cat->id ? 'selected' : '' }}>
+                            <label>Categories <span class="req">*</span></label>
+                            <p class="text-muted" style="font-size:12px;margin:0 0 8px;">Select one or more. Product will appear in each selected collection.</p>
+                            <div class="category-multi" style="display:flex;flex-wrap:wrap;gap:8px 16px;padding:10px 12px;border:1px solid #ddd;border-radius:6px;background:#fff;max-height:160px;overflow:auto;">
+                                @php $selectedCategoryIds = $selectedCategoryIds ?? []; @endphp
+                                @foreach(($allCategories ?? $categories) as $cat)
+                                    <label style="display:inline-flex;align-items:center;gap:6px;margin:0;font-weight:500;cursor:pointer;">
+                                        <input type="checkbox"
+                                               name="category_ids[]"
+                                               value="{{ $cat->id }}"
+                                               {{ in_array($cat->id, $selectedCategoryIds) ? 'checked' : '' }}>
                                         {{ $cat->title }}
-                                    </option>
+                                    </label>
                                 @endforeach
-                            </select>
+                            </div>
+                            {{-- Keep primary cat_id in sync for legacy columns / JS --}}
+                            <input type="hidden" name="cat_id" id="cat_id" value="{{ old('cat_id', $product->cat_id) }}">
                         </div>
                     </div>
                 </div>
 
                 <div class="form-row">
-                    <div class="form-col" id="child_cat_div" style="{{ $product->child_cat_id ? '' : 'display:none' }}">
+                    <div class="form-col" id="child_cat_div" style="display:none">
                         <div class="form-group">
                             <label>Sub Category</label>
                             <select name="child_cat_id" id="child_cat_id" class="form-control">
@@ -1109,34 +1116,13 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     });
 })();
 
-/* ─── Sub-category AJAX ──────────────────────────────────────────── */
-var child_cat_id = '{{ $product->child_cat_id }}';
-
-$('#cat_id').on('change', function () {
-    var cat_id = $(this).val();
-    if (!cat_id) { $('#child_cat_div').hide(); return; }
-
-    $.ajax({
-        url: '/admin/category/' + cat_id + '/child',
-        type: 'POST',
-        data: { _token: '{{ csrf_token() }}' },
-        success: function (response) {
-            if (typeof response !== 'object') response = $.parseJSON(response);
-            var html = "<option value=''>-- Select Sub Category --</option>";
-            if (response.status && response.data) {
-                $('#child_cat_div').show();
-                $.each(response.data, function (id, title) {
-                    html += "<option value='" + id + "'" + (child_cat_id == id ? ' selected' : '') + ">" + title + "</option>";
-                });
-            } else {
-                $('#child_cat_div').hide();
-            }
-            $('#child_cat_id').html(html);
-        }
-    });
-});
-
-if (child_cat_id) { $('#cat_id').trigger('change'); }
+/* ─── Multi-category → keep legacy cat_id as first selected ──────── */
+function syncPrimaryCategoryId() {
+    var first = $('input[name="category_ids[]"]:checked').first().val() || '';
+    $('#cat_id').val(first);
+}
+$(document).on('change', 'input[name="category_ids[]"]', syncPrimaryCategoryId);
+syncPrimaryCategoryId();
 
 /* ─── Summernote rich editors ────────────────────────────────────── */
 $(document).ready(function () {

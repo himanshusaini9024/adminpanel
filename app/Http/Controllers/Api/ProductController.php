@@ -76,6 +76,17 @@ public function index()
             'discount' => (float) $pricing['discount'],
             'quantityAvailable' => (int) $product->stock,
             'category' => $product->cat_info->title ?? '',
+            'categories' => $product->relationLoaded('categories')
+                ? $product->categories->map(fn ($c) => [
+                    'id' => $c->id,
+                    'title' => $c->title,
+                    'slug' => $c->slug,
+                ])->values()
+                : $product->categories()->get(['categories.id', 'categories.title', 'categories.slug'])->map(fn ($c) => [
+                    'id' => $c->id,
+                    'title' => $c->title,
+                    'slug' => $c->slug,
+                ])->values(),
 
             'currentPrice' => (float) $pricing['special_price'],
 

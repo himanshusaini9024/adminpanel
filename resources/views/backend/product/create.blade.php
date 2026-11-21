@@ -87,13 +87,17 @@
         </div>
 
         <div class="form-group">
-          <label for="cat_id">Category <span class="text-danger">*</span></label>
-          <select name="cat_id" id="cat_id" class="form-control">
-              <option value="">--Select any category--</option>
-              @foreach($categories as $key=>$cat_data)
-                  <option value='{{$cat_data->id}}'>{{$cat_data->title}}</option>
-              @endforeach
-          </select>
+          <label>Categories <span class="text-danger">*</span></label>
+          <p class="text-muted" style="font-size:12px;margin:0 0 8px;">Select one or more. Product will appear in each selected collection.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:8px 16px;padding:10px 12px;border:1px solid #ddd;border-radius:6px;background:#fff;">
+            @foreach(($allCategories ?? $categories) as $cat_data)
+              <label style="display:inline-flex;align-items:center;gap:6px;margin:0;font-weight:500;cursor:pointer;">
+                <input type="checkbox" name="category_ids[]" value="{{ $cat_data->id }}" class="create-category-cb">
+                {{ $cat_data->title }}
+              </label>
+            @endforeach
+          </div>
+          <input type="hidden" name="cat_id" id="cat_id" value="">
         </div>
 
         <div class="form-group d-none" id="child_cat_div">
@@ -275,40 +279,12 @@
             ]
         });
 
-        // Category AJAX
-        $('#cat_id').change(function () {
-            var cat_id = $(this).val();
-            if (cat_id != null && cat_id != '') {
-                $.ajax({
-                    url: "/admin/category/" + cat_id + "/child",
-                    data: {
-                        _token: "{{csrf_token()}}",
-                        id: cat_id
-                    },
-                    type: "POST",
-                    success: function (response) {
-                        if (typeof (response) != 'object') {
-                            response = $.parseJSON(response);
-                        }
-                        var html_option = "<option value=''>----Select sub category----</option>";
-                        if (response.status) {
-                            var data = response.data;
-                            if (response.data) {
-                                $('#child_cat_div').removeClass('d-none');
-                                $.each(data, function (id, title) {
-                                    html_option += "<option value='" + id + "'>" + title + "</option>";
-                                });
-                            }
-                        } else {
-                            $('#child_cat_div').addClass('d-none');
-                        }
-                        $('#child_cat_id').html(html_option);
-                    }
-                });
-            } else {
-                $('#child_cat_div').addClass('d-none');
-            }
-        });
+        function syncPrimaryCategoryId() {
+            var first = $('input[name="category_ids[]"]:checked').first().val() || '';
+            $('#cat_id').val(first);
+        }
+        $(document).on('change', 'input[name="category_ids[]"]', syncPrimaryCategoryId);
+        syncPrimaryCategoryId();
 
     });
 </script>

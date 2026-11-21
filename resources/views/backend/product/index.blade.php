@@ -64,10 +64,13 @@
                 <tr>
                     <td>{{$product->id}}</td>
                     <td>{{$product->title}}</td>
-                    <td>{{$product->cat_info['title']}}
-                      <sub>
-                          {{$product->sub_cat_info->title ?? ''}}
-                      </sub>
+                    <td>
+                      @if($product->categories && $product->categories->count())
+                        {{ $product->categories->pluck('title')->implode(', ') }}
+                      @else
+                        {{ $product->cat_info['title'] ?? '' }}
+                        <sub>{{ $product->sub_cat_info->title ?? '' }}</sub>
+                      @endif
                     </td>
                     <td>{{(($product->is_featured==1)? 'Yes': 'No')}}</td>
                     <td>{{ $product->sort_order ?? '—' }}</td>

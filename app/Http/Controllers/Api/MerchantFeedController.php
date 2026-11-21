@@ -12,7 +12,8 @@ class MerchantFeedController extends Controller
     public function xml(Request $request, GoogleMerchantFeedService $feed): Response
     {
         $this->authorizeToken($request);
-
+            echo "<pre>";
+            print_r($feed->items());die;
         $xml = $feed->toXml($feed->items());
 
         return response($xml, 200, [

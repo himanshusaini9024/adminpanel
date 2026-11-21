@@ -21,7 +21,8 @@ class ProductController extends Controller
     {
         $brands = Brand::get();
         $categories = Category::where('is_parent', 1)->get();
-        return view('backend.product.create', compact('categories', 'brands'));
+        $allCategories = Category::where('status', 'active')->orderBy('title')->get();
+        return view('backend.product.create', compact('categories', 'allCategories', 'brands'));
     }
 
     public function store(Request $request)
@@ -43,7 +44,9 @@ class ProductController extends Controller
             'size' => 'nullable',
             'stock' => 'required|numeric',
             'color' => 'required|string',
-            'cat_id' => 'required|exists:categories,id',
+            'cat_id' => 'nullable|exists:categories,id',
+            'category_ids' => 'required|array|min:1',
+            'category_ids.*' => 'integer|exists:categories,id',
             'brand_id' => 'nullable|exists:brands,id',
             'child_cat_id' => 'nullable|exists:categories,id',
             'is_featured' => 'sometimes|in:1',
@@ -54,6 +57,9 @@ class ProductController extends Controller
             'discount' => 'nullable|numeric',
             'size_guide_json' => 'nullable|string',
         ]);
+
+        $categoryIds = $this->normalizeCategoryIds($request);
+        $validatedData['cat_id'] = $categoryIds[0] ?? $request->input('cat_id');
 
         $slug = generateUniqueSlug($request->title, Product::class);
         $validatedData['slug'] = $slug;
@@ -76,7 +82,7 @@ class ProductController extends Controller
             $this->buildSizeGuideFromRequest($request)
         );
 
-        unset($validatedData['size_guide_json']);
+        unset($validatedData['size_guide_json'], $validatedData['category_ids']);
 
         $pricing = Product::normalizePricing(
             $validatedData['price'] ?? 0,
@@ -90,6 +96,7 @@ class ProductController extends Controller
         $product = Product::create($validatedData);
 
         if ($product) {
+            $this->syncProductCategories($product, $categoryIds);
             $this->revalidateStorefrontProduct($product->slug);
         }
 
@@ -117,6 +124,11 @@ class ProductController extends Controller
         $sizeGuide = $this->normalizeSizeGuide($original->measurements);
         $brands = Brand::get();
         $categories = Category::where('is_parent', 1)->get();
+        $allCategories = Category::where('status', 'active')->orderBy('title')->get();
+        $selectedCategoryIds = $original->categories()->pluck('categories.id')->all();
+        if (!$selectedCategoryIds) {
+            $selectedCategoryIds = array_values(array_filter([(int) $original->cat_id, (int) $original->child_cat_id]));
+        }
         $items = Product::where('id', $id)->get();
         $isCopy = true;
 
@@ -126,6 +138,8 @@ class ProductController extends Controller
             'sizeGuide',
             'brands',
             'categories',
+            'allCategories',
+            'selectedCategoryIds',
             'items',
             'isCopy'
         ));
@@ -139,10 +153,15 @@ class ProductController extends Controller
     public function edit($id)
     {
         $brands = Brand::get();
-        $product = Product::findOrFail($id);
+        $product = Product::with('categories')->findOrFail($id);
         $measurment = json_decode($product->measurements);
         $sizeGuide = $this->normalizeSizeGuide($product->measurements);
         $categories = Category::where('is_parent', 1)->get();
+        $allCategories = Category::where('status', 'active')->orderBy('title')->get();
+        $selectedCategoryIds = $product->categories->pluck('id')->all();
+        if (!$selectedCategoryIds) {
+            $selectedCategoryIds = array_values(array_filter([(int) $product->cat_id, (int) $product->child_cat_id]));
+        }
         $items = Product::where('id', $id)->get();
         $isCopy = false;
 
@@ -152,6 +171,8 @@ class ProductController extends Controller
             'sizeGuide',
             'brands',
             'categories',
+            'allCategories',
+            'selectedCategoryIds',
             'items',
             'isCopy'
         ));
@@ -161,11 +182,13 @@ class ProductController extends Controller
     {
         $product = Product::findOrFail($id);
         $this->validateFullProductForm($request);
-     
-        
+
+        $categoryIds = $this->normalizeCategoryIds($request);
         $data = $this->buildFullProductPayload($request, $product->photo);
+        $data['cat_id'] = $categoryIds[0] ?? $data['cat_id'];
 
         $product->update($data);
+        $this->syncProductCategories($product, $categoryIds);
         $this->revalidateStorefrontProduct($product->slug);
 
         return redirect()->route('product.index')
@@ -176,6 +199,7 @@ class ProductController extends Controller
     {
         $product = Product::findOrFail($id);
         $slug = $product->slug;
+        $product->categories()->detach();
         $status = $product->delete();
         if ($status) {
             $this->revalidateStorefrontProduct($slug);
@@ -191,7 +215,9 @@ class ProductController extends Controller
     {
         $this->validateFullProductForm($request);
 
+        $categoryIds = $this->normalizeCategoryIds($request);
         $data = $this->buildFullProductPayload($request, null);
+        $data['cat_id'] = $categoryIds[0] ?? $data['cat_id'];
         $title = $data['title'];
         $data['slug'] = generateUniqueSlug($title, Product::class);
 
@@ -201,17 +227,44 @@ class ProductController extends Controller
         }
 
         $product = Product::create($data);
+        $this->syncProductCategories($product, $categoryIds);
         $this->revalidateStorefrontProduct($product->slug);
 
         return redirect()->route('product.index')
             ->with('success', 'Product copied and created successfully.');
     }
 
+    private function normalizeCategoryIds(Request $request): array
+    {
+        $ids = collect($request->input('category_ids', []))
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($request->filled('cat_id')) {
+            array_unshift($ids, (int) $request->input('cat_id'));
+        }
+        if ($request->filled('child_cat_id')) {
+            $ids[] = (int) $request->input('child_cat_id');
+        }
+
+        return array_values(array_unique(array_filter($ids)));
+    }
+
+    private function syncProductCategories(Product $product, array $categoryIds): void
+    {
+        $product->categories()->sync($categoryIds);
+    }
+
     private function validateFullProductForm(Request $request): void
     {
         $request->validate([
             'product_description.1.name' => 'required|string|max:255',
-            'cat_id'                     => 'required|exists:categories,id',
+            'cat_id'                     => 'nullable|exists:categories,id',
+            'category_ids'               => 'required|array|min:1',
+            'category_ids.*'             => 'integer|exists:categories,id',
             'child_cat_id'               => 'nullable|exists:categories,id',
             'furniture_type'             => 'nullable|in:1,2,3,4,5',
             'condition'                  => 'nullable|in:default,new,hot',

@@ -113,9 +113,15 @@ class Product extends Model
         return $this->hasOne('App\Models\Category', 'id', 'child_cat_id');
     }
 
+    public function categories()
+    {
+        return $this->belongsToMany(Category::class, 'category_product')
+            ->withTimestamps();
+    }
+
     public static function getAllProduct()
     {
-        return Product::with(['cat_info', 'sub_cat_info'])
+        return Product::with(['cat_info', 'sub_cat_info', 'categories'])
             ->orderByRaw('sort_order IS NULL')
             ->orderBy('sort_order', 'asc')
             ->orderBy('id', 'desc')
@@ -140,7 +146,7 @@ class Product extends Model
 
     public static function getProductBySlug($slug)
     {
-        return Product::with(['cat_info', 'rel_prods', 'getReview'])
+        return Product::with(['cat_info', 'categories', 'rel_prods', 'getReview'])
             ->where('slug', $slug)
             ->first();
     }

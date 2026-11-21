@@ -3,34 +3,49 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class CategoryController extends Controller
 {
-
-
     public function show(Request $request, $slug)
     {
-        // ✅ Get query params
         $size = $request->query('size');
         $color = $request->query('color');
         $sort = $request->query('sort');
         $status = 'active';
 
-        // ✅ Base Query
+        $category = Category::where('slug', $slug)
+            ->where('status', $status)
+            ->first();
+
+        if (!$category) {
+            return response()->json([
+                'category' => [],
+                'catbanner' => null,
+                'catbanner_mobile' => null,
+            ])->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+        }
+
+        // Products linked via pivot (multi-category) OR legacy cat_id / child_cat_id
         $products = DB::table('products')
-            ->join('categories', 'products.cat_id', '=', 'categories.id')
-            ->where('categories.slug', $slug)
+            ->where('products.status', $status)
             ->whereNotNull('products.slug')
-            ->where('products.status' , $status)
-            ->where('categories.status' , $status)
+            ->where(function ($q) use ($category) {
+                $q->whereExists(function ($sub) use ($category) {
+                    $sub->select(DB::raw(1))
+                        ->from('category_product')
+                        ->whereColumn('category_product.product_id', 'products.id')
+                        ->where('category_product.category_id', $category->id);
+                })
+                ->orWhere('products.cat_id', $category->id)
+                ->orWhere('products.child_cat_id', $category->id);
+            })
             ->select(
                 'products.id',
                 'products.title as name',
                 'products.slug',
-                'categories.photo as banner',
-                'categories.photo_mobile as banner_mobile',
                 'products.cat_id',
                 'products.sku',
                 'products.price',
@@ -41,44 +56,32 @@ class CategoryController extends Controller
                 'products.color',
                 'products.photo',
                 'products.sort_order'
-            );
+            )
+            ->distinct();
 
-        // ✅ FILTER: Size
         if ($size) {
             $products->where('products.size', 'LIKE', "%$size%");
         }
 
-        // ✅ FILTER: Color
         if ($color) {
             $products->where('products.color', $color);
         }
 
-        // ✅ SORTING
         if ($sort === 'low') {
             $products->orderBy('products.price', 'asc');
         } elseif ($sort === 'high') {
             $products->orderBy('products.price', 'desc');
         } else {
-            // Manual catalog order from admin (nulls last), then newest
             $products->orderByRaw('products.sort_order IS NULL')
                 ->orderBy('products.sort_order', 'asc')
                 ->orderBy('products.id', 'desc');
         }
 
-        // ✅ GET DATA
         $result = $products->get();
-
-        // ✅ FORMAT RESPONSE
         $formatted = [];
-        $catbanner = null;
-        $catbannerMobile = null;
 
         foreach ($result as $item) {
             $images = json_decode($item->photo ?? '[]', true);
-                   if (!$catbanner) {
-        $catbanner = $item->banner;
-        $catbannerMobile = $item->banner_mobile ?? null;
-    }
 
             if (!is_array($images)) {
                 $images = [];
@@ -105,6 +108,7 @@ class CategoryController extends Controller
                 'sku' => $item->sku,
                 'slug' => $item->slug,
                 'cat_id' => $item->cat_id,
+                'category' => $category->title,
                 'price' => (float) $pricing['price'],
                 'mrp' => (float) $pricing['price'],
                 'special_price' => (float) $pricing['special_price'],
@@ -120,8 +124,8 @@ class CategoryController extends Controller
 
         return response()->json([
             'category' => $formatted,
-            'catbanner' => $catbanner,
-            'catbanner_mobile' => $catbannerMobile,
+            'catbanner' => $category->photo,
+            'catbanner_mobile' => $category->photo_mobile,
         ])->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
     }
 }

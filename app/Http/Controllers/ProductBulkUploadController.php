@@ -99,8 +99,16 @@ class ProductBulkUploadController extends Controller
         $usedSlugs = [];
         DB::transaction(function () use (&$payloads, &$usedSlugs) {
             foreach ($payloads as $data) {
+                $categoryIds = $data['_category_ids'] ?? array_values(array_filter([
+                    (int) ($data['cat_id'] ?? 0),
+                    (int) ($data['child_cat_id'] ?? 0),
+                ]));
+                unset($data['_category_ids']);
                 $data['slug'] = $this->uniqueSlug($data['title'], $usedSlugs);
-                Product::create($data);
+                $product = Product::create($data);
+                if ($categoryIds) {
+                    $product->categories()->sync($categoryIds);
+                }
             }
         });
 
@@ -219,11 +227,31 @@ class ProductBulkUploadController extends Controller
 
         $pricing = Product::normalizePricing($row['price'], $row['discount'] ?? null, $row['special_price'] ?? null);
 
+        $categoryIds = array_values(array_unique(array_filter([
+            $category->id,
+            $childCategory?->id,
+        ])));
+
+        // Optional extra categories: categories column as title|title|...
+        if (!empty($row['categories'])) {
+            foreach ($this->splitList($row['categories']) as $extra) {
+                $found = $this->findCategory($categories, $extra, null)
+                    ?: $categories->first(fn ($c) => Str::lower($c->title) === Str::lower($extra)
+                        || Str::lower((string) $c->slug) === Str::lower($extra)
+                        || (string) $c->id === $extra);
+                if ($found) {
+                    $categoryIds[] = $found->id;
+                }
+            }
+            $categoryIds = array_values(array_unique($categoryIds));
+        }
+
         return [[
             'title' => $row['title'],
             'sku' => $row['sku'],
             'cat_id' => $category->id,
             'child_cat_id' => $childCategory?->id,
+            '_category_ids' => $categoryIds,
             'brand_id' => $brand?->id,
             'summary' => $row['summary'],
             'description' => format_product_description_html($row['description'] ?? ''),
