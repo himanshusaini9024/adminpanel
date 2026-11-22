@@ -13,6 +13,7 @@ class Order extends Model
         'sub_total',
         'quantity',
         'delivery_charge',
+        'cod_charge',
         'status',
         'total_amount',
         'first_name',

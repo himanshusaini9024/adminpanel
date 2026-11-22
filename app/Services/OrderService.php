@@ -77,7 +77,14 @@ class OrderService
             $firstDiscount = $pricing['applied'] ? (float) $pricing['discount'] : 0.0;
             $couponAmount = $couponResult['applied'] ? (float) $couponResult['discount'] : 0.0;
             $totalDiscount = round($firstDiscount + $couponAmount, 2);
-            $payableTotal = round(max(0, $computedSubtotal - $totalDiscount), 2);
+
+            // Fixed COD fee — stored separately and added to total_amount.
+            $paymentMethod = strtolower((string) ($data['payment_method'] ?? ''));
+            $codCharge = $paymentMethod === 'cod'
+                ? round((float) config('dhirago.cod_charge', 200), 2)
+                : 0.0;
+
+            $payableTotal = round(max(0, $computedSubtotal - $totalDiscount) + $codCharge, 2);
 
             $order = Order::create([
                 'customer_id'         => $customerId,
@@ -85,6 +92,7 @@ class OrderService
                 'razorpay_order_id'   => $data['razorpay_order_id'] ?? null,
                 'sub_total'           => $pricing['sub_total'],
                 'total_amount'        => $payableTotal,
+                'cod_charge'          => $codCharge,
                 'coupon'              => $totalDiscount > 0 ? $totalDiscount : ($data['coupon'] ?? null),
                 'coupon_code'         => $couponResult['applied'] ? $couponResult['code'] : null,
                 'quantity'            => $data['quantity'] ?? 0,

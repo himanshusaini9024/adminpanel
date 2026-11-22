@@ -28,6 +28,7 @@ class CustomerAddressController extends Controller
         $data = $request->validate([
             'name' => 'required',
             'phone' => 'required',
+            'email' => 'nullable|email',
             'address1' => 'required',
             'address2' => 'nullable',
             'city' => 'required',
@@ -36,22 +37,6 @@ class CustomerAddressController extends Controller
             'type' => 'required'
         ]);
 
-        // 👉 first address = default
-        // $isDefault = $customer->addresses()->count() === 0;
-
-        // $address = CustomerAddress::create([
-        //     'customer_id' => $customer->customer_id,
-        //     'name' => $request->name,
-        //     'phone' => $request->phone,
-        //     'address' => $request->address,
-        //     'city' => $request->city,
-        //     'state' => $request->state,
-        //     'pincode' => $request->pincode,
-        //     'is_default' => $isDefault,
-        // ]);
-
-        // return response()->json($address);
-
           if ($request->is_default) {
             CustomerAddress::where('customer_id', $customer->customer_id)
                 ->update(['is_default' => false]);
@@ -59,6 +44,7 @@ class CustomerAddressController extends Controller
 
         $data['customer_id'] = $customer->customer_id;
         $data['is_default'] = $request->is_default ?? false;
+        $data['email'] = $data['email'] ?? null;
 
         return CustomerAddress::create($data);
     }
@@ -75,6 +61,7 @@ class CustomerAddressController extends Controller
         $data = $request->validate([
             'name' => 'required',
             'phone' => 'required',
+            'email' => 'nullable|email',
             'address1' => 'required',
             'address2' => 'nullable',
             'city' => 'required',
@@ -89,6 +76,7 @@ class CustomerAddressController extends Controller
             $data['is_default'] = true;
         }
 
+        $data['email'] = $data['email'] ?? null;
         $address->update($data);
 
         return response()->json($address->fresh());
