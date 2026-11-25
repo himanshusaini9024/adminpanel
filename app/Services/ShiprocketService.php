@@ -162,11 +162,14 @@ class ShiprocketService
             "order_items" => $items,
 
             "payment_method" =>
-            $order->payment_method == "cod"
+            strtolower((string) $order->payment_method) === "cod"
                 ? "COD"
                 : "Prepaid",
 
-            "sub_total" => $order->total_amount,
+            // Collectible amount for COD (includes products − discount + COD fee).
+            "sub_total" => (float) $order->total_amount,
+            "shipping_charges" => (float) ($order->cod_charge ?? 0),
+            "total_discount" => (float) ($order->coupon ?? 0),
 
             "length" => 25,
             "breadth" => 20,

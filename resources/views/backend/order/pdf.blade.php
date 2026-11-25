@@ -37,6 +37,7 @@
   $isInterState = $buyerStateCode === '' || $buyerStateCode !== $sellerStateCode;
 
   $discountTotal = (float) ($order->coupon ?? 0);
+  $codCharge = (float) ($order->cod_charge ?? 0);
   $grossItems = (float) $items->sum(fn ($i) => (float) $i->price * (int) $i->quantity);
   $itemCount = max(1, (int) $items->sum('quantity'));
 
@@ -168,7 +169,35 @@
     </tbody>
   </table>
 
-  <p class="net">NET TOTAL : Rs. {{ number_format((float) $order->total_amount, 2) }}</p>
+  <table style="width:280px;margin-left:auto;margin-top:10px;font-size:10px;">
+    <tr>
+      <td style="padding:2px 0;">Items Total</td>
+      <td class="right" style="padding:2px 0;">Rs. {{ number_format($grossItems, 2) }}</td>
+    </tr>
+    @if($discountTotal > 0)
+    <tr>
+      <td style="padding:2px 0;">Discount / Coupon</td>
+      <td class="right" style="padding:2px 0;">- Rs. {{ number_format($discountTotal, 2) }}</td>
+    </tr>
+    @endif
+    @if($codCharge > 0)
+    <tr>
+      <td style="padding:2px 0;">COD Charges</td>
+      <td class="right" style="padding:2px 0;">Rs. {{ number_format($codCharge, 2) }}</td>
+    </tr>
+    @endif
+    <tr>
+      <td style="padding:6px 0 0;font-weight:bold;font-size:12px;border-top:1px solid #000;">NET TOTAL</td>
+      <td class="right" style="padding:6px 0 0;font-weight:bold;font-size:12px;border-top:1px solid #000;">Rs. {{ number_format((float) $order->total_amount, 2) }}</td>
+    </tr>
+    @if($codCharge > 0)
+    <tr>
+      <td colspan="2" style="padding:4px 0 0;font-size:9px;color:#333;">
+        Amount to collect (COD): Rs. {{ number_format((float) $order->total_amount, 2) }}
+      </td>
+    </tr>
+    @endif
+  </table>
   <p class="note">Whether tax is payable under reverse charge - No</p>
 
   <div class="sign">
