@@ -53,12 +53,12 @@
                     <td>{{$order->id}}</td>
                     <td>
                         {{$order->order_number}}
-                        @if(($order->order_source ?? 'website') !== 'website')
+                        <!-- @if(($order->order_source ?? 'website') !== 'website')
                           <br><span class="badge badge-info">{{ $order->source_label }}</span>
                         @endif
                         @if($order->isAwaitingBankPayment())
                           <br><span class="badge badge-warning">Awaiting bank payment</span>
-                        @endif
+                        @endif -->
                     </td>
                     <td>{{$order->first_name}}</td>
                     <td>{{$order->email}}</td>
