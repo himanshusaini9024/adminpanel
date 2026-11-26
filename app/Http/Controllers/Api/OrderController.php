@@ -8,6 +8,7 @@ use App\Models\OrderItem;
 use App\Models\Order;
 use App\Services\ShiprocketService;
 use App\Services\OrderService;
+use App\Services\PaidOrderService;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -44,20 +45,56 @@ class OrderController extends Controller
         return response()->json($orders);
     }
 
-    public function store(Request $request, OrderService $orderService)
+    public function store(Request $request, OrderService $orderService, PaidOrderService $paidOrders)
     {
         try {
-            $order = $orderService->createOrder(Arr::except($request->all(), ['meta']));
-            OrderPlacedJob::dispatch($order->id);
+            $created = true;
 
-            // Runs after the response is sent, so Meta's API never slows down checkout.
-            MetaPurchaseJob::dispatchAfterResponse($order->id, [
-                'ip' => $request->header('CF-Connecting-IP') ?: $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'fbp' => $request->input('meta.fbp'),
-                'fbc' => $request->input('meta.fbc'),
-                'event_source_url' => $request->input('meta.event_source_url'),
-            ]);
+            if ($request->input('payment_status') === 'paid') {
+                $razorpayOrderId = (string) $request->input('razorpay_order_id');
+                $paymentId = $request->input('payment_id');
+
+                if (
+                    $razorpayOrderId === '' ||
+                    !$paidOrders->isPaid(
+                        $razorpayOrderId,
+                        $paymentId,
+                        $request->input('razorpay_signature')
+                    )
+                ) {
+                    Log::warning('Paid order rejected: payment not confirmed by Razorpay', [
+                        'razorpay_order_id' => $razorpayOrderId ?: null,
+                        'payment_id' => $paymentId,
+                    ]);
+
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'We could not confirm your payment yet. If money was deducted, your order will be confirmed automatically within a few minutes.',
+                    ], 422);
+                }
+
+                [$order, $created] = $paidOrders->complete(
+                    $razorpayOrderId,
+                    $paymentId,
+                    Arr::except($request->all(), ['razorpay_signature', 'meta']),
+                    'browser'
+                );
+            } else {
+                $order = $orderService->createOrder(Arr::except($request->all(), ['meta']));
+            }
+
+            if ($created) {
+                OrderPlacedJob::dispatch($order->id);
+
+                // Runs after the response is sent, so Meta's API never slows down checkout.
+                MetaPurchaseJob::dispatchAfterResponse($order->id, [
+                    'ip' => $request->header('CF-Connecting-IP') ?: $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'fbp' => $request->input('meta.fbp'),
+                    'fbc' => $request->input('meta.fbc'),
+                    'event_source_url' => $request->input('meta.event_source_url'),
+                ]);
+            }
 
             return response()->json([
                 'success' => true,
@@ -65,6 +102,8 @@ class OrderController extends Controller
                 'order'   => $order,
             ]);
         } catch (\InvalidArgumentException $e) {
+            $this->flagPaidFailure($request, $paidOrders, $e);
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -75,11 +114,19 @@ class OrderController extends Controller
                 'line'    => $e->getLine(),
                 'file'    => $e->getFile(),
             ]);
+            $this->flagPaidFailure($request, $paidOrders, $e);
 
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 500);
+        }
+    }
+
+    private function flagPaidFailure(Request $request, PaidOrderService $paidOrders, \Exception $e): void
+    {
+        if ($request->input('payment_status') === 'paid' && $request->filled('razorpay_order_id')) {
+            $paidOrders->markFailed((string) $request->input('razorpay_order_id'), $e->getMessage());
         }
     }
 

@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use Razorpay\Api\Api;
 use App\Http\Controllers\Controller;
+use App\Models\PendingCheckout;
 use App\Services\CouponDiscountService;
 use App\Services\FirstOrderDiscountService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 
 class PaymentController extends Controller
@@ -24,6 +26,8 @@ class PaymentController extends Controller
             'items.*.price' => 'nullable|numeric|min:0',
             'items.*.quantity' => 'nullable|integer|min:0',
             'coupon_code' => 'nullable|string|max:50',
+            'checkout' => 'nullable|array',
+            'checkout.items' => 'required_with:checkout|array|min:1',
         ]);
 
         $subTotal = isset($data['items']) && count($data['items'])
@@ -55,7 +59,23 @@ class PaymentController extends Controller
             'receipt' => 'ORD_' . time(),
             'amount' => (int) round($payable * 100),
             'currency' => 'INR',
+            'notes' => [
+                'customer_id' => (string) $customerId,
+            ],
         ]);
+
+        $checkout = $request->input('checkout');
+        if (is_array($checkout) && !empty($checkout['items'])) {
+            PendingCheckout::create([
+                'razorpay_order_id' => $order['id'],
+                'customer_id' => $customerId,
+                'amount' => $payable,
+                'payload' => array_merge(
+                    Arr::except($checkout, ['payment_status', 'payment_id', 'razorpay_order_id', 'razorpay_signature']),
+                    ['customer_id' => $customerId]
+                ),
+            ]);
+        }
 
         return response()->json([
             'id' => $order['id'],

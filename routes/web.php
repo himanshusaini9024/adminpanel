@@ -240,6 +240,8 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin']], function 
     Route::post('manual-order', [App\Http\Controllers\ManualOrderController::class, 'store'])->name('manual-order.store');
     Route::post('order/{id}/mark-paid', [App\Http\Controllers\ManualOrderController::class, 'markPaid'])->name('order.mark-paid');
     Route::get('order/{id}/payment-proof', [App\Http\Controllers\ManualOrderController::class, 'paymentProof'])->name('order.payment-proof');
+    Route::get('pending-payments', [App\Http\Controllers\PendingPaymentController::class, 'index'])->name('pending-payments.index');
+    Route::post('pending-payments/retry', [App\Http\Controllers\PendingPaymentController::class, 'retry'])->name('pending-payments.retry');
     Route::resource('order', OrderController::class);
     Route::resource('shipping', App\Http\Controllers\ShippingController::class);
     Route::resource('coupon', CouponController::class);
