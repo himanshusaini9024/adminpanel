@@ -49,6 +49,7 @@ Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/firebase-login', [AuthController::class, 'firebaseLogin']);
 Route::any('/order-track/webhook', [WebhookController::class, 'handle']);
+Route::post('/razorpay/webhook', [\App\Http\Controllers\Api\RazorpayWebhookController::class, 'handle']);
 Route::post('/orders/track', [OrderController::class, 'track']);
 
 

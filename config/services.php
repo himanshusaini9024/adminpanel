@@ -70,6 +70,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Razorpay
+    |--------------------------------------------------------------------------
+    | webhook_secret = from Razorpay Dashboard → Webhooks (order.paid, payment.captured)
+    */
+    'razorpay' => [
+        'key_id' => env('RAZORPAY_KEY_ID'),
+        'key_secret' => env('RAZORPAY_KEY_SECRET'),
+        'webhook_secret' => env('RAZORPAY_WEBHOOK_SECRET'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | WhatsApp Cloud API
     |--------------------------------------------------------------------------
     */

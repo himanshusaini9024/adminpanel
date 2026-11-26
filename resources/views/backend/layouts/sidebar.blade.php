@@ -56,6 +56,12 @@
             <span>Orders</span>
         </a>
     </li>
+    <li class="nav-item">
+        <a class="nav-link" href="{{route('pending-payments.index')}}">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>Payments w/o order</span>
+        </a>
+    </li>
     @endmodule
     @endif
 

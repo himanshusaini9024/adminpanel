@@ -67,11 +67,20 @@ class OrderService
             );
 
             // If client sent a coupon code that is invalid/already used, fail the order.
+            // Paid orders still go through — the customer has already paid.
             $requestedCode = $this->couponDiscount->normalizeCode($data['coupon_code'] ?? null);
             if ($requestedCode && !$couponResult['applied']) {
-                throw new \InvalidArgumentException(
-                    $couponResult['message'] ?: 'Invalid coupon code'
-                );
+                if (($data['payment_status'] ?? null) !== 'paid') {
+                    throw new \InvalidArgumentException(
+                        $couponResult['message'] ?: 'Invalid coupon code'
+                    );
+                }
+
+                Log::warning('Paid order: coupon no longer valid, order created without it', [
+                    'coupon_code' => $requestedCode,
+                    'razorpay_order_id' => $data['razorpay_order_id'] ?? null,
+                    'reason' => $couponResult['message'] ?? null,
+                ]);
             }
 
             $firstDiscount = $pricing['applied'] ? (float) $pricing['discount'] : 0.0;
